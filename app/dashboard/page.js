@@ -32,6 +32,16 @@ export default async function DashboardPage() {
     console.error("Error fetching sources:", error);
   }
 
+  // Fetch user profile for plan and email
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan, email")
+    .eq("id", user.id)
+    .single();
+
+  const userPlan = profile?.plan || "free";
+  const userEmail = profile?.email || user.email || "";
+
   // Fetch review stats per source
   const sourceIds = (sources || []).map((s) => s.id);
   let reviewStats = {};
@@ -76,19 +86,52 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Your Sources</h1>
-          <p className="text-muted mt-1">Manage your connected review profiles.</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Your Sources</h1>
+            <p className="text-muted mt-1">Manage your connected review profiles.</p>
+          </div>
+          {userPlan === "pro" && (
+            <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white rounded-full uppercase tracking-wide">Pro</span>
+          )}
+          {userPlan === "agency" && (
+            <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full uppercase tracking-wide">Agency</span>
+          )}
         </div>
-        <Link
-          href="/dashboard/add-source"
-          className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-hover shadow-sm transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Add new source
-        </Link>
+        <div className="flex items-center gap-3">
+          {userPlan === "free" && (
+            <a
+              href={`${process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL}?checkout[email]=${encodeURIComponent(userEmail)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-xl hover:opacity-90 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              Upgrade to Pro
+            </a>
+          )}
+          {(userPlan === "pro" || userPlan === "agency") && (
+            <a
+              href="https://reviewbridge.lemonsqueezy.com/billing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted border border-border px-3 py-2 rounded-lg hover:bg-muted-bg hover:text-foreground transition-colors"
+            >
+              Manage subscription
+            </a>
+          )}
+          <Link
+            href="/dashboard/add-source"
+            className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-primary-hover shadow-sm transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add new source
+          </Link>
+        </div>
       </div>
 
       {/* Stats bar */}

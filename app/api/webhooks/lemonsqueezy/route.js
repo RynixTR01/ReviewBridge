@@ -1,12 +1,10 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-// Note: Webhooks run server-to-server without a user session.
-// To bypass RLS and update the users table, you MUST use the 
-// Supabase Service Role Key (not the anon key).
+// Webhooks run server-to-server without a user session.
+// Use Supabase Service Role Key to bypass RLS.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request) {
@@ -18,7 +16,7 @@ export async function POST(request) {
     if (!secret) {
       console.warn("Lemon Squeezy secret not configured. Skipping signature verification.");
     } else {
-      // Verify signature
+      // Verify HMAC signature
       const hmac = crypto.createHmac("sha256", secret);
       const digest = Buffer.from(hmac.update(rawBody).digest("hex"), "utf8");
       const signatureBuffer = Buffer.from(signature, "utf8");
@@ -30,46 +28,69 @@ export async function POST(request) {
 
     const payload = JSON.parse(rawBody);
     const eventName = payload.meta.event_name;
-    const customData = payload.meta.custom_data || {};
+
+    // Get user email from webhook payload
+    const userEmail = payload.data?.attributes?.user_email;
     
-    // Lemon Squeezy passes custom_data.user_id if provided during checkout
+    // Also check custom_data for user_id as fallback
+    const customData = payload.meta?.custom_data || {};
     const userId = customData.user_id;
 
-    if (!userId) {
-      return Response.json({ error: "No user_id found in custom_data" }, { status: 400 });
+    if (!userEmail && !userId) {
+      console.error("Webhook: No user_email or user_id found in payload");
+      return Response.json({ error: "No user identifier in payload" }, { status: 400 });
     }
 
+    // Determine the plan from the product/variant name
     let plan = "free";
 
-    // Handle subscription events
-    if (eventName === "subscription_created" || eventName === "subscription_updated") {
-      // Map product/variant IDs to your plans. For this example, we infer from payload
-      const variantName = (payload.data?.attributes?.first_order_item?.variant_name || "").toLowerCase();
-      
-      if (variantName.includes("agency")) {
-        plan = "agency";
-      } else if (variantName.includes("pro")) {
-        plan = "pro";
-      } else {
-        // Fallback or explicit evaluation based on product ID
-        plan = "pro"; 
-      }
-    } else if (eventName === "subscription_cancelled" || eventName === "subscription_expired") {
-      plan = "free";
+    const productName = (payload.data?.attributes?.product_name || "").toLowerCase();
+    const variantName = (payload.data?.attributes?.variant_name || "").toLowerCase();
+    const firstOrderVariant = (payload.data?.attributes?.first_order_item?.variant_name || "").toLowerCase();
+    const combined = `${productName} ${variantName} ${firstOrderVariant}`;
+
+    function detectPlan(text) {
+      if (text.includes("agency")) return "agency";
+      if (text.includes("pro")) return "pro";
+      return null;
     }
 
-    // Update user plan in Supabase
-    const { error } = await supabaseAdmin
-      .from("users")
-      .update({ plan })
-      .eq("id", userId);
+    if (
+      eventName === "subscription_created" ||
+      eventName === "subscription_updated" ||
+      eventName === "subscription_plan_changed"
+    ) {
+      plan = detectPlan(combined) || "pro";
+    } else if (eventName === "subscription_cancelled") {
+      // Keep current plan until it actually expires
+      // Lemon Squeezy will send subscription_expired when the period ends
+      console.log("Subscription cancelled — keeping plan until expiry");
+      return Response.json({ success: true, message: "Cancellation noted, plan unchanged until expiry" });
+    } else if (eventName === "subscription_expired") {
+      plan = "free";
+    } else {
+      console.log("Unhandled webhook event:", eventName);
+      return Response.json({ success: true, message: "Event not handled" });
+    }
+
+    // Find and update user by email or user_id
+    let updateQuery = supabaseAdmin.from("users").update({ plan });
+
+    if (userId) {
+      updateQuery = updateQuery.eq("id", userId);
+    } else if (userEmail) {
+      updateQuery = updateQuery.eq("email", userEmail);
+    }
+
+    const { error } = await updateQuery;
 
     if (error) {
       console.error("Webhook update error:", error);
       return Response.json({ error: "Failed to update user plan" }, { status: 500 });
     }
 
-    return Response.json({ success: true, plan });
+    console.log(`Webhook processed: ${eventName} → plan=${plan} for ${userEmail || userId}`);
+    return Response.json({ success: true, event: eventName, plan });
 
   } catch (err) {
     console.error("Webhook exception:", err);
