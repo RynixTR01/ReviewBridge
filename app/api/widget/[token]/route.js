@@ -32,13 +32,29 @@ export async function GET(request, { params }) {
     });
   }
 
+  // Determine user plan dynamically
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan")
+    .eq("id", widget.user_id)
+    .single();
+    
+  const userPlan = profile?.plan || "free";
+  const reviewLimit = userPlan === 'free' 
+    ? Math.min(widget.max_reviews, 10) 
+    : widget.max_reviews;
+    
+  console.log("max_reviews setting:", widget.max_reviews);
+  console.log("userPlan:", userPlan);
+  console.log("reviewLimit:", reviewLimit);
+
   // 2. Fetch recent reviews for this source
   const { data: reviews, error: reviewsError } = await supabase
     .from("reviews")
     .select("*")
     .eq("source_id", widget.source_id)
     .order("reviewed_at", { ascending: false })
-    .limit(widget.max_reviews);
+    .limit(reviewLimit);
 
   if (reviewsError) {
     console.error("Widget API: Error fetching reviews", reviewsError);

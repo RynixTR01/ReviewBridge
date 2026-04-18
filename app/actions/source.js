@@ -34,7 +34,9 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Not authenticated" };
   }
 
-  console.log("Current user:", user?.id);
+  console.log("=== ADD SOURCE CALLED ===");
+  console.log("User ID:", user?.id);
+  console.log("Raw count query result will follow...");
 
   // Check plan limits
   const { data: profile } = await supabase
@@ -45,13 +47,17 @@ export async function addSourceAction(prevState, formData) {
 
   const plan = profile?.plan || "free";
   const limits = PLAN_LIMITS[plan];
+  console.log("Resolved Plan:", plan, "| Limits:", limits);
 
-  const { count } = await supabase
+  const { count, error: sourcesFetchError } = await supabase
     .from("sources")
-    .select("*", { count: "exact", head: true })
+    .select("*", { count: "exact", head: true, cache: "no-store" })
     .eq("user_id", user.id);
 
+  console.log("Source Count:", count, "| Error:", sourcesFetchError);
+
   if (count >= limits.maxSources) {
+    console.log("FAILING: Max Sources hit!", count, ">=", limits.maxSources);
     return { error: `Your ${plan} plan is limited to ${limits.maxSources} source(s). Please upgrade to add more.` };
   }
 
@@ -59,6 +65,10 @@ export async function addSourceAction(prevState, formData) {
   let businessName = "Unknown Business";
   let reviewsList = [];
 
+  console.log("ROUTING DEBUGS:");
+  console.log("Token Present?", !!process.env.APIFY_API_TOKEN);
+  console.log("Platform:", platform);
+  
   try {
     // Note: Apify actor applies to Google Maps.
     // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
@@ -92,6 +102,11 @@ export async function addSourceAction(prevState, formData) {
         console.log("Apify raw response:", rawText.substring(0, 500));
         
         const data = JSON.parse(rawText);
+        
+        console.log("Apify response length:", data.length);
+        console.log("First item keys:", Object.keys(data[0] || {}));
+        console.log("First item:", JSON.stringify(data[0], null, 2));
+
         businessName = data.length > 0 && data[0].title ? data[0].title : "Google Business";
         reviewsList = data.map(item => ({
           reviewer_name: item.name,
@@ -143,7 +158,7 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 3. Insert reviews
-  const reviewsToInsert = reviewsList.slice(0, 10).map((r) => ({
+  const reviewsToInsert = reviewsList.slice(0, 20).map((r) => ({
     source_id: newSource.id,
     reviewer_name: r.reviewer_name || "Anonymous",
     rating: r.rating || 5,
