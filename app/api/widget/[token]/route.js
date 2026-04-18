@@ -66,8 +66,11 @@ export async function GET(request, { params }) {
   if (isSmartFilterOn && userPlan !== "free") {
     reviewsList = reviewsList.filter(r => {
       if (!r.body) return false;
-      const cleaned = r.body.trim().replace(/^"+|"+$/g, '').trim();
-      return cleaned.length > 2;
+      const cleaned = r.body
+        .trim()
+        .replace(/^["\s]+|["\s]+$/g, '')
+        .trim();
+      return cleaned.length > 3;
     });
   }
   reviewsList = reviewsList.slice(0, reviewLimit);
