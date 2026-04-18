@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-function StarIcon({ className }) {
+function StarIcon({ className, filled = true }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="currentColor">
+    <svg className={className} viewBox="0 0 20 20" fill={filled ? "currentColor" : "none"} stroke={filled ? "none" : "currentColor"} strokeWidth={filled ? 0 : 1.5}>
       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
     </svg>
   );
@@ -53,7 +53,7 @@ function HeroSection() {
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-border text-sm text-muted mb-6 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-          Trusted by 500+ businesses
+          Google &amp; Trustpilot reviews on your website
         </div>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight max-w-4xl mx-auto">
@@ -89,23 +89,61 @@ function HeroSection() {
           </a>
         </div>
 
-        {/* Fake widget preview */}
+        <p className="mt-4 text-sm text-muted/70">No credit card required · Cancel anytime · Setup in 2 minutes</p>
+
+        {/* Widget preview - Bella Cafe Istanbul */}
         <div className="mt-16 max-w-lg mx-auto glass-card p-6 text-left">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm">JD</div>
+          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center text-white font-bold text-sm">BC</div>
             <div>
-              <p className="font-semibold text-foreground text-sm">Jane Doe</p>
-              <div className="flex gap-0.5">
-                {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-4 h-4 text-amber-400" />)}
+              <p className="font-semibold text-foreground">Bella Cafe Istanbul</p>
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
+                </div>
+                <span className="text-xs text-muted">4.8 · Google Reviews</span>
               </div>
             </div>
-            <span className="ml-auto text-xs text-muted">2 days ago</span>
           </div>
-          <p className="text-sm text-muted leading-relaxed">
-            &quot;Absolutely amazing service! They went above and beyond to help us. 
-            Would recommend to anyone looking for a reliable partner.&quot;
-          </p>
-          <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+
+          {/* Review 1 */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-foreground text-sm">Mehmet Y.</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
+              </div>
+              <span className="ml-auto text-xs text-muted">2 gün önce</span>
+            </div>
+            <p className="text-sm text-muted leading-relaxed">&quot;Harika bir mekan, kesinlikle tavsiye ederim!&quot;</p>
+          </div>
+
+          {/* Review 2 */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-foreground text-sm">Sarah K.</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
+              </div>
+              <span className="ml-auto text-xs text-muted">1 week ago</span>
+            </div>
+            <p className="text-sm text-muted leading-relaxed">&quot;Amazing coffee and great service. Will come back!&quot;</p>
+          </div>
+
+          {/* Review 3 */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-foreground text-sm">Ayşe D.</span>
+              <div className="flex gap-0.5">
+                {[1,2,3,4].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
+                <StarIcon className="w-3.5 h-3.5 text-gray-300" />
+              </div>
+              <span className="ml-auto text-xs text-muted">2 hafta önce</span>
+            </div>
+            <p className="text-sm text-muted leading-relaxed">&quot;Çok güzel atmosfer, fiyatlar makul.&quot;</p>
+          </div>
+
+          <div className="pt-3 border-t border-border flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <svg className="w-4 h-4 text-[#4285f4]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -217,7 +255,7 @@ function PricingSection() {
         "Remove ReviewBridge badge",
         "Priority sync",
       ],
-      cta: "Start Pro Trial",
+      cta: "Start Pro",
       popular: true,
     },
     {
@@ -233,7 +271,7 @@ function PricingSection() {
         "Manage multiple sites",
         "Priority support",
       ],
-      cta: "Start Agency Trial",
+      cta: "Start Agency",
       popular: false,
     },
   ];
@@ -302,15 +340,71 @@ function PricingSection() {
   );
 }
 
+function FAQSection() {
+  const faqs = [
+    {
+      q: "Which platforms are supported?",
+      a: "Currently Google Maps and Trustpilot. More platforms coming soon.",
+    },
+    {
+      q: "How often are reviews updated?",
+      a: "Reviews sync automatically. You can also manually sync anytime from your dashboard.",
+    },
+    {
+      q: "Will it work on any website?",
+      a: "Yes. Works on WordPress, Shopify, Wix, Webflow, or any custom website.",
+    },
+    {
+      q: "Do I need technical knowledge?",
+      a: "No. Just copy one line of code and paste it where you want reviews to appear.",
+    },
+    {
+      q: "Can I cancel anytime?",
+      a: "Yes. No contracts, no commitments. Cancel anytime from your dashboard.",
+    },
+  ];
+
+  return (
+    <section id="faq" className="py-20 md:py-28 bg-white">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Frequently asked questions
+          </h2>
+        </div>
+
+        <div className="space-y-6">
+          {faqs.map((faq) => (
+            <div key={faq.q} className="p-6 rounded-2xl bg-muted-bg/50 border border-border/50">
+              <h3 className="text-lg font-semibold text-foreground mb-2">{faq.q}</h3>
+              <p className="text-muted leading-relaxed">{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="py-12 bg-foreground text-white/70">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2 font-bold text-white text-lg">
-          <span className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">R</span>
-          ReviewBridge
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2 font-bold text-white text-lg">
+            <span className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">R</span>
+            ReviewBridge
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <a href="mailto:support@reviewbridge.app" className="hover:text-white transition-colors">support@reviewbridge.app</a>
+          </div>
         </div>
-        <p className="text-sm">&copy; {new Date().getFullYear()} ReviewBridge. All rights reserved.</p>
+        <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm">
+          <p>&copy; {new Date().getFullYear()} ReviewBridge. All rights reserved.</p>
+        </div>
       </div>
     </footer>
   );
@@ -324,6 +418,7 @@ export default function LandingPage() {
         <HeroSection />
         <HowItWorksSection />
         <PricingSection />
+        <FAQSection />
       </main>
       <Footer />
     </>
