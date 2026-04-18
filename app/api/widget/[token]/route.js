@@ -60,12 +60,17 @@ export async function GET(request, { params }) {
     console.error("Widget API: Error fetching reviews", reviewsError);
   }
 
-  // Smart Filter: remove empty/short reviews, then slice to requested count
+  console.log("isSmartFilterOn:", isSmartFilterOn);
+  console.log("widget.smart_filter:", widget.smart_filter);
+  
   let reviewsList = fetchedReviews || [];
+  
   // Step 2: Clean body text for all reviews:
   reviewsList = reviewsList.map(r => ({
     ...r,
-    body: r.body ? r.body.trim().replace(/^"+|"+$/g, '').trim() : null
+    body: (r.body && r.body !== 'null' && r.body !== '"null"') 
+      ? r.body.trim().replace(/^"+|"+$/g, '').trim() 
+      : null
   }));
 
   // Step 3: Apply smart filter if enabled:
@@ -102,7 +107,7 @@ export async function GET(request, { params }) {
           ${createStars(r.rating)}
         </div>
       </div>
-      <p style="font-size:14px;line-height:1.5;color:${text};opacity:0.9;margin:0;">"${r.body}"</p>
+      ${r.body ? '<p style="font-size:14px;line-height:1.5;color:' + text + ';opacity:0.9;margin:0;">' + r.body + '</p>' : ''}
     </div>
   `).join('');
 
