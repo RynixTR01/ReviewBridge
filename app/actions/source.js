@@ -60,6 +60,8 @@ export async function addSourceAction(prevState, formData) {
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
+  
+  const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
 
 
   try {
@@ -74,7 +76,7 @@ export async function addSourceAction(prevState, formData) {
 
         const payloadObj = {
           startUrls: [{ url: mapsUrl }],
-          maxReviews: 20,
+          maxReviews: reviewsToFetch,
           reviewsSort: 'newest',
           language: 'tr'
         };
@@ -145,7 +147,7 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 3. Insert reviews
-  const reviewsToInsert = reviewsList.slice(0, 20).map((r) => ({
+  const reviewsToInsert = reviewsList.slice(0, reviewsToFetch).map((r) => ({
     source_id: newSource.id,
     reviewer_name: r.reviewer_name || "Anonymous",
     rating: r.rating || 5,

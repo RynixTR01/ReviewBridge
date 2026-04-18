@@ -7,8 +7,9 @@ export async function updateWidgetAction(formData) {
   const widgetId = formData.get("widgetId");
   const theme = formData.get("theme");
   let maxReviews = parseInt(formData.get("maxReviews"), 10);
-  let showBadge = formData.get("showBadge") === "true";
-  let smartFilter = formData.get("smartFilter") === "true";
+  let showBadge = formData.get("showBadge") === "true" || formData.get("showBadge") === true;
+  const rawSmartFilter = formData.get("smartFilter");
+  let smartFilter = rawSmartFilter === "on" || rawSmartFilter === "true" || rawSmartFilter === true;
 
   if (!widgetId) {
     return { error: "Widget ID is required" };

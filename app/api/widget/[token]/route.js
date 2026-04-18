@@ -62,6 +62,7 @@ export async function GET(request, { params }) {
 
   // Smart Filter: remove empty/short reviews, then slice to requested count
   let reviewsList = fetchedReviews || [];
+  
   if (isSmartFilterOn && userPlan !== "free") {
     reviewsList = reviewsList.filter(r =>
       r.body &&
