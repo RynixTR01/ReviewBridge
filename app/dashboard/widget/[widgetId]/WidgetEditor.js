@@ -7,6 +7,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
   const [theme, setTheme] = useState(widget.theme);
   const [maxReviews, setMaxReviews] = useState(widget.max_reviews);
   const [showBadge, setShowBadge] = useState(widget.show_badge);
+  const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
   const [isPending, startTransition] = useTransition();
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -37,6 +38,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
       // If free plan, force badge true on server, but we also handle here
       const finalShowBadge = planLimits.canRemoveBadge ? showBadge : true;
       formData.append("showBadge", finalShowBadge.toString());
+      formData.append("smartFilter", (planLimits.canSelectTheme ? smartFilter : false).toString());
 
       const result = await updateWidgetAction(formData);
       if (result?.error) {
@@ -54,7 +56,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
   const previewCardBg = theme === "dark" ? "#374151" : "#ffffff";
   const previewBorder = theme === "minimal" ? "none" : theme === "dark" ? "1px solid #4b5563" : "1px solid #e5e7eb";
 
-  const displayedReviews = reviews.slice(0, maxReviews);
+  const displayedReviews = reviews
+    .filter(r => smartFilter && planLimits.canSelectTheme ? (r.body && r.body.trim() !== "") : true)
+    .slice(0, maxReviews);
 
   return (
     <div className="grid lg:grid-cols-[1fr_400px] gap-8">
@@ -129,6 +133,32 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             
             {!planLimits.canRemoveBadge && (
                 <p className="text-xs text-amber-600 -mt-2">Upgrade to Pro to remove the branding badge.</p>
+            )}
+
+            {/* Smart Filter */}
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-semibold text-foreground">Smart Filter</label>
+                  {!planLimits.canSelectTheme && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">PRO</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted">Hide star-only ratings. Show only reviews with written feedback.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={planLimits.canSelectTheme ? smartFilter : false} 
+                  onChange={(e) => setSmartFilter(e.target.checked)}
+                  disabled={!planLimits.canSelectTheme}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-muted-bg peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary opacity-90 disabled:opacity-50"></div>
+              </label>
+            </div>
+            {!planLimits.canSelectTheme && (
+              <p className="text-xs text-amber-600 -mt-2">Upgrade to Pro to use Smart Filter.</p>
             )}
 
             <div className="pt-4 border-t border-border flex items-center justify-between">

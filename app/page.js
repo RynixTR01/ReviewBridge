@@ -253,6 +253,7 @@ function PricingSection() {
         "Unlimited reviews",
         "All themes unlocked",
         "Remove ReviewBridge badge",
+        "Smart Filter \u2014 show only written reviews",
         "Priority sync",
       ],
       cta: "Start Pro",

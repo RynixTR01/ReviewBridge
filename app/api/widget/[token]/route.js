@@ -45,10 +45,19 @@ export async function GET(request, { params }) {
     : widget.max_reviews;
     
   // 2. Fetch recent reviews for this source
-  const { data: reviews, error: reviewsError } = await supabase
+  let reviewsQuery = supabase
     .from("reviews")
     .select("*")
-    .eq("source_id", widget.source_id)
+    .eq("source_id", widget.source_id);
+
+  // Smart Filter: only show reviews with text for pro/agency
+  if (widget.smart_filter && userPlan !== "free") {
+    reviewsQuery = reviewsQuery
+      .not("body", "is", null)
+      .neq("body", "");
+  }
+
+  const { data: reviews, error: reviewsError } = await reviewsQuery
     .order("reviewed_at", { ascending: false })
     .limit(reviewLimit);
 

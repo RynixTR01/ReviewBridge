@@ -124,6 +124,7 @@ create table public.widgets (
   theme text not null default 'light' check (theme in ('light', 'dark', 'minimal')),
   max_reviews integer not null default 5,
   show_badge boolean not null default true,
+  smart_filter boolean not null default false,
   embed_token text not null unique,
   created_at timestamptz not null default now()
 );

@@ -8,6 +8,7 @@ export async function updateWidgetAction(formData) {
   const theme = formData.get("theme");
   let maxReviews = parseInt(formData.get("maxReviews"), 10);
   let showBadge = formData.get("showBadge") === "true";
+  let smartFilter = formData.get("smartFilter") === "true";
 
   if (!widgetId) {
     return { error: "Widget ID is required" };
@@ -33,6 +34,7 @@ export async function updateWidgetAction(formData) {
 
   if (userPlan === 'free') {
     showBadge = true;
+    smartFilter = false;
   }
 
   // Update widget settings
@@ -42,6 +44,7 @@ export async function updateWidgetAction(formData) {
       theme: theme || "light",
       max_reviews: isNaN(maxReviews) ? 5 : maxReviews,
       show_badge: showBadge,
+      smart_filter: smartFilter,
     })
     .eq("id", widgetId)
     .eq("user_id", user.id); // Ensure user owns the widget
