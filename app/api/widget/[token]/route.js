@@ -91,7 +91,7 @@ export async function GET(request, { params }) {
     (function() {
       var containerId = 'reviewbridge-embed-${token}';
       
-      // Allow users to specify a container `<div id="reviewbridge-embed"></div>`
+      // Allow users to specify a container: <div id="reviewbridge-embed"></div>
       var target = document.getElementById('reviewbridge-embed') || document.currentScript?.parentNode || document.body;
       
       var wrapper = document.createElement('div');
