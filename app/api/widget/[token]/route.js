@@ -62,16 +62,15 @@ export async function GET(request, { params }) {
 
   // Smart Filter: remove empty/short reviews, then slice to requested count
   let reviewsList = fetchedReviews || [];
-  
+  // Step 2: Clean body text for all reviews:
+  reviewsList = reviewsList.map(r => ({
+    ...r,
+    body: r.body ? r.body.trim().replace(/^"+|"+$/g, '').trim() : null
+  }));
+
+  // Step 3: Apply smart filter if enabled:
   if (isSmartFilterOn && userPlan !== "free") {
-    reviewsList = reviewsList.filter(r => {
-      if (!r.body) return false;
-      const cleaned = r.body
-        .trim()
-        .replace(/^["\s]+|["\s]+$/g, '')
-        .trim();
-      return cleaned.length > 3;
-    });
+    reviewsList = reviewsList.filter(r => r.body && r.body.length > 2);
   }
   reviewsList = reviewsList.slice(0, reviewLimit);
 

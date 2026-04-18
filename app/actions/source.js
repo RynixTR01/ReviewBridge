@@ -99,7 +99,7 @@ export async function addSourceAction(prevState, formData) {
         reviewsList = data.map(item => ({
           reviewer_name: item.name,
           rating: item.stars,
-          body: item.text,
+          body: item.text ? item.text.trim().replace(/^"+|"+$/g, '').trim() : null,
           reviewed_at: item.publishedAtDate
         }));
       } else if (platform === "trustpilot") {
