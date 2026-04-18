@@ -44,30 +44,25 @@ export async function GET(request, { params }) {
     ? Math.min(widget.max_reviews, 10) 
     : widget.max_reviews;
     
-  // 2. Fetch recent reviews for this source
-  let reviewsQuery = supabase
+  const isSmartFilterOn = widget.smart_filter === true || widget.smart_filter === "true";
+
+  // 2. Fetch reviews — grab extra rows so smart filter still fills the count
+  const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
+
+  const { data: fetchedReviews, error: reviewsError } = await supabase
     .from("reviews")
     .select("*")
-    .eq("source_id", widget.source_id);
-
-  // Smart Filter: only show reviews with text for pro/agency
-  if (widget.smart_filter && userPlan !== "free") {
-    reviewsQuery = reviewsQuery
-      .not("body", "is", null)
-      .neq("body", "");
-  }
-
-  const { data: fetchedReviews, error: reviewsError } = await reviewsQuery
+    .eq("source_id", widget.source_id)
     .order("reviewed_at", { ascending: false })
-    .limit(reviewLimit);
+    .limit(fetchLimit);
 
   if (reviewsError) {
     console.error("Widget API: Error fetching reviews", reviewsError);
   }
 
-  // Additional JS-side filtering for smart_filter edge cases
+  // Smart Filter: remove empty/short reviews, then slice to requested count
   let reviewsList = fetchedReviews || [];
-  if (widget.smart_filter && userPlan !== "free") {
+  if (isSmartFilterOn && userPlan !== "free") {
     reviewsList = reviewsList.filter(r =>
       r.body &&
       r.body.trim() !== "" &&
@@ -75,6 +70,7 @@ export async function GET(request, { params }) {
       r.body.trim().length > 2
     );
   }
+  reviewsList = reviewsList.slice(0, reviewLimit);
 
   // Theme settings
   const bg = widget.theme === "dark" ? "#1f2937" : widget.theme === "minimal" ? "transparent" : "#ffffff";
