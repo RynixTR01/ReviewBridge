@@ -57,7 +57,7 @@ export async function GET(request, { params }) {
       .neq("body", "");
   }
 
-  const { data: reviews, error: reviewsError } = await reviewsQuery
+  const { data: fetchedReviews, error: reviewsError } = await reviewsQuery
     .order("reviewed_at", { ascending: false })
     .limit(reviewLimit);
 
@@ -65,7 +65,16 @@ export async function GET(request, { params }) {
     console.error("Widget API: Error fetching reviews", reviewsError);
   }
 
-  const reviewsList = reviews || [];
+  // Additional JS-side filtering for smart_filter edge cases
+  let reviewsList = fetchedReviews || [];
+  if (widget.smart_filter && userPlan !== "free") {
+    reviewsList = reviewsList.filter(r =>
+      r.body &&
+      r.body.trim() !== "" &&
+      r.body.trim() !== '""' &&
+      r.body.trim().length > 2
+    );
+  }
 
   // Theme settings
   const bg = widget.theme === "dark" ? "#1f2937" : widget.theme === "minimal" ? "transparent" : "#ffffff";
@@ -130,7 +139,7 @@ export async function GET(request, { params }) {
   return new Response(js, {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=86400",
+      "Cache-Control": "public, max-age=0, must-revalidate",
     },
   });
 }
