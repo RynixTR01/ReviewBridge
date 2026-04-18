@@ -35,6 +35,8 @@ create table public.sources (
   platform text not null check (platform in ('google', 'trustpilot')),
   place_id text not null,
   business_name text not null,
+  total_score numeric,
+  total_reviews_count integer,
   last_synced_at timestamptz,
   created_at timestamptz not null default now()
 );

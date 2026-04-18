@@ -95,7 +95,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
-            <p className="text-xs text-muted mt-1">Total Reviews</p>
+            <p className="text-xs text-muted mt-1">Synced Reviews</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{sources.length}</p>
@@ -140,8 +140,9 @@ export default async function DashboardPage() {
             const widgetId = source.widgets?.[0]?.id;
             const isGoogle = source.platform === "google";
             const stats = reviewStats[source.id];
-            const reviewCount = stats?.count || 0;
-            const avgRating = stats?.avg || "0.0";
+            const syncedCount = stats?.count || 0;
+            const googleScore = source.total_score;
+            const googleTotal = source.total_reviews_count;
             
             return (
               <div key={source.id} className="bg-white border border-border shadow-sm rounded-xl p-5 transition-all hover:shadow-md hover:border-primary/20">
@@ -168,21 +169,28 @@ export default async function DashboardPage() {
                           {source.platform}
                         </span>
 
-                        {/* Review count badge */}
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                          {reviewCount} reviews
-                        </span>
-
-                        {/* Average rating */}
-                        {reviewCount > 0 && (
+                        {/* Google rating badge */}
+                        {googleScore && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">
                             <StarIcon className="w-3.5 h-3.5 text-amber-400" />
-                            {avgRating}
+                            {Number(googleScore).toFixed(1)}
                           </span>
                         )}
+
+                        {/* Google total reviews */}
+                        {googleTotal && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-muted-bg rounded-md">
+                            {googleTotal} Google reviews
+                          </span>
+                        )}
+
+                        {/* Synced count */}
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-green-50 text-green-700 rounded-md">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {syncedCount} synced
+                        </span>
 
                         <span className="text-xs text-muted">
                           Synced: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString() : "Never"}

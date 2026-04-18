@@ -64,6 +64,8 @@ export async function addSourceAction(prevState, formData) {
   // 1. Call SerpAPI (or similar service) to verify and fetch reviews
   let businessName = "Unknown Business";
   let reviewsList = [];
+  let totalScore = null;
+  let totalReviewsCount = null;
 
   console.log("ROUTING DEBUGS:");
   console.log("Token Present?", !!process.env.APIFY_API_TOKEN);
@@ -108,6 +110,8 @@ export async function addSourceAction(prevState, formData) {
         console.log("First item:", JSON.stringify(data[0], null, 2));
 
         businessName = data.length > 0 && data[0].title ? data[0].title : "Google Business";
+        totalScore = data[0]?.totalScore || null;
+        totalReviewsCount = data[0]?.reviewsCount || null;
         reviewsList = data.map(item => ({
           reviewer_name: item.name,
           rating: item.stars,
@@ -146,6 +150,8 @@ export async function addSourceAction(prevState, formData) {
       platform,
       place_id: identifier,
       business_name: businessName,
+      total_score: totalScore,
+      total_reviews_count: totalReviewsCount,
       last_synced_at: new Date().toISOString(),
     })
     .select()
