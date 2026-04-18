@@ -90,7 +90,7 @@ export async function GET(request, { params }) {
   const emptyState = '<p style="text-align:center;color:' + text + ';opacity:0.6;font-family:system-ui,sans-serif;">No reviews found.</p>';
   const reviewsContent = reviewsList.length === 0 ? emptyState : reviewsHtml;
   
-  const widgetHtml = '<div class="rb-reviews-list">' + reviewsContent + '</div>' + badgeHtml;
+  const widgetHtml = '<meta charset="UTF-8">\n<div class="rb-reviews-list">' + reviewsContent + '</div>' + badgeHtml;
   const scriptPadding = widget.theme === 'minimal' ? '0' : '20px';
 
   const js = [
@@ -108,7 +108,7 @@ export async function GET(request, { params }) {
 
   return new Response(js, {
     headers: {
-      "Content-Type": "application/javascript",
+      "Content-Type": "application/javascript; charset=utf-8",
       "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=86400",
     },
   });
