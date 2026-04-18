@@ -64,12 +64,11 @@ export async function GET(request, { params }) {
   let reviewsList = fetchedReviews || [];
   
   if (isSmartFilterOn && userPlan !== "free") {
-    reviewsList = reviewsList.filter(r =>
-      r.body &&
-      r.body.trim() !== "" &&
-      r.body.trim() !== '""' &&
-      r.body.trim().length > 2
-    );
+    reviewsList = reviewsList.filter(r => {
+      if (!r.body) return false;
+      const cleaned = r.body.trim().replace(/^"+|"+$/g, '').trim();
+      return cleaned.length > 2;
+    });
   }
   reviewsList = reviewsList.slice(0, reviewLimit);
 
