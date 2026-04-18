@@ -101,11 +101,7 @@ export async function addSourceAction(prevState, formData) {
           rating: item.stars,
           body: item.text,
           reviewed_at: item.publishedAtDate
-        })).filter(r => {
-          if (!r.body) return false;
-          const cleaned = r.body.trim().replace(/^["\s]+|["\s]+$/g, '').trim();
-          return cleaned.length > 3;
-        });
+        }));
       } else if (platform === "trustpilot") {
         businessName = "Trustpilot Business";
         reviewsList = [
