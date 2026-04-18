@@ -58,9 +58,24 @@ export default async function DashboardLayout({ children }) {
             </span>
           </div>
           {plan === "free" && (
-            <button className="w-full mt-3 bg-white border border-border text-foreground hover:border-primary hover:text-primary transition-colors text-sm font-semibold py-2 rounded-lg shadow-sm">
+            <a
+              href={`${process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL}?checkout[email]=${encodeURIComponent(user.email)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-3 block text-center bg-white border border-border text-foreground hover:border-primary hover:text-primary transition-colors text-sm font-semibold py-2 rounded-lg shadow-sm"
+            >
               Upgrade to Pro
-            </button>
+            </a>
+          )}
+          {(plan === "pro" || plan === "agency") && (
+            <a
+              href="https://app.lemonsqueezy.com/my-orders"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-3 block text-center text-xs text-muted hover:text-foreground transition-colors"
+            >
+              Manage subscription →
+            </a>
           )}
         </div>
         

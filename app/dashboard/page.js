@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { PLAN_LIMITS } from "@/lib/plans";
 import SyncButton from "./SyncButton";
+import DeleteSourceButton from "./DeleteSourceButton";
 
 export const metadata = {
   title: "Dashboard — ReviewBridge",
@@ -24,7 +26,7 @@ export default async function DashboardPage() {
   // Fetch sources and their corresponding widget
   const { data: sources, error } = await supabase
     .from("sources")
-    .select("*, widgets(id)")
+    .select("*, widgets(id, theme)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -156,6 +158,29 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Plan usage indicator */}
+      {hasSources && (() => {
+        const planLimits = PLAN_LIMITS[userPlan];
+        const maxSources = planLimits.maxSources;
+        const used = sources.length;
+        const isUnlimited = maxSources === Infinity;
+        const pct = isUnlimited ? Math.min((used / 10) * 100, 100) : (used / maxSources) * 100;
+        const barColor = pct >= 100 ? "bg-red-500" : userPlan === "free" ? "bg-amber-500" : "bg-primary";
+        return (
+          <div className="bg-white border border-border rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">
+                {used} / {isUnlimited ? "∞" : maxSources} sources used
+              </span>
+              <span className="text-xs text-muted capitalize">{userPlan} plan</span>
+            </div>
+            <div className="w-full h-2 bg-muted-bg rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+            </div>
+          </div>
+        );
+      })()}
+
       {!hasSources ? (
         <div className="bg-white border text-center border-border border-dashed rounded-2xl p-16">
           <div className="w-20 h-20 bg-primary-light rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -182,6 +207,7 @@ export default async function DashboardPage() {
         <div className="grid gap-4">
           {sources.map((source) => {
             const widgetId = source.widgets?.[0]?.id;
+            const widgetTheme = source.widgets?.[0]?.theme || "light";
             const isGoogle = source.platform === "google";
             const stats = reviewStats[source.id];
             const syncedCount = stats?.count || 0;
@@ -239,6 +265,13 @@ export default async function DashboardPage() {
                         <span className="text-xs text-muted">
                           Synced: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString() : "Never"}
                         </span>
+
+                        {/* Theme badge */}
+                        {widgetId && (
+                          <span className="text-xs font-medium text-muted px-2 py-0.5 bg-muted-bg rounded-md capitalize">
+                            {widgetTheme} theme
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -246,6 +279,9 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Sync now button */}
                     <SyncButton sourceId={source.id} />
+
+                    {/* Delete source */}
+                    <DeleteSourceButton sourceId={source.id} />
 
                     {/* Customize widget */}
                     {widgetId && (
