@@ -44,10 +44,6 @@ export async function GET(request, { params }) {
     ? Math.min(widget.max_reviews, 10) 
     : widget.max_reviews;
     
-  console.log("max_reviews setting:", widget.max_reviews);
-  console.log("userPlan:", userPlan);
-  console.log("reviewLimit:", reviewLimit);
-
   // 2. Fetch recent reviews for this source
   const { data: reviews, error: reviewsError } = await supabase
     .from("reviews")

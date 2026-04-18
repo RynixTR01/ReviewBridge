@@ -34,9 +34,6 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Not authenticated" };
   }
 
-  console.log("=== ADD SOURCE CALLED ===");
-  console.log("User ID:", user?.id);
-  console.log("Raw count query result will follow...");
 
   // Check plan limits
   const { data: profile } = await supabase
@@ -47,17 +44,14 @@ export async function addSourceAction(prevState, formData) {
 
   const plan = profile?.plan || "free";
   const limits = PLAN_LIMITS[plan];
-  console.log("Resolved Plan:", plan, "| Limits:", limits);
 
   const { count, error: sourcesFetchError } = await supabase
     .from("sources")
     .select("*", { count: "exact", head: true, cache: "no-store" })
     .eq("user_id", user.id);
 
-  console.log("Source Count:", count, "| Error:", sourcesFetchError);
 
   if (count >= limits.maxSources) {
-    console.log("FAILING: Max Sources hit!", count, ">=", limits.maxSources);
     return { error: `Your ${plan} plan is limited to ${limits.maxSources} source(s). Please upgrade to add more.` };
   }
 
@@ -67,20 +61,16 @@ export async function addSourceAction(prevState, formData) {
   let totalScore = null;
   let totalReviewsCount = null;
 
-  console.log("ROUTING DEBUGS:");
-  console.log("Token Present?", !!process.env.APIFY_API_TOKEN);
-  console.log("Platform:", platform);
-  
+
   try {
     // Note: Apify actor applies to Google Maps.
     // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
     if (process.env.APIFY_API_TOKEN) {
       if (platform === "google") {
-        console.log("Place ID being sent:", identifier);
-        
         const mapsUrl = formData.get("identifier").includes('google.com/maps') 
           ? formData.get("identifier")  
           : `https://www.google.com/maps/place/?q=place_id:${identifier}`;
+
 
         const payloadObj = {
           startUrls: [{ url: mapsUrl }],
@@ -88,7 +78,6 @@ export async function addSourceAction(prevState, formData) {
           reviewsSort: 'newest',
           language: 'tr'
         };
-        console.log("Full Apify payload:", JSON.stringify(payloadObj));
 
         const response = await fetch(
           `https://api.apify.com/v2/acts/Xb8osYTtOjlsgI6k9/run-sync-get-dataset-items?token=${process.env.APIFY_API_TOKEN}`,
@@ -99,15 +88,8 @@ export async function addSourceAction(prevState, formData) {
           }
         );
         
-        console.log("Apify raw response status:", response.status);
         const rawText = await response.text();
-        console.log("Apify raw response:", rawText.substring(0, 500));
-        
         const data = JSON.parse(rawText);
-        
-        console.log("Apify response length:", data.length);
-        console.log("First item keys:", Object.keys(data[0] || {}));
-        console.log("First item:", JSON.stringify(data[0], null, 2));
 
         businessName = data.length > 0 && data[0].title ? data[0].title : "Google Business";
         totalScore = data[0]?.totalScore || null;
@@ -159,7 +141,6 @@ export async function addSourceAction(prevState, formData) {
 
   if (sourceError) {
     console.error("Insert source error:", sourceError);
-    console.log("Supabase insert error:", JSON.stringify(sourceError, null, 2));
     return { error: "Failed to save the source to database." };
   }
 
