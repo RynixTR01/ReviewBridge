@@ -87,27 +87,24 @@ export async function GET(request, { params }) {
   ` : '';
 
   // Return a self-contained JS that mounts the UI
-  const js = `
-    (function() {
-      var containerId = 'reviewbridge-embed-${token}';
-      
-      // Allow users to specify a container: <div id="reviewbridge-embed"></div>
-      var target = document.getElementById('reviewbridge-embed') || document.currentScript?.parentNode || document.body;
-      
-      var wrapper = document.createElement('div');
-      wrapper.id = containerId;
-      wrapper.style.cssText = "width:100%;max-width:500px;margin:0 auto;background:${bg};border-radius:16px;padding:${widget.theme === 'minimal' ? '0' : '20px'};box-sizing:border-box;";
-      
-      wrapper.innerHTML = \`
-        <div class="rb-reviews-list">
-          ${reviewsList.length === 0 ? \`<p style="text-align:center;color:${text};opacity:0.6;font-family:system-ui,sans-serif;">No reviews found.</p>\` : reviewsHtml}
-        </div>
-        ${badgeHtml}
-      \`;
-      
-      target.appendChild(wrapper);
-    })();
-  `;
+  const emptyState = '<p style="text-align:center;color:' + text + ';opacity:0.6;font-family:system-ui,sans-serif;">No reviews found.</p>';
+  const reviewsContent = reviewsList.length === 0 ? emptyState : reviewsHtml;
+  
+  const widgetHtml = '<div class="rb-reviews-list">' + reviewsContent + '</div>' + badgeHtml;
+  const scriptPadding = widget.theme === 'minimal' ? '0' : '20px';
+
+  const js = [
+    '(function() {',
+    '  var containerId = "reviewbridge-embed-' + token + '";',
+    '  // Allow users to specify a container: <div id="reviewbridge-embed"></div>',
+    '  var target = document.getElementById("reviewbridge-embed") || document.currentScript?.parentNode || document.body;',
+    '  var wrapper = document.createElement("div");',
+    '  wrapper.id = containerId;',
+    '  wrapper.style.cssText = "width:100%;max-width:500px;margin:0 auto;background:' + bg + ';border-radius:16px;padding:' + scriptPadding + ';box-sizing:border-box;";',
+    '  wrapper.innerHTML = ' + JSON.stringify(widgetHtml) + ';',
+    '  target.appendChild(wrapper);',
+    '})();'
+  ].join('\n');
 
   return new Response(js, {
     headers: {

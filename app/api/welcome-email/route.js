@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request) {
   try {
     const { email, fullName } = await request.json();
@@ -10,9 +8,11 @@ export async function POST(request) {
       return Response.json({ error: "Email is required" }, { status: 400 });
     }
 
-    const firstName = fullName ? fullName.split(" ")[0] : "there";
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const firstName = fullName ? fullName.split(" ")[0] : "there";
 
-    await resend.emails.send({
+      await resend.emails.send({
       from: "ReviewBridge <onboarding@resend.dev>",
       to: email,
       subject: "Welcome to ReviewBridge! 🎉",
@@ -43,7 +43,8 @@ export async function POST(request) {
           </p>
         </div>
       `,
-    });
+      });
+    }
 
     return Response.json({ success: true });
   } catch (err) {
