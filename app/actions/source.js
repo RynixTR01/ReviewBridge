@@ -174,7 +174,7 @@ export async function addSourceAction(prevState, formData) {
       user_plan: plan,
       source_place_id: identifier,
       source_platform: platform,
-      source_maps_url: mapsUrl,
+      source_maps_url: identifier,
     })
     .select()
     .single();
