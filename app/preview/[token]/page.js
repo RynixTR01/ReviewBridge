@@ -47,6 +47,26 @@ export default async function PreviewPage({ params }) {
   const isSmartFilterOn = widget.smart_filter === true || widget.smart_filter === "true";
   const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
 
+  // Extract place ID for review button
+  function extractPlaceId(stored) {
+    if (!stored) return null;
+    const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
+    if (chijMatch) return chijMatch[0];
+    const hexMatch = stored.match(/0x[0-9a-f]+:0x[0-9a-f]+/i);
+    if (hexMatch) return hexMatch[0];
+    return null;
+  }
+
+  const placeId = extractPlaceId(widget.source_place_id);
+  let reviewUrl = null;
+  if (widget.show_review_button && widget.source_platform === 'google' && placeId) {
+    if (placeId.startsWith('ChIJ')) {
+      reviewUrl = 'https://search.google.com/local/writereview?placeid=' + placeId;
+    } else if (placeId.includes('0x')) {
+      reviewUrl = 'https://www.google.com/maps?cid=' + placeId.split(':')[1].replace('0x', '');
+    }
+  }
+
   const { data: fetchedReviews } = await supabase
     .from("reviews")
     .select("*")
@@ -212,6 +232,29 @@ export default async function PreviewPage({ params }) {
                     )}
                   </div>
                 ))
+              )}
+
+              {widget.show_review_button && reviewUrl && (
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                  <a 
+                    href={reviewUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '10px 20px',
+                      background: '#4285f4',
+                      color: '#ffffff',
+                      borderRadius: 8,
+                      textDecoration: 'none',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      fontFamily: 'system-ui, sans-serif'
+                    }}
+                  >
+                    ⭐ Leave a review on Google
+                  </a>
+                </div>
               )}
 
               {widget.show_badge && (
