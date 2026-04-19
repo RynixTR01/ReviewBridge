@@ -17,7 +17,8 @@ export async function addSourceAction(prevState, formData) {
   }
 
   const platform = formData.get("platform");
-  const identifier = extractPlaceId(formData.get("identifier"));
+  const rawInput = formData.get("identifier");
+  const identifier = extractPlaceId(rawInput);
   
   if (!identifier) {
     return { error: "Could not extract Place ID from the URL. Please paste a valid Google Maps URL or Place ID." };
@@ -174,7 +175,7 @@ export async function addSourceAction(prevState, formData) {
       user_plan: plan,
       source_place_id: identifier,
       source_platform: platform,
-      source_maps_url: identifier,
+      source_maps_url: rawInput,
     })
     .select()
     .single();
