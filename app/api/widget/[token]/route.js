@@ -32,14 +32,8 @@ export async function GET(request, { params }) {
     });
   }
 
-  // Determine user plan dynamically
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan")
-    .eq("id", widget.user_id)
-    .single();
-    
-  const userPlan = profile?.plan || "free";
+  // Read user plan directly from widget (no separate users query needed)
+  const userPlan = widget.user_plan || "free";
   const reviewLimit = userPlan === 'free' 
     ? Math.min(widget.max_reviews, 10) 
     : widget.max_reviews;
@@ -60,9 +54,6 @@ export async function GET(request, { params }) {
     console.error("Widget API: Error fetching reviews", reviewsError);
   }
 
-  console.log("isSmartFilterOn:", isSmartFilterOn);
-  console.log("widget.smart_filter:", widget.smart_filter);
-  
   let reviewsList = fetchedReviews || [];
   
   // Step 2: Clean body text for all reviews:

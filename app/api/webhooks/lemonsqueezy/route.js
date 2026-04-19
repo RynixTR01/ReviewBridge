@@ -82,11 +82,15 @@ export async function POST(request) {
       updateQuery = updateQuery.eq("email", userEmail);
     }
 
-    const { error } = await updateQuery;
+    const { data: updatedUser, error } = await updateQuery.select('id').single();
 
     if (error) {
       console.error("Webhook update error:", error);
       return Response.json({ error: "Failed to update user plan" }, { status: 500 });
+    }
+
+    if (updatedUser?.id) {
+      await supabaseAdmin.from("widgets").update({ user_plan: plan }).eq("user_id", updatedUser.id);
     }
 
     console.log(`Webhook processed: ${eventName} → plan=${plan} for ${userEmail || userId}`);

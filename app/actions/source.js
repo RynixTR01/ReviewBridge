@@ -171,6 +171,7 @@ export async function addSourceAction(prevState, formData) {
       max_reviews: 5,
       show_badge: true,
       embed_token: embedToken,
+      user_plan: plan,
     })
     .select()
     .single();
