@@ -58,6 +58,7 @@ export default function SidebarNav() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
               isActive
                 ? "bg-primary-light text-primary"
