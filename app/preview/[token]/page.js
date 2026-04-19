@@ -47,25 +47,11 @@ export default async function PreviewPage({ params }) {
   const isSmartFilterOn = widget.smart_filter === true || widget.smart_filter === "true";
   const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
 
-  // Extract place ID for review button
-  function extractPlaceId(stored) {
-    if (!stored) return null;
-    const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
-    if (chijMatch) return chijMatch[0];
-    const hexMatch = stored.match(/0x[0-9a-f]+:0x[0-9a-f]+/i);
-    if (hexMatch) return hexMatch[0];
-    return null;
-  }
-
-  const placeId = extractPlaceId(widget.source_place_id);
-  let reviewUrl = null;
-  if (widget.show_review_button && widget.source_platform === 'google' && placeId) {
-    if (placeId.startsWith('ChIJ')) {
-      reviewUrl = 'https://www.google.com/maps/place/?q=place_id:' + placeId + '&hl=tr#action=write-review';
-    } else if (placeId.includes('0x')) {
-      reviewUrl = 'https://www.google.com/maps?cid=' + parseInt(placeId.split(':')[1], 16) + '&hl=tr#action=write-review';
-    }
-  }
+  const reviewUrl = (widget.show_review_button && 
+                     widget.source_platform === 'google' &&
+                     widget.source_maps_url)
+    ? widget.source_maps_url
+    : null;
 
   const { data: fetchedReviews } = await supabase
     .from("reviews")

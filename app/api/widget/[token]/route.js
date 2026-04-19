@@ -105,34 +105,11 @@ export async function GET(request, { params }) {
   // Leave a Review button
   let reviewButtonHtml = '';
   
-  const rawPlaceId = widget.source_place_id;
-  function extractPlaceId(stored) {
-    if (!stored) return null;
-    
-    // Already a ChIJ Place ID
-    const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
-    if (chijMatch) return chijMatch[0];
-    
-    // Hex format like 0x14b962a376c98c01:0xfa2199fd0384afb9
-    // This IS a valid place identifier, use it directly for the review URL
-    const hexMatch = stored.match(/0x[0-9a-f]+:0x[0-9a-f]+/i);
-    if (hexMatch) return hexMatch[0];
-    
-    return null;
-  }
-  
-  const placeId = extractPlaceId(rawPlaceId);
-  
-  // Build review URL based on format
-  let reviewUrl = null;
-  if (widget.show_review_button && widget.source_platform === 'google' && placeId) {
-    if (placeId.startsWith('ChIJ')) {
-      reviewUrl = 'https://www.google.com/maps/place/?q=place_id:' + placeId + '&hl=tr#action=write-review';
-    } else if (placeId.includes('0x')) {
-      // For hex CID format, use the maps search URL with the CID
-      reviewUrl = 'https://www.google.com/maps?cid=' + parseInt(placeId.split(':')[1], 16) + '&hl=tr#action=write-review';
-    }
-  }
+  const reviewUrl = (widget.show_review_button && 
+                     widget.source_platform === 'google' &&
+                     widget.source_maps_url)
+    ? widget.source_maps_url
+    : null;
 
   if (reviewUrl) {
     reviewButtonHtml = `
