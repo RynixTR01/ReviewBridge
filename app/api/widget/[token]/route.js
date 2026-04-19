@@ -104,32 +104,27 @@ export async function GET(request, { params }) {
 
   // Leave a Review button
   let reviewButtonHtml = '';
-  if (widget.show_review_button) {
-    // Fetch source for place_id
-    const { data: source } = await supabase
-      .from("sources")
-      .select("place_id, platform")
-      .eq("id", widget.source_id)
-      .single();
+  
+  const rawPlaceId = widget.source_place_id;
+  function extractPlaceId(stored) {
+    if (!stored) return null;
+    const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
+    if (chijMatch) return chijMatch[0];
+    return null;
+  }
+  
+  const placeId = extractPlaceId(rawPlaceId);
+  const reviewUrl = (widget.show_review_button && 
+                     widget.source_platform === 'google' && 
+                     placeId)
+    ? 'https://search.google.com/local/writereview?placeid=' + placeId
+    : null;
 
-    function extractPlaceId(stored) {
-      if (!stored) return null;
-      const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
-      if (chijMatch) return chijMatch[0];
-      return null;
-    }
-
-    const placeId = extractPlaceId(source?.place_id);
-    const reviewUrl = placeId
-      ? 'https://search.google.com/local/writereview?placeid=' + placeId
-      : null;
-
-    if (reviewUrl) {
-      reviewButtonHtml = `
-        <div style="text-align:center;margin-top:16px;">
-          <a href="${reviewUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:#4285f4;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;font-family:system-ui,sans-serif;">⭐ Leave a review on Google</a>
-        </div>`;
-    }
+  if (reviewUrl) {
+    reviewButtonHtml = `
+      <div style="text-align:center;margin-top:16px;">
+        <a href="${reviewUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:#4285f4;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;font-family:system-ui,sans-serif;">⭐ Leave a review on Google</a>
+      </div>`;
   }
 
   const badgeHtml = widget.show_badge ? `

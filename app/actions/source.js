@@ -172,6 +172,8 @@ export async function addSourceAction(prevState, formData) {
       show_badge: true,
       embed_token: embedToken,
       user_plan: plan,
+      source_place_id: identifier,
+      source_platform: platform,
     })
     .select()
     .single();
