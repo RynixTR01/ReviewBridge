@@ -108,17 +108,31 @@ export async function GET(request, { params }) {
   const rawPlaceId = widget.source_place_id;
   function extractPlaceId(stored) {
     if (!stored) return null;
+    
+    // Already a ChIJ Place ID
     const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
     if (chijMatch) return chijMatch[0];
+    
+    // Hex format like 0x14b962a376c98c01:0xfa2199fd0384afb9
+    // This IS a valid place identifier, use it directly for the review URL
+    const hexMatch = stored.match(/0x[0-9a-f]+:0x[0-9a-f]+/i);
+    if (hexMatch) return hexMatch[0];
+    
     return null;
   }
   
   const placeId = extractPlaceId(rawPlaceId);
-  const reviewUrl = (widget.show_review_button && 
-                     widget.source_platform === 'google' && 
-                     placeId)
-    ? 'https://search.google.com/local/writereview?placeid=' + placeId
-    : null;
+  
+  // Build review URL based on format
+  let reviewUrl = null;
+  if (widget.show_review_button && widget.source_platform === 'google' && placeId) {
+    if (placeId.startsWith('ChIJ')) {
+      reviewUrl = 'https://search.google.com/local/writereview?placeid=' + placeId;
+    } else if (placeId.includes('0x')) {
+      // For hex CID format, use the maps search URL with the CID
+      reviewUrl = 'https://www.google.com/maps?cid=' + placeId.split(':')[1].replace('0x', '');
+    }
+  }
 
   if (reviewUrl) {
     reviewButtonHtml = `
