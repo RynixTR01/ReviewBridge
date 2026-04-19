@@ -190,6 +190,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                   {isPending ? "Saving..." : "Save Settings"}
                 </button>
                 <a
+                  /* Preview button strictly binds to the unique embed_token */
                   href={`/preview/${widget.embed_token}`}
                   target="_blank"
                   rel="noopener noreferrer"
