@@ -10,6 +10,7 @@ export async function updateWidgetAction(formData) {
   let showBadge = formData.get("showBadge") === "true" || formData.get("showBadge") === true;
   const rawSmartFilter = formData.get("smartFilter");
   let smartFilter = rawSmartFilter === "on" || rawSmartFilter === "true" || rawSmartFilter === true;
+  const showReviewButton = formData.get("showReviewButton") === "true" || formData.get("showReviewButton") === "on";
 
   if (!widgetId) {
     return { error: "Widget ID is required" };
@@ -46,6 +47,7 @@ export async function updateWidgetAction(formData) {
       max_reviews: isNaN(maxReviews) ? 5 : maxReviews,
       show_badge: showBadge,
       smart_filter: smartFilter,
+      show_review_button: showReviewButton,
     })
     .eq("id", widgetId)
     .eq("user_id", user.id); // Ensure user owns the widget

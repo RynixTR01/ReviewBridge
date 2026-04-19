@@ -102,6 +102,36 @@ export async function GET(request, { params }) {
     </div>
   `).join('');
 
+  // Leave a Review button
+  let reviewButtonHtml = '';
+  if (widget.show_review_button) {
+    // Fetch source for place_id
+    const { data: source } = await supabase
+      .from("sources")
+      .select("place_id, platform")
+      .eq("id", widget.source_id)
+      .single();
+
+    function extractPlaceId(stored) {
+      if (!stored) return null;
+      const chijMatch = stored.match(/ChIJ[a-zA-Z0-9_-]+/);
+      if (chijMatch) return chijMatch[0];
+      return null;
+    }
+
+    const placeId = extractPlaceId(source?.place_id);
+    const reviewUrl = placeId
+      ? 'https://search.google.com/local/writereview?placeid=' + placeId
+      : null;
+
+    if (reviewUrl) {
+      reviewButtonHtml = `
+        <div style="text-align:center;margin-top:16px;">
+          <a href="${reviewUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:#4285f4;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;font-family:system-ui,sans-serif;">⭐ Leave a review on Google</a>
+        </div>`;
+    }
+  }
+
   const badgeHtml = widget.show_badge ? `
     <div style="text-align:center;margin-top:16px;font-family:system-ui,sans-serif;">
       <a href="https://reviewbridge.com" target="_blank" style="font-size:12px;color:${text};opacity:0.6;text-decoration:none;">
@@ -114,7 +144,7 @@ export async function GET(request, { params }) {
   const emptyState = '<p style="text-align:center;color:' + text + ';opacity:0.6;font-family:system-ui,sans-serif;">No reviews found.</p>';
   const reviewsContent = reviewsList.length === 0 ? emptyState : reviewsHtml;
   
-  const widgetHtml = '<meta charset="UTF-8">\n<div class="rb-reviews-list">' + reviewsContent + '</div>' + badgeHtml;
+  const widgetHtml = '<meta charset="UTF-8">\n<div class="rb-reviews-list">' + reviewsContent + '</div>' + reviewButtonHtml + badgeHtml;
   const scriptPadding = widget.theme === 'minimal' ? '0' : '20px';
 
   const js = [

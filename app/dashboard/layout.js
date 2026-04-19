@@ -58,14 +58,12 @@ export default async function DashboardLayout({ children }) {
             </span>
           </div>
           {plan === "free" && (
-            <a
-              href={`${process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL}?checkout[email]=${encodeURIComponent(user.email)}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/dashboard/upgrade"
               className="w-full mt-3 block text-center bg-white border border-border text-foreground hover:border-primary hover:text-primary transition-colors text-sm font-semibold py-2 rounded-lg shadow-sm"
             >
-              Upgrade to Pro
-            </a>
+              View Plans
+            </Link>
           )}
           {(plan === "pro" || plan === "agency") && (
             <a

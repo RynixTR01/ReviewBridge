@@ -8,6 +8,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
   const [maxReviews, setMaxReviews] = useState(widget.max_reviews);
   const [showBadge, setShowBadge] = useState(widget.show_badge);
   const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
+  const [showReviewButton, setShowReviewButton] = useState(widget.show_review_button || false);
   const [isPending, startTransition] = useTransition();
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -39,6 +40,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
       const finalShowBadge = planLimits.canRemoveBadge ? showBadge : true;
       formData.append("showBadge", finalShowBadge.toString());
       formData.append("smartFilter", (planLimits.canSelectTheme ? smartFilter : false).toString());
+      formData.append("showReviewButton", showReviewButton.toString());
 
       const result = await updateWidgetAction(formData);
       if (result?.error) {
@@ -161,14 +163,45 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
               <p className="text-xs text-amber-600 -mt-2">Upgrade to Pro to use Smart Filter.</p>
             )}
 
+            {/* Leave a Review Button */}
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <label className="block text-sm font-semibold text-foreground">Leave a Review Button</label>
+                <p className="text-xs text-muted">Add a button encouraging visitors to leave a Google review</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={showReviewButton} 
+                  onChange={(e) => setShowReviewButton(e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-muted-bg peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary opacity-90"></div>
+              </label>
+            </div>
+
             <div className="pt-4 border-t border-border flex items-center justify-between">
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-foreground text-white font-medium px-6 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50"
-              >
-                {isPending ? "Saving..." : "Save Settings"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="bg-foreground text-white font-medium px-6 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                >
+                  {isPending ? "Saving..." : "Save Settings"}
+                </button>
+                <a
+                  href={`/preview/${widget.embed_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted border border-border px-4 py-2.5 rounded-xl hover:bg-muted-bg hover:text-foreground transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Preview
+                </a>
+              </div>
               
               {saveMessage && (
                 <span className={`text-sm ${saveMessage.includes('error') ? 'text-danger' : 'text-success'} font-medium`}>
