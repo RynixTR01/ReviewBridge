@@ -127,10 +127,10 @@ export async function GET(request, { params }) {
   let reviewUrl = null;
   if (widget.show_review_button && widget.source_platform === 'google' && placeId) {
     if (placeId.startsWith('ChIJ')) {
-      reviewUrl = 'https://search.google.com/local/writereview?placeid=' + placeId;
+      reviewUrl = 'https://www.google.com/maps/place/?q=place_id:' + placeId + '&hl=tr#action=write-review';
     } else if (placeId.includes('0x')) {
       // For hex CID format, use the maps search URL with the CID
-      reviewUrl = 'https://www.google.com/maps?cid=' + placeId.split(':')[1].replace('0x', '');
+      reviewUrl = 'https://www.google.com/maps?cid=' + parseInt(placeId.split(':')[1], 16) + '&hl=tr#action=write-review';
     }
   }
 
