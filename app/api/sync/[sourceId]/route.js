@@ -68,55 +68,35 @@ export async function POST(request, { params }) {
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
       const companyDomain = extractTrustpilotDomain(source.place_id) || source.place_id;
       
-      // Step 1: Start actor run asynchronously
-      const startResponse = await fetch(
-        'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs?token=' + process.env.APIFY_API_TOKEN,
+      const tpRes = await fetch(
+        'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?token=' + 
+        process.env.APIFY_API_TOKEN + '&timeout=60',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            companyDomain: companyDomain,
-            count: 20
+            startUrls: ['https://www.trustpilot.com/review/' + companyDomain],
+            maxResults: 20
           })
         }
       );
       
-      const runData = await startResponse.json();
-      const runId = runData.data?.id;
-
-      if (!runId) {
-        return Response.json({ error: "Failed to start Trustpilot Apify actor" }, { status: 502 });
-      }
-
-      // Step 2: Poll for completion
-      let attempts = 0;
-      const maxAttempts = 12;
-      let runStatus = 'RUNNING';
-
-      while (runStatus === 'RUNNING' && attempts < maxAttempts) {
-        await new Promise(r => setTimeout(r, 5000));
-        const statusResponse = await fetch(
-          'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '?token=' + process.env.APIFY_API_TOKEN
-        );
-        const statusData = await statusResponse.json();
-        runStatus = statusData.data?.status;
-        attempts++;
-      }
-
-      // Step 3: Fetch results if completed
-      if (runStatus === 'SUCCEEDED') {
-        const resultsResponse = await fetch(
-          'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '/dataset/items?token=' + process.env.APIFY_API_TOKEN
-        );
-        const tpData = await resultsResponse.json();
-        fetchedReviews = tpData.map(item => ({
-          reviewer_name: item.authorName || 'Anonymous',
-          rating: item.ratingValue || 0,
-          body: item.reviewBody || null,
-          reviewed_at: item.datePublished || new Date().toISOString()
-        }));
+      if (tpRes.ok) {
+        const tpData = await tpRes.json();
+        if (Array.isArray(tpData)) {
+          fetchedReviews = tpData.map(item => ({
+            reviewer_name: item.consumer?.displayName || 'Anonymous',
+            rating: item.rating || 0,
+            body: item.text || null,
+            reviewed_at: item.dates?.publishedDate || new Date().toISOString()
+          }));
+        } else {
+          console.error("Trustpilot Apify fetch failed (array not returned)", tpData);
+          return Response.json({ error: "Failed to parse Trustpilot results from Apify" }, { status: 502 });
+        }
       } else {
-        return Response.json({ message: "Reviews are syncing in background. Please check back later." });
+        console.error("Trustpilot Apify fetch failed", await tpRes.text());
+        return Response.json({ error: "Failed to fetch from Apify (Trustpilot)" }, { status: 502 });
       }
     } else {
       if (process.env.NODE_ENV === 'development') {

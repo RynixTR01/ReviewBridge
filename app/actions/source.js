@@ -61,7 +61,6 @@ export async function addSourceAction(prevState, formData) {
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
-  let globalHasWarning = false;
   
   const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
 
@@ -126,65 +125,34 @@ export async function addSourceAction(prevState, formData) {
         // Override identifier with clean domain for DB storage
         identifier = companyDomain;
 
-        // Step 1: Start actor run asynchronously
-        const startResponse = await fetch(
-          'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs?token=' + process.env.APIFY_API_TOKEN,
+        const tpResponse = await fetch(
+          'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?token=' + 
+          process.env.APIFY_API_TOKEN + '&timeout=60',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              companyDomain: companyDomain,
-              count: reviewsToFetch
+              startUrls: ['https://www.trustpilot.com/review/' + companyDomain],
+              maxResults: reviewsToFetch
             })
           }
         );
-        const runData = await startResponse.json();
-        const runId = runData.data?.id;
+        const tpData = await tpResponse.json();
 
-        if (!runId) {
-          console.error("Failed to start Trustpilot actor:", runData);
+        if (Array.isArray(tpData)) {
+          console.log("Trustpilot response length:", tpData.length);
+          
+          businessName = companyDomain;
+          reviewsList = tpData.map(item => ({
+            reviewer_name: item.consumer?.displayName || 'Anonymous',
+            rating: item.rating || 0,
+            body: item.text || null,
+            reviewed_at: item.dates?.publishedDate || new Date().toISOString()
+          }));
+        } else {
+          console.error("Trustpilot actor failed:", tpData);
           businessName = companyDomain;
           reviewsList = [];
-        } else {
-          // Step 2: Poll for completion (max 60 seconds, every 5 seconds)
-          let attempts = 0;
-          const maxAttempts = 12;
-          let runStatus = 'RUNNING';
-
-          while (runStatus === 'RUNNING' && attempts < maxAttempts) {
-            await new Promise(r => setTimeout(r, 5000));
-            const statusResponse = await fetch(
-              'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '?token=' + process.env.APIFY_API_TOKEN
-            );
-            const statusData = await statusResponse.json();
-            runStatus = statusData.data?.status;
-            attempts++;
-            console.log(`Trustpilot poll attempt ${attempts}: ${runStatus}`);
-          }
-
-          // Step 3: Fetch results if completed
-          if (runStatus === 'SUCCEEDED') {
-            const resultsResponse = await fetch(
-              'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '/dataset/items?token=' + process.env.APIFY_API_TOKEN
-            );
-            const tpData = await resultsResponse.json();
-
-            console.log("Trustpilot response length:", tpData.length);
-
-            businessName = companyDomain;
-            reviewsList = tpData.map(item => ({
-              reviewer_name: item.authorName || 'Anonymous',
-              rating: item.ratingValue || 0,
-              body: item.reviewBody || null,
-              reviewed_at: item.datePublished || new Date().toISOString()
-            }));
-          } else {
-            // Actor still running or failed — save source with 0 reviews
-            console.log("Trustpilot actor did not complete in time. Status:", runStatus);
-            businessName = companyDomain;
-            reviewsList = [];
-            globalHasWarning = true;
-          }
         }
       }
     } else {
@@ -264,13 +232,8 @@ export async function addSourceAction(prevState, formData) {
 
   revalidatePath("/dashboard");
   
-  // Handle async actor warnings
-  if (globalHasWarning) {
-    return { 
-      warning: 'Reviews are being fetched. Please click Sync in a few minutes.',
-      sourceAdded: true
-    };
-  }
+  // Warning disabled as actors are now fully synchronous
+
 
   // Redirect to the newly created widget customization page
   if (newWidget) {
