@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { extractPlaceId } from "@/app/lib/extractPlaceId";
 
 export const metadata = {
   title: "Widget Preview — ReviewBridge",
@@ -47,11 +48,24 @@ export default async function PreviewPage({ params }) {
   const isSmartFilterOn = widget.smart_filter === true || widget.smart_filter === "true";
   const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
 
-  const reviewUrl = (widget.show_review_button && 
-                     widget.source_platform === 'google' &&
-                     widget.source_maps_url)
-    ? widget.source_maps_url
-    : null;
+  let reviewUrl = null;
+  let buttonLabel = '';
+
+  if (widget.show_review_button && widget.source_platform && widget.source_maps_url) {
+    if (widget.source_platform === 'google') {
+      const placeId = extractPlaceId(widget.source_place_id);
+      reviewUrl = placeId 
+        ? 'https://search.google.com/local/writereview?placeid=' + placeId
+        : null;
+      buttonLabel = "⭐ Leave a review on Google";
+    } else if (widget.source_platform === 'trustpilot') {
+      const domain = widget.source_place_id;
+      reviewUrl = domain
+        ? 'https://www.trustpilot.com/review/' + domain + '#writeareview'
+        : null;
+      buttonLabel = "⭐ Leave a review on Trustpilot";
+    }
+  }
 
   const { data: fetchedReviews } = await supabase
     .from("reviews")
@@ -220,7 +234,7 @@ export default async function PreviewPage({ params }) {
                 ))
               )}
 
-              {widget.show_review_button && reviewUrl && (
+              {widget.show_review_button && reviewUrl && buttonLabel && (
                 <div style={{ textAlign: 'center', marginTop: 16 }}>
                   <a 
                     href={reviewUrl} 
@@ -238,7 +252,7 @@ export default async function PreviewPage({ params }) {
                       fontFamily: 'system-ui, sans-serif'
                     }}
                   >
-                    ⭐ Leave a review on Google
+                    {buttonLabel}
                   </a>
                 </div>
               )}

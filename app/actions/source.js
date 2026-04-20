@@ -18,7 +18,7 @@ export async function addSourceAction(prevState, formData) {
 
   const platform = formData.get("platform");
   const rawInput = formData.get("identifier");
-  const identifier = extractPlaceId(rawInput);
+  let identifier = extractPlaceId(rawInput);
   
   if (!identifier) {
     return { error: "Could not extract Place ID from the URL. Please paste a valid Google Maps URL or Place ID." };
@@ -61,9 +61,23 @@ export async function addSourceAction(prevState, formData) {
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
+  let globalHasWarning = false;
   
   const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
 
+
+  function extractTrustpilotDomain(input) {
+    if (!input) return null;
+    input = input.trim();
+    // If it contains trustpilot.com/review/, extract domain after it
+    const tpMatch = input.match(/trustpilot\.com\/review\/([^/?#]+)/);
+    if (tpMatch) return tpMatch[1];
+    // If it looks like a plain domain (contains a dot, no spaces)
+    if (input.includes('.') && !input.includes(' ') && !input.includes('/')) {
+      return input.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    }
+    return null;
+  }
 
   try {
     // Note: Apify actor applies to Google Maps.
@@ -104,10 +118,74 @@ export async function addSourceAction(prevState, formData) {
           reviewed_at: item.publishedAtDate
         }));
       } else if (platform === "trustpilot") {
-        businessName = "Trustpilot Business";
-        reviewsList = [
-          { reviewer_name: "John Doe", rating: 5, body: "Great service!", reviewed_at: new Date().toISOString() }
-        ];
+        const companyDomain = extractTrustpilotDomain(identifier);
+        if (!companyDomain) {
+          return { error: 'Could not extract company domain. Please paste your Trustpilot URL or company domain (e.g. apple.com)' };
+        }
+
+        // Override identifier with clean domain for DB storage
+        identifier = companyDomain;
+
+        // Step 1: Start actor run asynchronously
+        const startResponse = await fetch(
+          'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs?token=' + process.env.APIFY_API_TOKEN,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyDomain: companyDomain,
+              count: reviewsToFetch
+            })
+          }
+        );
+        const runData = await startResponse.json();
+        const runId = runData.data?.id;
+
+        if (!runId) {
+          console.error("Failed to start Trustpilot actor:", runData);
+          businessName = companyDomain;
+          reviewsList = [];
+        } else {
+          // Step 2: Poll for completion (max 60 seconds, every 5 seconds)
+          let attempts = 0;
+          const maxAttempts = 12;
+          let runStatus = 'RUNNING';
+
+          while (runStatus === 'RUNNING' && attempts < maxAttempts) {
+            await new Promise(r => setTimeout(r, 5000));
+            const statusResponse = await fetch(
+              'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '?token=' + process.env.APIFY_API_TOKEN
+            );
+            const statusData = await statusResponse.json();
+            runStatus = statusData.data?.status;
+            attempts++;
+            console.log(`Trustpilot poll attempt ${attempts}: ${runStatus}`);
+          }
+
+          // Step 3: Fetch results if completed
+          if (runStatus === 'SUCCEEDED') {
+            const resultsResponse = await fetch(
+              'https://api.apify.com/v2/acts/fLXimoyuhE1UQgDbM/runs/' + runId + '/dataset/items?token=' + process.env.APIFY_API_TOKEN
+            );
+            const tpData = await resultsResponse.json();
+
+            console.log("Trustpilot response length:", tpData.length);
+
+            businessName = companyDomain;
+            reviewsList = tpData.map(item => ({
+              reviewer_name: item.authorName || 'Anonymous',
+              rating: item.ratingValue || 0,
+              body: item.reviewBody || null,
+              reviewed_at: item.datePublished || new Date().toISOString()
+            }));
+          } else {
+            // Actor still running or failed — save source with 0 reviews
+            console.log("Trustpilot actor did not complete in time. Status:", runStatus);
+            businessName = companyDomain;
+            reviewsList = [];
+            globalHasWarning = true;
+          }
+        }
       }
     } else {
       if (process.env.NODE_ENV === 'development') {
@@ -186,6 +264,14 @@ export async function addSourceAction(prevState, formData) {
 
   revalidatePath("/dashboard");
   
+  // Handle async actor warnings
+  if (globalHasWarning) {
+    return { 
+      warning: 'Reviews are being fetched. Please click Sync in a few minutes.',
+      sourceAdded: true
+    };
+  }
+
   // Redirect to the newly created widget customization page
   if (newWidget) {
     redirect(`/dashboard/widget/${newWidget.id}`);

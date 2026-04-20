@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { extractPlaceId } from "@/app/lib/extractPlaceId";
 
 // We use the basic supabase-js client for public edge routes rather than the SSR client
 // to ensure we make an unauthenticated request.
@@ -101,20 +102,30 @@ export async function GET(request, { params }) {
       ${r.body ? '<p style="font-size:14px;line-height:1.5;color:' + text + ';opacity:0.9;margin:0;">' + r.body + '</p>' : ''}
     </div>
   `).join('');
-
-  // Leave a Review button
   let reviewButtonHtml = '';
-  
-  const reviewUrl = (widget.show_review_button && 
-                     widget.source_platform === 'google' &&
-                     widget.source_maps_url)
-    ? widget.source_maps_url
-    : null;
+  let reviewUrl = null;
+  let buttonLabel = '';
 
-  if (reviewUrl) {
+  if (widget.show_review_button && widget.source_platform && widget.source_maps_url) {
+    if (widget.source_platform === 'google') {
+      const placeId = extractPlaceId(widget.source_place_id);
+      reviewUrl = placeId 
+        ? 'https://search.google.com/local/writereview?placeid=' + placeId
+        : null;
+      buttonLabel = "⭐ Leave a review on Google";
+    } else if (widget.source_platform === 'trustpilot') {
+      const domain = widget.source_place_id;
+      reviewUrl = domain
+        ? 'https://www.trustpilot.com/review/' + domain + '#writeareview'
+        : null;
+      buttonLabel = "⭐ Leave a review on Trustpilot";
+    }
+  }
+
+  if (reviewUrl && buttonLabel) {
     reviewButtonHtml = `
       <div style="text-align:center;margin-top:16px;">
-        <a href="${reviewUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:#4285f4;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;font-family:system-ui,sans-serif;">⭐ Leave a review on Google</a>
+        <a href="${reviewUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:#4285f4;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:500;font-family:system-ui,sans-serif;">${buttonLabel}</a>
       </div>`;
   }
 

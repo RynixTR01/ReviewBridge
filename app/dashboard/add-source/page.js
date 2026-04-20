@@ -1,11 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { addSourceAction } from "@/app/actions/source";
 
 export default function AddSourcePage() {
   const [state, formAction, pending] = useActionState(addSourceAction, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.warning && state?.sourceAdded) {
+      const timer = setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, router]);
 
   return (
     <div className="max-w-xl mx-auto">
@@ -28,6 +39,15 @@ export default function AddSourcePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p>{state.error}</p>
+          </div>
+        )}
+
+        {state?.warning && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-100 border border-amber-200 text-amber-800 text-sm flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>Source added! Reviews are still being fetched. Click Sync on your dashboard in 2-3 minutes. Redirecting...</p>
           </div>
         )}
 
@@ -64,13 +84,13 @@ export default function AddSourcePage() {
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
               Place ID or URL
             </label>
-            <p className="text-xs text-muted mb-2">For Google, use your Google Maps Place ID. For Trustpilot, use your profile URL.</p>
+            <p className="text-xs text-muted mb-2">For Google, paste your Google Maps URL. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
             <input
               id="identifier"
               name="identifier"
               type="text"
               required
-              placeholder="Paste your Google Maps URL or Place ID (ChIJ...)"
+              placeholder="Paste your Google Maps URL or Trustpilot URL / domain"
               className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
