@@ -125,7 +125,13 @@ create table public.widgets (
   max_reviews integer not null default 5,
   show_badge boolean not null default true,
   smart_filter boolean not null default false,
+  show_review_button boolean not null default false,
   embed_token text not null unique,
+  -- Denormalized fields added post-launch to avoid extra joins on every widget render:
+  user_plan text not null default 'free' check (user_plan in ('free', 'pro', 'agency')),
+  source_place_id text,
+  source_platform text,
+  source_maps_url text,
   created_at timestamptz not null default now()
 );
 

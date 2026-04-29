@@ -56,6 +56,15 @@ export default function SyncButton({ sourceId }) {
       timers.forEach(clearTimeout);
       timersRef.current = [];
 
+      if (response.status === 429) {
+        // Rate limited — show the server's cooldown message
+        const data = await response.json();
+        setSyncing(false);
+        setError(data.error || 'Sync is on cooldown. Please wait before syncing again.');
+        setMessage('');
+        return;
+      }
+
       if (response.ok) {
         setSuccess(true);
         setMessage("Sync complete!");

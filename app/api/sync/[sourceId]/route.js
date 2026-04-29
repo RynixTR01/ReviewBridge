@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 
 export async function POST(request, { params }) {
   try {
@@ -28,19 +29,43 @@ export async function POST(request, { params }) {
       return Response.json({ error: "Source not found or access denied" }, { status: 404 });
     }
 
+    // --- Sync Rate Limiting ---
+    // Fetch user plan to determine cooldown
+    const { data: profile } = await supabase
+      .from('users')
+      .select('plan')
+      .eq('id', user.id)
+      .single();
+    const userPlan = profile?.plan || 'free';
+
+    const SYNC_COOLDOWNS_MS = {
+      free:   86_400_000,  // 24 hours
+      pro:     7_200_000,  // 2 hours
+      agency:  1_800_000,  // 30 minutes
+    };
+
+    if (source.last_synced_at) {
+      const elapsed = Date.now() - new Date(source.last_synced_at).getTime();
+      const cooldown = SYNC_COOLDOWNS_MS[userPlan] ?? SYNC_COOLDOWNS_MS.free;
+      if (elapsed < cooldown) {
+        const remainingMs = cooldown - elapsed;
+        const remainingMin = Math.ceil(remainingMs / 60_000);
+        const remainingDisplay =
+          remainingMin >= 120
+            ? `${Math.ceil(remainingMin / 60)} hours`
+            : remainingMin >= 60
+            ? `1 hour`
+            : `${remainingMin} minute${remainingMin !== 1 ? 's' : ''}`;
+        return Response.json(
+          { error: `Sync is on cooldown. Available again in ${remainingDisplay}.` },
+          { status: 429 }
+        );
+      }
+    }
+    // --- End Rate Limiting ---
+
     // Call Apify to fetch fresh reviews
     let fetchedReviews = [];
-
-    function extractTrustpilotDomain(input) {
-      if (!input) return null;
-      input = input.trim();
-      const tpMatch = input.match(/trustpilot\.com\/review\/([^/?#]+)/);
-      if (tpMatch) return tpMatch[1];
-      if (input.includes('.') && !input.includes(' ') && !input.includes('/')) {
-        return input.replace(/^https?:\/\//, '').replace(/^www\./, '');
-      }
-      return null;
-    }
 
     if (process.env.APIFY_API_TOKEN && source.platform === "google") {
       const res = await fetch(`https://api.apify.com/v2/acts/Xb8osYTtOjlsgI6k9/run-sync-get-dataset-items?token=${process.env.APIFY_API_TOKEN}`, {
@@ -50,7 +75,6 @@ export async function POST(request, { params }) {
           placeIds: [source.place_id],
           maxReviews: 20,
           reviewsSort: 'newest',
-          language: 'tr'
         })
       });
       if (res.ok) {

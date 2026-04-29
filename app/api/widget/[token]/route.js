@@ -78,6 +78,18 @@ export async function GET(request, { params }) {
   const cardBg = widget.theme === "dark" ? "#374151" : "#ffffff";
   const shadow = widget.theme === "minimal" ? "none" : "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)";
 
+  // Escape HTML entities to prevent XSS from user-generated review content.
+  // Review body/name is stored raw from Apify and injected into innerHTML on customer sites.
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   const createStars = (rating) => {
     let stars = "";
     for (let i = 0; i < 5; i++) {
@@ -92,14 +104,14 @@ export async function GET(request, { params }) {
     <div style="background:${cardBg};border:${border};border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:${shadow};font-family:system-ui,sans-serif;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
         <div style="width:36px;height:36px;border-radius:50%;background:#eef2ff;color:#6366f1;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;">
-          ${r.reviewer_name?.charAt(0).toUpperCase() || 'A'}
+          ${escapeHtml(r.reviewer_name?.charAt(0).toUpperCase() || 'A')}
         </div>
         <div>
-          <div style="font-weight:600;font-size:14px;color:${text};">${r.reviewer_name}</div>
+          <div style="font-weight:600;font-size:14px;color:${text};">${escapeHtml(r.reviewer_name)}</div>
           ${createStars(r.rating)}
         </div>
       </div>
-      ${r.body ? '<p style="font-size:14px;line-height:1.5;color:' + text + ';opacity:0.9;margin:0;">' + r.body + '</p>' : ''}
+      ${r.body ? '<p style="font-size:14px;line-height:1.5;color:' + text + ';opacity:0.9;margin:0;">' + escapeHtml(r.body) + '</p>' : ''}
     </div>
   `).join('');
   let reviewButtonHtml = '';

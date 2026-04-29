@@ -88,7 +88,10 @@ export async function deleteAccountAction(formData) {
     .delete()
     .eq("id", user.id);
 
-  // 6. Sign out
+  // 6. Delete from auth.users (fully removes the Supabase account)
+  await serviceSupabase.auth.admin.deleteUser(user.id);
+
+  // 7. Sign out
   await supabase.auth.signOut();
 
   redirect("/");

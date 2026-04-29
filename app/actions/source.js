@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
+import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -65,19 +66,6 @@ export async function addSourceAction(prevState, formData) {
   const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
 
 
-  function extractTrustpilotDomain(input) {
-    if (!input) return null;
-    input = input.trim();
-    // If it contains trustpilot.com/review/, extract domain after it
-    const tpMatch = input.match(/trustpilot\.com\/review\/([^/?#]+)/);
-    if (tpMatch) return tpMatch[1];
-    // If it looks like a plain domain (contains a dot, no spaces)
-    if (input.includes('.') && !input.includes(' ') && !input.includes('/')) {
-      return input.replace(/^https?:\/\//, '').replace(/^www\./, '');
-    }
-    return null;
-  }
-
   try {
     // Note: Apify actor applies to Google Maps.
     // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
@@ -92,7 +80,6 @@ export async function addSourceAction(prevState, formData) {
           startUrls: [{ url: mapsUrl }],
           maxReviews: reviewsToFetch,
           reviewsSort: 'newest',
-          language: 'tr'
         };
 
         const response = await fetch(
