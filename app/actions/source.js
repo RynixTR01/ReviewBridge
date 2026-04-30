@@ -7,6 +7,7 @@ import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
+import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -75,34 +76,9 @@ export async function addSourceAction(prevState, formData) {
           ? formData.get("identifier")  
           : `https://www.google.com/maps/place/?q=place_id:${identifier}`;
 
-
-        const payloadObj = {
-          startUrls: [{ url: mapsUrl }],
-          maxReviews: reviewsToFetch,
-          reviewsSort: 'newest',
-        };
-
-        const response = await fetch(
-          `https://api.apify.com/v2/acts/Xb8osYTtOjlsgI6k9/run-sync-get-dataset-items?token=${process.env.APIFY_API_TOKEN}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadObj)
-          }
-        );
-        
-        const rawText = await response.text();
-        const data = JSON.parse(rawText);
-
-        businessName = data.length > 0 && data[0].title ? data[0].title : "Google Business";
-        totalScore = data[0]?.totalScore || null;
-        totalReviewsCount = data[0]?.reviewsCount || null;
-        reviewsList = data.map(item => ({
-          reviewer_name: item.name,
-          rating: item.stars,
-          body: item.text ? item.text.trim().replace(/^"+|"+$/g, '').trim() : null,
-          reviewed_at: item.publishedAtDate
-        }));
+        // For Google, we skip the synchronous fetch. The webhook will handle it.
+        businessName = "Google Business (Syncing...)";
+        // We will call startApifyRun *after* creating the source in the DB.
       } else if (platform === "trustpilot") {
         const companyDomain = extractTrustpilotDomain(identifier);
         if (!companyDomain) {
@@ -171,6 +147,8 @@ export async function addSourceAction(prevState, formData) {
       total_score: totalScore,
       total_reviews_count: totalReviewsCount,
       last_synced_at: new Date().toISOString(),
+      sync_started_at: platform === 'google' ? new Date().toISOString() : null,
+      sync_status: platform === 'google' ? 'pending' : 'done'
     })
     .select()
     .single();
@@ -180,7 +158,37 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Failed to save the source to database." };
   }
 
-  // 3. Insert reviews
+  // If Google, start the async Apify run now that we have the source.id
+  if (platform === "google" && process.env.APIFY_API_TOKEN) {
+    try {
+      const mapsUrl = formData.get("identifier").includes('google.com/maps') 
+        ? formData.get("identifier")  
+        : `https://www.google.com/maps/place/?q=place_id:${identifier}`;
+
+      const runId = await startApifyRun(
+        APIFY_ACTORS.GOOGLE_MAPS,
+        {
+          placeIds: [identifier],
+          maxReviews: reviewsToFetch,
+          reviewsSort: 'newest'
+        },
+        newSource.id
+      );
+
+      await supabase
+        .from('sources')
+        .update({ apify_run_id: runId })
+        .eq('id', newSource.id);
+    } catch (err) {
+      console.error("Failed to start initial Google sync:", err);
+      await supabase
+        .from('sources')
+        .update({ sync_status: 'error', last_sync_error: 'Failed to start background sync' })
+        .eq('id', newSource.id);
+    }
+  }
+
+  // 3. Insert reviews (only for synchronous platforms like Trustpilot)
   const reviewsToInsert = reviewsList.slice(0, reviewsToFetch).map((r) => ({
     source_id: newSource.id,
     reviewer_name: r.reviewer_name || "Anonymous",

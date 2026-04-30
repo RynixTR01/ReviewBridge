@@ -22,7 +22,12 @@ export default function SyncButton({ sourceId }) {
 
   // Clean up timers on unmount
   useEffect(() => {
-    return () => timersRef.current.forEach(clearTimeout);
+    return () => {
+      timersRef.current.forEach(id => {
+        clearTimeout(id);
+        clearInterval(id);
+      });
+    };
   }, []);
 
   async function handleSync() {
@@ -66,13 +71,56 @@ export default function SyncButton({ sourceId }) {
       }
 
       if (response.ok) {
-        setSuccess(true);
-        setMessage("Sync complete!");
-        setSyncing(false);
-        // Refresh server data without full page reload
-        router.refresh();
-        // Reset success state after 3 seconds
-        setTimeout(() => setSuccess(false), 3000);
+        const data = await response.json();
+        
+        if (data.status === 'pending') {
+          setMessage("Syncing in background...");
+          
+          const pollInterval = setInterval(async () => {
+            try {
+              const statusRes = await fetch(`/api/sources/${sourceId}/status`);
+              if (!statusRes.ok) return; // Keep polling if minor network glitch
+              
+              const statusData = await statusRes.json();
+              
+              if (statusData.sync_status === 'done') {
+                clearInterval(pollInterval);
+                setSuccess(true);
+                setMessage("Sync complete!");
+                setSyncing(false);
+                router.refresh();
+                setTimeout(() => setSuccess(false), 3000);
+              } else if (statusData.sync_status === 'error') {
+                clearInterval(pollInterval);
+                setSyncing(false);
+                setError(statusData.last_sync_error || "Sync failed. Please try again.");
+                setMessage("");
+              }
+            } catch (err) {
+              console.error("Polling error", err);
+            }
+          }, 3000);
+          
+          // Store the interval ID so it can be cleared on unmount
+          timersRef.current.push(pollInterval);
+
+          // Max 5 minutes of polling (100 * 3000ms)
+          const fallbackTimeout = setTimeout(() => {
+            clearInterval(pollInterval);
+            setSyncing(false);
+            setError("Taking longer than usual. Please refresh to check status.");
+            setMessage("");
+          }, 300_000);
+          timersRef.current.push(fallbackTimeout);
+
+        } else {
+          // Synchronous sync complete (Trustpilot)
+          setSuccess(true);
+          setMessage("Sync complete!");
+          setSyncing(false);
+          router.refresh();
+          setTimeout(() => setSuccess(false), 3000);
+        }
       } else {
         setSyncing(false);
         setError("Sync failed. Please try again.");

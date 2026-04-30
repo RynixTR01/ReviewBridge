@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
+import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 
 export async function POST(request, { params }) {
   try {
@@ -68,26 +69,31 @@ export async function POST(request, { params }) {
     let fetchedReviews = [];
 
     if (process.env.APIFY_API_TOKEN && source.platform === "google") {
-      const res = await fetch(`https://api.apify.com/v2/acts/Xb8osYTtOjlsgI6k9/run-sync-get-dataset-items?token=${process.env.APIFY_API_TOKEN}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          placeIds: [source.place_id],
-          maxReviews: 20,
-          reviewsSort: 'newest',
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        fetchedReviews = data.map(item => ({
-          reviewer_name: item.name,
-          rating: item.stars,
-          body: item.text,
-          reviewed_at: item.publishedAtDate
-        }));
-      } else {
-        console.error("Apify fetch failed", await res.text());
-        return Response.json({ error: "Failed to fetch from Apify" }, { status: 502 });
+      try {
+        const runId = await startApifyRun(
+          APIFY_ACTORS.GOOGLE_MAPS,
+          {
+            placeIds: [source.place_id],
+            maxReviews: 20,
+            reviewsSort: 'newest'
+          },
+          source.id
+        );
+
+        await supabase
+          .from('sources')
+          .update({
+            apify_run_id: runId,
+            sync_status: 'pending',
+            sync_started_at: new Date().toISOString(),
+            last_sync_error: null
+          })
+          .eq('id', source.id);
+
+        return Response.json({ status: 'pending', message: 'Syncing in background...' });
+      } catch (err) {
+        console.error("Failed to start Google sync:", err);
+        return Response.json({ error: "Failed to start sync process" }, { status: 500 });
       }
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
       const companyDomain = extractTrustpilotDomain(source.place_id) || source.place_id;
