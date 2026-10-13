@@ -3,8 +3,8 @@ export function extractPlaceId(input) {
   
   input = input.trim();
   
-  const looksLikeUrl = /^(?:https?:\\/\\/|www\\.)/i.test(input) || /^[\\w-]+\\.[a-z]{2,}(?:\\/|$)/i.test(input);
-  const isGoogleMapsUrl = /^(?:https?:\\/\\/)?(?:www\\.)?(?:google\\.[a-z.]+|maps\\.google\\.[a-z.]+)\\/maps(?:\\/|[?#]|$)/i.test(input);
+  const looksLikeUrl = /^(?:https?:\/\/|www\.)/i.test(input) || /^[\w-]+\.[a-z]{2,}(?:\/|$)/i.test(input);
+  const isGoogleMapsUrl = /^(?:https?:\/\/)?(?:www\.)?(?:google\.[a-z.]+|maps\.google\.[a-z.]+)\/maps(?:\/|[?#]|$)/i.test(input);
 
   // Reject Google Search and unrelated URLs instead of treating them as Place IDs.
   if (looksLikeUrl && !isGoogleMapsUrl) return null;
