@@ -71,9 +71,10 @@ export async function POST(request) {
         ? rawItems.find((item) => typeof item?.title === 'string' && item.title.trim())?.title.trim() || null
         : null;
 
-      if (mappedReviews.length > 0) {
+      const uniqueReviews = [...new Map(mappedReviews.map((review) => [createStableReviewId(platform, review), review])).values()];
+      if (uniqueReviews.length > 0) {
         const values = [];
-        const rows = mappedReviews.map((review, index) => {
+        const rows = uniqueReviews.map((review, index) => {
           const offset = index * 6;
           values.push(sourceId, createStableReviewId(platform, review), review.reviewer_name, review.rating, review.body, review.reviewed_at);
           return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
@@ -81,7 +82,9 @@ export async function POST(request) {
         await query(
           `INSERT INTO public.reviews (source_id, external_review_id, reviewer_name, rating, body, reviewed_at)
            VALUES ${rows.join(', ')}
-           ON CONFLICT DO NOTHING`,
+           ON CONFLICT (source_id, external_review_id) WHERE external_review_id IS NOT NULL
+           DO UPDATE SET reviewer_name = EXCLUDED.reviewer_name, rating = EXCLUDED.rating,
+             body = EXCLUDED.body, reviewed_at = EXCLUDED.reviewed_at`,
           values
         );
       }
@@ -101,10 +104,10 @@ export async function POST(request) {
         [sourceId, businessTitle]
       );
 
-      await finishSyncHistory({ sourceId, runId, status: "done", reviewsCount: mappedReviews.length });
-      console.log(`Successfully synced ${mappedReviews.length} reviews for source ${sourceId}`);
+      await finishSyncHistory({ sourceId, runId, status: "done", reviewsCount: uniqueReviews.length });
+      console.log(`Successfully synced ${uniqueReviews.length} reviews for source ${sourceId}`);
 
-      return Response.json({ success: true, count: mappedReviews.length }, { status: 200 });
+      return Response.json({ success: true, count: uniqueReviews.length }, { status: 200 });
     } catch (processError) {
       // Catch errors during fetching or DB inserting
       console.error('Error processing reviews:', processError);

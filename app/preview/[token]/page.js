@@ -113,6 +113,7 @@ export default async function PreviewPage({ params }) {
   const reviewsList = filterWidgetReviews(fetchedReviews, { ...widget, max_reviews: reviewLimit }, {
     moderation,
     canUseAdvancedFilters: limits.canUseAdvancedFilters,
+    canFilterRating: limits.canFilterRating,
     canUseSmartFilter: limits.canSelectTheme,
   });
 

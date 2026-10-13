@@ -42,7 +42,7 @@ export default async function WidgetPage({ params }) {
     `SELECT * FROM public.reviews
      WHERE source_id = $1
      ORDER BY reviewed_at DESC
-     LIMIT 20`,
+     LIMIT 200`,
     [widget.source_id]
   );
 

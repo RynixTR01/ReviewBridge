@@ -11,6 +11,7 @@ import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
+import { normalizeReviewRating } from "@/lib/review-rating";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -225,10 +226,10 @@ export async function addSourceAction(prevState, formData) {
     source_id: newSource.id,
     external_review_id: createStableReviewId(platform, r),
     reviewer_name: r.reviewer_name || "Anonymous",
-    rating: r.rating || 5,
+    rating: normalizeReviewRating(r.rating),
     body: r.body || "",
     reviewed_at: r.reviewed_at ? new Date(r.reviewed_at) : new Date().toISOString(),
-  }));
+  })).filter((review) => review.rating !== null);
 
   let reviewsSaved = true;
   if (reviewsToInsert.length > 0) {

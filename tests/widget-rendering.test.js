@@ -14,7 +14,7 @@ test("widget filters keywords, rating, and hidden reviews while pinning first", 
     minimum_rating: 4,
     sort_order: "newest",
     include_keywords: "service, helpful",
-  }, { moderation: { hidden: "hidden", old: "pinned" }, canUseAdvancedFilters: true });
+  }, { moderation: { hidden: "hidden", old: "pinned" }, canUseAdvancedFilters: true, canFilterRating: true });
   assert.deepEqual(result.map((review) => review.id), ["old"]);
 });
 
@@ -27,6 +27,16 @@ test("free widgets keep basic behavior and safe theme defaults", () => {
   }, { canUseAdvancedFilters: false });
   assert.deepEqual(result.map((review) => review.id), ["new", "hidden"]);
   assert.equal(getWidgetColors({ theme: "dark", background_color: "url(javascript:)", accent_color: "#12AB34" }).background, "#1f2937");
+});
+
+test("free widget supports the minimum star filter while advanced filters stay disabled", () => {
+  const result = filterWidgetReviews(sample, {
+    max_reviews: 10,
+    minimum_rating: 4,
+    sort_order: "newest",
+    include_keywords: "does-not-match",
+  }, { canUseAdvancedFilters: false, canFilterRating: true });
+  assert.deepEqual(result.map((review) => review.id), ["hidden", "old"]);
 });
 
 test("automatic language follows browser language and explicit language wins", () => {
