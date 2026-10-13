@@ -86,7 +86,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-muted">or</span>
+              <span className="px-3 bg-white text-muted">veya</span>
             </div>
           </div>
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-muted">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-primary font-semibold hover:underline">
-            Sign up free
+            Kayıt ol free
           </Link>
         </p>
       </div>
