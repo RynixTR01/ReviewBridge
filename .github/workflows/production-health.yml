@@ -1,0 +1,51 @@
+name: Production health monitor
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: production-health-monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check production and Neon health
+        id: health
+        shell: bash
+        run: |
+          url="https://review-bridge.vercel.app/api/health"
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --location --proto-redir =https --connect-timeout 5 --max-time 15 --output "$RUNNER_TEMP/health.json" "$url" && jq -e '.status == "ok"' "$RUNNER_TEMP/health.json" >/dev/null 2>&1; then
+              echo "healthy=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          echo "healthy=false" >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Open or resolve uptime alert
+        if: ${{ always() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEALTHY: ${{ steps.health.outputs.healthy }}
+        run: |
+          title="[Uptime] ReviewBridge production health failed"
+          issue_number="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" --jq '.[] | select(.title == "[Uptime] ReviewBridge production health failed") | .number' | sed -n '1p')"
+          run_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$HEALTHY" = "true" ]; then
+            if [ -n "$issue_number" ]; then
+              gh issue close "$issue_number" --repo "$GITHUB_REPOSITORY" --comment "Health restored. Verification run: $run_url"
+            fi
+          elif [ -z "$issue_number" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --assignee RynixTR01 --body "The production /api/health endpoint failed three checks. It reports database reachability as well as app availability. Investigate: $run_url"
+          fi
