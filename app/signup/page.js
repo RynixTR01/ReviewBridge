@@ -25,7 +25,7 @@ export default function SignupPage() {
       });
       if (error) setError(error.message);
     } catch (authError) {
-      setError(authError.message || "Unable to start Google sign-in.");
+      setError(authError.message || "Google ile giriş başlatılamadı.");
     }
   }
 
@@ -79,21 +79,21 @@ export default function SignupPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (verifyError) {
-      setError(verifyError.message || "Unable to verify your email.");
+      setError(verifyError.message || "E-posta adresiniz doğrulanamadı.");
       setVerifying(false);
     }
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted-bg/30 px-6">
+      <div lang="tr" className="min-h-screen flex items-center justify-center bg-muted-bg/30 px-6">
         <div className="w-full max-w-md text-center">
           <div className="w-16 h-16 rounded-2xl bg-success/10 flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">Verify your email</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-3">E-posta adresinizi doğrulayın</h1>
           <p className="text-muted leading-relaxed">
             Enter the one-time code sent to <strong className="text-foreground">{email}</strong> to activate your account.
           </p>
@@ -103,7 +103,7 @@ export default function SignupPage() {
             </div>
           )}
           <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
-            <label htmlFor="email-otp" className="sr-only">Email verification code</label>
+            <label htmlFor="email-otp" className="sr-only">E-posta doğrulama kodu</label>
             <input
               id="email-otp"
               type="text"
@@ -113,7 +113,7 @@ export default function SignupPage() {
               maxLength={8}
               value={otp}
               onChange={(e) => setOtp(e.target.value.trim())}
-              placeholder="Enter verification code"
+              placeholder="Doğrulama kodunu girin"
               className="w-full px-4 py-3 rounded-xl border border-border bg-white text-center tracking-[0.3em] text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
             <button
@@ -139,8 +139,8 @@ export default function SignupPage() {
         </Link>
 
         <div className="bg-white rounded-2xl border border-border shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-foreground text-center mb-2">Create your account</h1>
-          <p className="text-sm text-muted text-center mb-8">Start showing reviews in minutes</p>
+          <h1 className="text-2xl font-bold text-foreground text-center mb-2">Hesabınızı oluşturun</h1>
+          <p className="text-sm text-muted text-center mb-8">Dakikalar içinde yorumlarınızı gösterin</p>
 
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
@@ -182,7 +182,7 @@ export default function SignupPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Jane Doe"
+                placeholder="Adınız Soyadınız"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
@@ -197,7 +197,7 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder="ornek@firma.com"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
@@ -213,7 +213,7 @@ export default function SignupPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="En az 8 karakter"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
