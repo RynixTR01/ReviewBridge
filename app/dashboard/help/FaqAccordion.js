@@ -11,7 +11,7 @@ const faqItems = [
   {
     question: "How often are reviews synced?",
     answer:
-      "Reviews are synced when you first add a source. You can manually sync anytime by clicking the \"Sync\" button on your dashboard. Automatic daily sync is coming soon.",
+      "Reviews are synced when you first add a source. You can manually sync anytime by clicking the \"Sync\" button on your dashboard. Scheduled automatic syncing is not currently available.",
   },
   {
     question: "Will the widget work on any website?",
