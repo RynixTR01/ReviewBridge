@@ -257,11 +257,15 @@ export default async function DashboardPage() {
               ? "bg-blue-50 text-blue-700"
               : syncStatus === "error"
               ? "bg-red-50 text-red-700"
+              : syncedCount === 0
+              ? "bg-amber-50 text-amber-700"
               : "bg-green-50 text-green-700";
             const syncLabel = syncStatus === "pending"
               ? "Fetching reviews…"
               : syncStatus === "error"
               ? "Sync failed"
+              : syncedCount === 0
+              ? "No reviews returned"
               : `${syncedCount} synced`;
             const googleScore = source.total_score;
             const googleTotal = source.total_reviews_count;
@@ -308,7 +312,7 @@ export default async function DashboardPage() {
 
                         {/* Current sync state */}
                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md ${syncBadgeStyle}`}>
-                          {syncStatus === "done" && (
+                          {syncStatus === "done" && syncedCount > 0 && (
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
@@ -321,6 +325,11 @@ export default async function DashboardPage() {
                         </span>
                         {syncStatus === "error" && source.last_sync_error && (
                           <span className="text-xs text-red-600">{source.last_sync_error}</span>
+                        )}
+                        {syncStatus === "done" && syncedCount === 0 && (
+                          <span className="text-xs text-amber-700">
+                            Check the listing URL or <Link href="/dashboard/help#google-maps-url" className="underline">open the URL guide</Link>.
+                          </span>
                         )}
 
                         {/* Theme badge */}
