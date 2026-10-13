@@ -16,6 +16,11 @@ Set these for the Production environment and redeploy after changing them:
 - `NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL` and `NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL` — checkout links shown in the dashboard.
 - `RESEND_API_KEY` — optional welcome email delivery.
 
+## Verified production state
+
+- On 13 October 2026, `CRON_SECRET` was added as a Vercel **Production** secret and the resulting production deployment reached **Ready**. Confirm the next scheduled Cron invocation in Vercel Logs before treating the scheduled cleanup/auto-sync path as live-verified. Do not manually trigger it in production: opted-in sources can start billable Apify runs.
+- The Vercel project settings showed the Neon database/auth values and Apify token/webhook configuration. `LEMONSQUEEZY_PRO_VARIANT_ID` and `LEMONSQUEEZY_AGENCY_VARIANT_ID` were not present when checked; payment plan mapping remains unverified until the exact IDs from the Lemon Squeezy dashboard are configured.
+
 ## Release verification
 
 1. Review the GitHub Actions checks and Vercel preview before merging.
@@ -23,7 +28,7 @@ Set these for the Production environment and redeploy after changing them:
 3. In the live dashboard, test sign-in, one manual Google/Trustpilot sync, widget preview, embed rendering, domain allowlist behavior, and account deletion on a disposable test account.
 4. Enable automatic sync per source only when the Apify account is configured and its usage is understood. The Vercel cron runs daily; scheduled sync is opt-in and limited by the plan cooldown.
 5. Confirm widget metrics move after an embed view and CTA click. They contain daily aggregate counts only and are deleted after 90 days.
-6. Review provider data-access terms and privacy/terms wording with a qualified human before enabling additional platforms or describing legal compliance.
+6. Review provider data-access terms and privacy/terms wording with a qualified human before enabling additional platforms or describing legal compliance. Trustpilot's consumer terms effective 1 October 2026 prohibit automated collection/scraping without express permission; obtain permission or use a contractually authorized official API before operating the current Trustpilot actor.
 7. Configure an external uptime monitor to request `/api/health`; it returns only `{ "status": "ok" }` when Neon is reachable and HTTP 503 otherwise. This endpoint does not send alerts itself.
 
 ## Current release constraints
@@ -35,3 +40,4 @@ Set these for the Production environment and redeploy after changing them:
 - The lightweight rate limiter is per serverless process. It helps with bursts but is not a distributed DDoS defense.
 - Daily widget counts are approximate public-embed metrics and should not be treated as billing or unique-visitor analytics.
 - Adding source platforms, A/B experiments, or team workspaces requires separate provider/legal, traffic, and access-control decisions.
+
