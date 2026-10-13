@@ -85,6 +85,7 @@ export default function AddSourcePage() {
               Place ID or URL
             </label>
             <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Maps or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
+            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">Need help finding your Google Maps listing URL?</Link>
             <input
               id="identifier"
               name="identifier"
