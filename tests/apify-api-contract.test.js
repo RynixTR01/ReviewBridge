@@ -34,7 +34,7 @@ test("starts an Apify run with bearer auth and a signed callback header", async 
       const input = { startUrls: [{ url: "https://www.google.com/maps/place/example" }] };
       assert.equal(await startApifyRun("owner/actor", input, "source/123"), "run-123");
       assert.equal(requestUrl.origin, "https://api.apify.com");
-      assert.equal(requestUrl.pathname, "/v2/acts/owner%2Factor/runs");
+      assert.equal(requestUrl.pathname, "/v2/actors/owner%2Factor/runs");
       assert.equal(requestUrl.searchParams.has("token"), false);
       assert.equal(requestOptions.headers.Authorization, "Bearer unit-test-token");
       assert.deepEqual(JSON.parse(requestOptions.body), input);
