@@ -1,9 +1,9 @@
-import crypto from 'crypto';
 import { getDatasetItems, mapApifyReviews, APIFY_ACTORS } from "@/app/lib/apify";
 import { query, queryOne } from "@/lib/db";
 import { finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
+import { isValidApifyWebhookSecret } from "@/lib/apify-webhook-auth";
 
 export async function POST(request) {
   try {
@@ -23,10 +23,7 @@ export async function POST(request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const expectedBuffer = Buffer.from(expectedSecret, 'utf8');
-    const providedBuffer = Buffer.from(providedSecret, 'utf8');
-
-    if (expectedBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
+    if (!isValidApifyWebhookSecret(providedSecret, expectedSecret)) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
