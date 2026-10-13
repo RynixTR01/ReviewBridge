@@ -15,7 +15,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - Türkçe/İngilizce arayüz, mobil düzen, e-posta/parola ve Google ile giriş, profil/hesap silme, Lemon Squeezy aboneliği.
 - Dashboard'da kaynak ve yorum sayıları, puan özeti ve eşitleme durumu.
 - Kaynak bazında isteğe bağlı günlük otomatik eşitleme, manuel retry, artan gecikmeli ve en fazla üç otomatik retry, eşitleme geçmişi ve takılmış işleri temizleyen günlük Vercel Cron var. Cron sıklığı nedeniyle retry zamanları minimum bekleme süresidir; gerçek çalışma sonraki günlük cron çağrısında olabilir. Otomatik eşitleme varsayılan olarak kapalıdır.
-- GitHub Actions içinde unit test, lint, build ve Playwright ile herkese açık ana sayfa/dil seçimi/mobil taşma testleri çalışıyor. Widget'ın gerçek embed script'ini mobil tarayıcıda çalıştıran E2E eklendi; henüz CI sonucu alınmadı. Neon erişimini kontrol eden `/api/health` endpoint'i var; dış uptime alarmı ayrıca yapılandırılmalı. Gerçek provider entegrasyon testi henüz yok.
+- GitHub Actions içinde unit test, lint, build ve Playwright ile herkese açık ana sayfa/dil seçimi/mobil taşma testleri çalışıyor. PR #13'te üretim embed script'ini mobil tarayıcıda çalıştıran dil/taşma/CTA E2E testi geçti. Neon erişimini kontrol eden `/api/health` endpoint'i var; dış uptime alarmı ayrıca yapılandırılmalı. Gerçek provider entegrasyon testi henüz yok.
 
 ## Eksiklerin tam envanteri ve öncelik sırası
 
@@ -59,9 +59,9 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 
 22. **Fiyat/özellik kaynağı tek değil.** Aylık fiyatlar ve kaynak/yorum limitleri ortak plan sabitlerinden besleniyor; metinsel özellik listeleri ve Lemon Squeezy panel eşleşmesi hâlâ ayrı doğrulanmalı.
 23. **Marketing ile uygulama metinleri çelişebiliyor.** Desteklenen kaynaklar ve günlük opt-in sync FAQ/landing'de aynı duruma getirildi; örnek widget demo olarak işaretli.
-24. **Erişilebilirlik ve embed performans güvencesi eksik.** Kontrast düzeltmesi, landmark/list/star etiketleri, klavyeyle carousel, ETag ile yeniden doğrulama ve reduced-motion desteği eklendi. Genel site için mobil E2E eklendi; widget embed için keyboard/mobile browser E2E ve saha gecikme ölçümü eksik.
+24. **Erişilebilirlik ve embed performans güvencesi eksik.** Kontrast düzeltmesi, landmark/list/star etiketleri, klavyeyle carousel, ETag ile yeniden doğrulama ve reduced-motion desteği eklendi. Genel site için mobil E2E; widget embed için mobil tarayıcıda dil, taşma, duplicate yükleme ve CTA davranış E2E testleri geçti. Embed klavye otomasyonu ve gerçek kullanıcı ağlarında saha gecikme ölçümü eksik.
 25. **İstek sınırlandırma ve alan adı kontrolü eksik.** Embed ve event API'de geçici process bazlı hız sınırı, domain allowlist ve olay türü doğrulaması var. Dağıtık limit ve daha güçlü bot/abuse koruması yok.
-26. **Test/izleme eksik.** Plan/webhook/widget/allowlist/retry/source URL unit testleri, lint/build, temel Playwright E2E ve GitHub Actions eklendi. Health endpoint'i hazır; provider/sync entegrasyon testleri, embed odaklı E2E, production smoke, error alarmı ve dış uptime alarmı hâlâ gerekli.
+26. **Test/izleme eksik.** Plan/webhook/widget/allowlist/retry/source URL unit testleri, lint/build, Playwright E2E ve GitHub Actions eklendi. Health endpoint'i hazır; provider/sync entegrasyon testleri, test hesaplı production smoke, error alarmı ve dış uptime alarmı hâlâ gerekli.
 27. **Destek, durum ve dokümantasyon eksik.** Yardım sayfası ve operasyon runbook'u eklendi. Her connector kılavuzu, herkese açık status sayfası ve destek yanıt hedefi işletme kararı gerektiriyor.
 28. **Gizlilik/silme belgeleri ürünün gerçek davranışını izlemeli.** Üçüncü taraf kaynak verisi, analitik olayları, saklama süreleri, silme ve sağlayıcı listesi uygulamayla aynı olmalı. Hukuki ifadeler yayın öncesi insan uzman kontrolünden geçmeli.
 29. **Hoş geldin e-postası uç noktası dışarıdan tetiklenebiliyordu.** E-posta yalnızca doğrulanmış oturum sahibine gönderiliyor; ad escape ediliyor ve Neon alanı üzerinden bir kez gönderilmesi korunuyor.
