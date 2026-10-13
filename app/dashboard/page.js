@@ -6,7 +6,7 @@ import SyncButton from "./SyncButton";
 import DeleteSourceButton from "./DeleteSourceButton";
 
 export const metadata = {
-  title: "Dashboard — ReviewBridge",
+  title: "Kaynaklar — ReviewBridge",
 };
 
 function StarIcon({ className }) {
@@ -254,7 +254,7 @@ export default async function DashboardPage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Add your first source
+              İlk kaynağınızı ekleyin
             </Link>
             <p className="text-xs text-muted mt-3">Sonsuza dek ücretsiz · Kredi kartı gerekmez</p>
           </div>
@@ -281,7 +281,7 @@ export default async function DashboardPage() {
               ? "Eşitleme başarısız"
               : syncedCount === 0
               ? "Yorum bulunamadı"
-              : `${syncedCount} synced`;
+              : `${syncedCount} yorum eşitlendi`;
             const googleScore = source.total_score;
             const googleTotal = source.total_reviews_count;
             
@@ -350,7 +350,7 @@ export default async function DashboardPage() {
                         {/* Theme badge */}
                         {widgetId && (
                           <span className="text-xs font-medium text-muted px-2 py-0.5 bg-muted-bg rounded-md capitalize">
-                            {widgetTheme} theme
+                            {widgetTheme === "dark" ? "Koyu tema" : "Açık tema"}
                           </span>
                         )}
                       </div>
