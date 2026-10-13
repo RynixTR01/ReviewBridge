@@ -2,6 +2,8 @@
 
 ReviewBridge currently collects Trustpilot reviews through the configured Apify Trustpilot actor. The actor and its input adapter are defined in `app/lib/apify.js`.
 
+> **Access and permission check required:** Trustpilot's [consumer terms effective 1 October 2026](https://corporate.trustpilot.com/legal/for-reviewers/terms-of-use-for-consumers/oct-2026) prohibit automated collection and web scraping without express permission. Apify's [Actor Terms](https://docs.apify.com/legal/actor-terms-and-conditions) also require compliance with the relevant third-party terms and rights. Do not treat this connector as authorized until the account owner has verified written permission or a suitable official API agreement with qualified legal review.
+
 ## Add a source
 
 1. Open the company's Trustpilot profile, such as `https://www.trustpilot.com/review/example.com`.
@@ -20,3 +22,4 @@ Set `APIFY_API_TOKEN`, `APIFY_WEBHOOK_SECRET`, `NEXT_PUBLIC_APP_URL`, and `CRON_
 - **The sync fails repeatedly:** check the profile URL, actor output, and Apify account limits. Automatic retries are bounded.
 
 ReviewBridge displays source attribution and the last-sync time. This is technical setup guidance, not a legal determination that a provider's terms permit a particular use.
+
