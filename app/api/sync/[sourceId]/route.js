@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
 
 export async function POST(request, { params }) {
   try {
@@ -42,7 +42,8 @@ export async function POST(request, { params }) {
       agency:  1_800_000,  // 30 minutes
     };
 
-    if (source.last_synced_at) {
+    // Let failed runs retry immediately; last_synced_at is set when the attempt starts.
+    if (source.last_synced_at && source.sync_status !== "error") {
       const elapsed = Date.now() - new Date(source.last_synced_at).getTime();
       const cooldown = SYNC_COOLDOWNS_MS[userPlan] ?? SYNC_COOLDOWNS_MS.free;
       if (elapsed < cooldown) {
@@ -67,10 +68,14 @@ export async function POST(request, { params }) {
 
     if (process.env.APIFY_API_TOKEN && source.platform === "google") {
       try {
+        const widget = await queryOne(
+          "SELECT source_maps_url FROM public.widgets WHERE source_id = $1 LIMIT 1",
+          [source.id]
+        );
         const runId = await startApifyRun(
           APIFY_ACTORS.GOOGLE_MAPS,
           {
-            placeIds: [source.place_id],
+            ...buildGoogleMapsActorInput(source.place_id, widget?.source_maps_url),
             maxReviews: 20,
             reviewsSort: 'newest'
           },

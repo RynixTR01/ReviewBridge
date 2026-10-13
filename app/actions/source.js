@@ -6,9 +6,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
-import { extractPlaceId } from "@/app/lib/extractPlaceId";
+import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -22,6 +22,9 @@ export async function addSourceAction(prevState, formData) {
   const platform = formData.get("platform");
   const rawInput = String(formData.get("identifier") || "").trim();
   let identifier = platform === "google" ? extractPlaceId(rawInput) : rawInput;
+  if (platform === "google" && !identifier && isGoogleMapsUrl(rawInput)) {
+    identifier = rawInput;
+  }
   
   if (!identifier) {
     return {
@@ -76,10 +79,6 @@ export async function addSourceAction(prevState, formData) {
     // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
     if (process.env.APIFY_API_TOKEN) {
       if (platform === "google") {
-        const mapsUrl = formData.get("identifier").includes('google.com/maps') 
-          ? formData.get("identifier")  
-          : `https://www.google.com/maps/place/?q=place_id:${identifier}`;
-
         // For Google, we skip the synchronous fetch. The webhook will handle it.
         businessName = "Google Business (Syncing...)";
         // We will call startApifyRun *after* creating the source in the DB.
@@ -169,14 +168,10 @@ export async function addSourceAction(prevState, formData) {
   // If Google, start the async Apify run now that we have the source.id
   if (platform === "google" && process.env.APIFY_API_TOKEN) {
     try {
-      const mapsUrl = formData.get("identifier").includes('google.com/maps') 
-        ? formData.get("identifier")  
-        : `https://www.google.com/maps/place/?q=place_id:${identifier}`;
-
       const runId = await startApifyRun(
         APIFY_ACTORS.GOOGLE_MAPS,
         {
-          placeIds: [identifier],
+          ...buildGoogleMapsActorInput(identifier, rawInput),
           maxReviews: reviewsToFetch,
           reviewsSort: 'newest'
         },
