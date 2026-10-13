@@ -65,7 +65,7 @@ export default function SyncButton({ sourceId }) {
         // Rate limited — show the server's cooldown message
         const data = await response.json();
         setSyncing(false);
-        setError(data.error || 'Sync is on cooldown. Please wait before syncing again.');
+        setError(data.error || 'Eşitleme için bekleme süresi dolmadı. Bir süre sonra yeniden deneyin.');
         setMessage('');
         return;
       }
@@ -108,7 +108,7 @@ export default function SyncButton({ sourceId }) {
           const fallbackTimeout = setTimeout(() => {
             clearInterval(pollInterval);
             setSyncing(false);
-            setError("Taking longer than usual. Please refresh to check status.");
+            setError("Eşitleme beklenenden uzun sürüyor. Durumu görmek için sayfayı yenileyin.");
             setMessage("");
           }, 300_000);
           timersRef.current.push(fallbackTimeout);
