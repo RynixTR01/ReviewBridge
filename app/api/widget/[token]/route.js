@@ -1,7 +1,7 @@
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
 import { query, queryOne } from "@/lib/db";
 import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
-import { filterWidgetReviews, getWidgetColors, isAllowedWidgetDomain } from "@/lib/widget-rendering";
+import { createWidgetEtag, filterWidgetReviews, getWidgetColors, isAllowedWidgetDomain, matchesWidgetEtag } from "@/lib/widget-rendering";
 import { isRateLimited } from "@/lib/rate-limit";
 
 const escapeHtml = (value) => String(value ?? "")
@@ -185,7 +185,7 @@ export async function GET(_request, { params }) {
   wrapper.style.cssText=${JSON.stringify(`width:100%;max-width:720px;margin:0 auto;background:${wrapperBackground};border-radius:16px;padding:${wrapperPadding};box-sizing:border-box;color:${colors.text}`)};
   wrapper.innerHTML=${JSON.stringify(htmlByLocale.en)};
   var style=document.createElement('style');
-  style.textContent='#'+id+' .rb-layout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#'+id+' .rb-layout-list{display:grid;grid-template-columns:1fr;gap:12px}#'+id+' .rb-layout-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}#'+id+' .rb-layout-carousel .rb-card{flex:0 0 min(85%,380px);scroll-snap-align:start}@media(max-width:520px){#'+id+' .rb-layout-grid{grid-template-columns:1fr}}';
+  style.textContent='#'+id+' .rb-layout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#'+id+' .rb-layout-list{display:grid;grid-template-columns:1fr;gap:12px}#'+id+' .rb-layout-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}#'+id+' .rb-layout-carousel .rb-card{flex:0 0 min(85%,380px);scroll-snap-align:start}@media(max-width:520px){#'+id+' .rb-layout-grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){#'+id+' *,#'+id+' *::before,#'+id+' *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#'+id+' .rb-layout-carousel{scroll-snap-type:none}}';
   (document.head||document.documentElement).appendChild(style);
   target.appendChild(wrapper);
   var language=${JSON.stringify(widget.widget_locale || "auto")}==='auto'?((navigator.language||'en').toLowerCase().startsWith('tr')?'tr':'en'):${JSON.stringify(widget.widget_locale === "tr" ? "tr" : "en")};
@@ -199,11 +199,18 @@ export async function GET(_request, { params }) {
   wrapper.addEventListener('click',function(event){var link=event.target.closest('[data-rb-event]');if(link)sendMetric(link.getAttribute('data-rb-event'));});
 })();`;
 
-  return new Response(js, {
-    headers: {
+  const etag = createWidgetEtag(js);
+  const responseHeaders = {
       "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Cache-Control": "private, no-cache, must-revalidate",
+      ETag: etag,
       "X-Content-Type-Options": "nosniff",
-    },
+  };
+  if (matchesWidgetEtag(_request.headers.get("if-none-match"), etag)) {
+    return new Response(null, { status: 304, headers: responseHeaders });
+  }
+
+  return new Response(js, {
+    headers: responseHeaders,
   });
 }

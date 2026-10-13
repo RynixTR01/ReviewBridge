@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterWidgetReviews, getWidgetColors, getWidgetLocale, isAllowedWidgetDomain } from "../lib/widget-rendering.js";
+import { createWidgetEtag, filterWidgetReviews, getWidgetColors, getWidgetLocale, isAllowedWidgetDomain, matchesWidgetEtag } from "../lib/widget-rendering.js";
 
 const sample = [
   { id: "old", reviewer_name: "A", rating: 5, body: "A helpful review", reviewed_at: "2026-01-01T00:00:00Z" },
@@ -41,4 +41,15 @@ test("widget domain allowlist accepts subdomains and rejects missing or unrelate
   assert.equal(isAllowedWidgetDomain(new Request("https://app.test", { headers: { referer: "https://notexample.com/page" } }), allowed), false);
   assert.equal(isAllowedWidgetDomain(new Request("https://app.test"), allowed), false);
   assert.equal(isAllowedWidgetDomain(new Request("https://app.test"), []), true);
+});
+
+test("widget ETags are stable, body-specific, and support weak or wildcard validators", () => {
+  const etag = createWidgetEtag("widget script");
+  assert.equal(etag, createWidgetEtag("widget script"));
+  assert.notEqual(etag, createWidgetEtag("changed widget script"));
+  assert.equal(matchesWidgetEtag(etag, etag), true);
+  assert.equal(matchesWidgetEtag(`W/${etag}`, etag), true);
+  assert.equal(matchesWidgetEtag(`"other", ${etag}`, etag), true);
+  assert.equal(matchesWidgetEtag("*", etag), true);
+  assert.equal(matchesWidgetEtag('"other"', etag), false);
 });
