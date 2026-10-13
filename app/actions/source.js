@@ -22,7 +22,12 @@ export async function addSourceAction(prevState, formData) {
 
   const platform = formData.get("platform");
   const rawInput = String(formData.get("identifier") || "").trim();
-  let identifier = platform === "google" ? extractPlaceId(rawInput) : rawInput;
+  if (platform !== "google" && platform !== "trustpilot") {
+    return { error: "Desteklenmeyen platform." };
+  }
+  let identifier = platform === "google"
+    ? extractPlaceId(rawInput)
+    : extractTrustpilotDomain(rawInput)?.toLowerCase() || null;
   if (platform === "google" && !identifier && isGoogleMapsUrl(rawInput)) {
     identifier = rawInput;
   }
@@ -45,6 +50,17 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Oturum açmanız gerekiyor." };
   }
 
+  const existingSource = await queryOne(
+    `SELECT id FROM public.sources
+     WHERE user_id = $1 AND platform = $2
+       AND (($2 = 'trustpilot' AND lower(place_id) = lower($3))
+         OR ($2 = 'google' AND place_id = $3))
+     LIMIT 1`,
+    [user.id, platform, identifier]
+  );
+  if (existingSource) {
+    return { error: "Bu işletme zaten kaynaklarınıza ekli. Mevcut kaynağı panelden kullanabilir veya eşitleyebilirsiniz." };
+  }
 
   // Check plan limits
   const profile = await queryOne(
@@ -63,7 +79,7 @@ export async function addSourceAction(prevState, formData) {
 
 
   if (count >= limits.maxSources) {
-    return { error: `Your ${plan} plan is limited to ${limits.maxSources} source(s). Daha fazla kaynak eklemek için planınızı yükseltin.` };
+    return { error: `${plan} planında en fazla ${limits.maxSources} kaynak ekleyebilirsiniz. Daha fazla kaynak için planınızı yükseltin.` };
   }
 
   // 1. Call SerpAPI (or similar service) to verify and fetch reviews
