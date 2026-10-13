@@ -26,7 +26,7 @@ export function buildGoogleMapsActorInput(identifier, mapsUrl) {
 }
 
 /**
- * Builds the webhook URL with the required sourceId and secret.
+ * Builds the webhook URL with the sourceId; the shared secret is sent in a request header.
  * @param {string} sourceId The ID of the source being synced.
  * @returns {string} The fully formed webhook URL.
  */
