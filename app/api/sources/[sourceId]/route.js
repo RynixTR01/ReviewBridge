@@ -1,13 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { query } from "@/lib/db";
 
 export async function DELETE(request, { params }) {
   const { sourceId } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });

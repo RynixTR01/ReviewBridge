@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { PLAN_LIMITS } from "@/lib/plans";
 import SyncButton from "./SyncButton";
@@ -18,11 +18,7 @@ function StarIcon({ className }) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   // Fetch sources and their corresponding widget
   const sources = await query(

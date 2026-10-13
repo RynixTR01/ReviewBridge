@@ -1,10 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
+import { auth } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 export async function updateProfileAction(formData) {
   const fullName = formData.get("full_name")?.toString().trim();
@@ -13,8 +13,7 @@ export async function updateProfileAction(formData) {
     return { error: "Full name must be between 1 and 50 characters." };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return { error: "Not authenticated." };
@@ -43,19 +42,17 @@ export async function deleteAccountAction(formData) {
     return { error: "Please type DELETE to confirm account deletion." };
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return { error: "Not authenticated." };
   }
 
-  // Supabase remains the authentication provider; its admin client is used only
-  // to remove the auth identity after the Neon application data is deleted.
-  const serviceSupabase = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  const { error: authDeleteError } = await auth.deleteUser({});
+  if (authDeleteError) {
+    console.error("Delete Neon Auth user error:", authDeleteError);
+    return { error: "Could not delete the login. Please try again or contact support." };
+  }
 
   try {
     await query("DELETE FROM public.users WHERE id = $1", [user.id]);
@@ -64,15 +61,7 @@ export async function deleteAccountAction(formData) {
     return { error: "Failed to delete account data. Please try again." };
   }
 
-  // The Neon foreign keys cascade the profile deletion to sources, reviews,
-  // and widgets. Keep account deletion in Supabase Auth for now.
-  const { error: authDeleteError } = await serviceSupabase.auth.admin.deleteUser(user.id);
-  if (authDeleteError) {
-    console.error("Delete Supabase auth user error:", authDeleteError);
-    return { error: "Account data was deleted, but the login could not be removed." };
-  }
-
-  await supabase.auth.signOut();
+  await auth.signOut();
 
   redirect("/");
 }

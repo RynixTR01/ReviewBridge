@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ProfileForm, DangerZone } from "./SettingsClient";
@@ -8,8 +8,7 @@ export const metadata = {
 };
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");

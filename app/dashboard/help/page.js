@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import FaqAccordion from "./FaqAccordion";
 
@@ -8,8 +8,7 @@ export const metadata = {
 };
 
 export default async function HelpPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");

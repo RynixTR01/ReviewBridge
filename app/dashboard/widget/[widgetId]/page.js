@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -14,8 +14,7 @@ export default async function WidgetPage({ params }) {
   const resolvedParams = await params;
   const widgetId = resolvedParams.widgetId;
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");

@@ -1,38 +1,19 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { queryOne } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 
-export default async function DashboardLayout({ children }) {
-  const supabase = await createClient();
+export const dynamic = "force-dynamic";
 
+export default async function DashboardLayout({ children }) {
   // Get user session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  // Get user profile to check plan
-  let profile = await queryOne(
-    "SELECT plan, full_name FROM public.users WHERE id = $1",
-    [user.id]
-  );
-
-  if (!profile) {
-    profile = await queryOne(
-      `INSERT INTO public.users (id, email, full_name)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
-       RETURNING plan, full_name`,
-      [user.id, user.email || "", user.user_metadata?.full_name || ""]
-    );
-  }
-
-  const plan = profile?.plan || "free";
+  const plan = user.plan || "free";
   const planDisplay = plan.charAt(0).toUpperCase() + plan.slice(1);
 
   return (
@@ -82,7 +63,7 @@ export default async function DashboardLayout({ children }) {
         <div className="p-4 border-t border-border flex items-center justify-between">
           <div className="text-sm">
             <div className="font-medium text-foreground truncate max-w-[140px]">
-              {profile?.full_name || user.email}
+              {user.name || user.email}
             </div>
             <div className="text-xs text-muted truncate max-w-[140px]">
               {user.email}

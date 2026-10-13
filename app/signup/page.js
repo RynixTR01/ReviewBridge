@@ -3,26 +3,30 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 
 export default function SignupPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   async function handleGoogleLogin() {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-    if (error) setError(error.message);
+    setError("");
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: `${window.location.origin}/dashboard`,
+      });
+      if (error) setError(error.message);
+    } catch (authError) {
+      setError(authError.message || "Unable to start Google sign-in.");
+    }
   }
 
   async function handleSubmit(e) {
@@ -30,15 +34,13 @@ export default function SignupPage() {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
+    let signUpError;
+    try {
+      const result = await authClient.signUp.email({ email, password, name: fullName });
+      signUpError = result.error;
+    } catch (authError) {
+      signUpError = authError;
+    }
 
     if (signUpError) {
       setError(signUpError.message);
@@ -61,6 +63,27 @@ export default function SignupPage() {
     setLoading(false);
   }
 
+  async function handleVerifyEmail(e) {
+    e.preventDefault();
+    setError("");
+    setVerifying(true);
+
+    try {
+      const { error: verifyError } = await authClient.emailOtp.verifyEmail({ email, otp });
+      if (verifyError) {
+        setError(verifyError.message);
+        setVerifying(false);
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (verifyError) {
+      setError(verifyError.message || "Unable to verify your email.");
+      setVerifying(false);
+    }
+  }
+
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted-bg/30 px-6">
@@ -70,14 +93,37 @@ export default function SignupPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">Check your email</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-3">Verify your email</h1>
           <p className="text-muted leading-relaxed">
-            We sent a confirmation link to <strong className="text-foreground">{email}</strong>. 
-            Click it to activate your account.
+            Enter the one-time code sent to <strong className="text-foreground">{email}</strong> to activate your account.
           </p>
-          <Link href="/login" className="inline-block mt-8 text-primary font-semibold hover:underline">
-            Go to Login
-          </Link>
+          {error && (
+            <div className="mt-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
+            <label htmlFor="email-otp" className="sr-only">Email verification code</label>
+            <input
+              id="email-otp"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              maxLength={8}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.trim())}
+              placeholder="Enter verification code"
+              className="w-full px-4 py-3 rounded-xl border border-border bg-white text-center tracking-[0.3em] text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            />
+            <button
+              type="submit"
+              disabled={verifying}
+              className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primary-hover transition-all disabled:opacity-50"
+            >
+              {verifying ? "Verifying…" : "Verify email"}
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -164,10 +210,10 @@ export default function SignupPage() {
                 id="password"
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>

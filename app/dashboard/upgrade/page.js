@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/server";
 import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -25,8 +25,7 @@ function CrossIcon() {
 }
 
 export default async function UpgradePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");

@@ -40,14 +40,14 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">3. Data Storage and Security</h2>
-            <p>Your data is stored securely using Supabase, which provides enterprise-grade security including encryption at rest and in transit. We do not sell, trade, or rent your personal information to third parties.</p>
+            <p>Your account and application data are stored in Neon Postgres. We do not sell, trade, or rent your personal information to third parties.</p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">4. Third-Party Services</h2>
             <p>We use the following third-party services:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
-              <li><strong>Supabase</strong> — Database and authentication</li>
+              <li><strong>Neon</strong> — Database and authentication</li>
               <li><strong>Vercel</strong> — Hosting and deployment</li>
               <li><strong>Google Maps API</strong> — Fetching public review data</li>
               <li><strong>LemonSqueezy</strong> — Payment processing</li>
