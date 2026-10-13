@@ -26,18 +26,16 @@ export function buildGoogleMapsActorInput(identifier, mapsUrl) {
 }
 
 /**
- * Builds the webhook URL with the required sourceId and secret.
+ * Builds the webhook URL with the sourceId; the shared secret is sent in a request header.
  * @param {string} sourceId The ID of the source being synced.
  * @returns {string} The fully formed webhook URL.
  */
 export function buildWebhookUrl(sourceId) {
-  const secret = process.env.APIFY_WEBHOOK_SECRET;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-  if (!appUrl || !secret) throw new Error("Missing webhook configuration");
-  
-  // The secret is passed via query param for now, but we will also pass it
-  // as a header in the Apify webhook configuration for better security.
-  return `${appUrl}/api/apify-webhook?sourceId=${sourceId}&secret=${secret}`;
+  if (!appUrl) throw new Error("Missing webhook URL configuration");
+
+  const normalizedAppUrl = appUrl.replace(/\/+$/, "");
+  return normalizedAppUrl + "/api/apify-webhook?sourceId=" + encodeURIComponent(sourceId);
 }
 
 /**
@@ -49,36 +47,34 @@ export function buildWebhookUrl(sourceId) {
  */
 export async function startApifyRun(actorId, input, sourceId) {
   const token = process.env.APIFY_API_TOKEN;
-  if (!token) throw new Error("APIFY_API_TOKEN is not set");
-
-  const webhookUrl = buildWebhookUrl(sourceId);
   const secret = process.env.APIFY_WEBHOOK_SECRET;
+  if (!token) throw new Error("APIFY_API_TOKEN is not set");
+  if (!secret) throw new Error("APIFY_WEBHOOK_SECRET is not set");
 
-  const url = `https://api.apify.com/v2/acts/${actorId}/runs?token=${token}`;
-  
+  const webhook = {
+    eventTypes: ['ACTOR.RUN.SUCCEEDED', 'ACTOR.RUN.FAILED', 'ACTOR.RUN.ABORTED', 'ACTOR.RUN.TIMED_OUT'],
+    requestUrl: buildWebhookUrl(sourceId),
+    headersTemplate: JSON.stringify({ 'x-webhook-secret': secret })
+  };
+  const encodedWebhooks = Buffer.from(JSON.stringify([webhook]), 'utf8').toString('base64');
+  const url = "https://api.apify.com/v2/acts/" + encodeURIComponent(actorId) +
+    "/runs?token=" + encodeURIComponent(token) + "&webhooks=" + encodeURIComponent(encodedWebhooks);
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...input,
-      webhooks: [
-        {
-          eventTypes: ['ACTOR.RUN.SUCCEEDED', 'ACTOR.RUN.FAILED', 'ACTOR.RUN.ABORTED', 'ACTOR.RUN.TIMED_OUT'],
-          requestUrl: webhookUrl,
-          // Passing secret as a custom header for better security
-          headersTemplate: `{\n  "x-webhook-secret": "${secret}"\n}`
-        }
-      ]
-    })
+    // Apify receives only the actor input here; webhook definitions belong in
+    // the Base64-encoded webhooks query parameter above.
+    body: JSON.stringify(input)
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Failed to start Apify run: ${response.status} ${errText}`);
+    throw new Error("Failed to start Apify run: " + response.status + " " + errText);
   }
 
   const data = await response.json();
-  return data.data.id; // Returns the actor run ID
+  return data.data.id;
 }
 
 /**
