@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
+import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 
 export async function POST(request, { params }) {
   try {
@@ -67,6 +68,7 @@ export async function POST(request, { params }) {
     }
     // --- End Rate Limiting ---
 
+    const historyId = await startSyncHistory(source.id);
     // Call Apify to fetch fresh reviews
     let fetchedReviews = [];
 
@@ -93,6 +95,7 @@ export async function POST(request, { params }) {
            WHERE id = $1 AND user_id = $3`,
           [source.id, runId, user.id]
         );
+        await attachSyncRun(historyId, runId);
 
         return Response.json({ status: 'pending', message: 'Syncing in background...' });
       } catch (err) {
@@ -104,6 +107,7 @@ export async function POST(request, { params }) {
            WHERE id = $1 AND user_id = $3`,
           [source.id, "Failed to start sync process", user.id]
         );
+        await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
         return Response.json({ error: "Failed to start sync process" }, { status: 500 });
       }
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
@@ -133,10 +137,12 @@ export async function POST(request, { params }) {
           }));
         } else {
           console.error("Trustpilot Apify fetch failed (array not returned)", tpData);
+          await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot yanıtı okunamadı." });
           return Response.json({ error: "Failed to parse Trustpilot results from Apify" }, { status: 502 });
         }
       } else {
         console.error("Trustpilot Apify fetch failed", await tpRes.text());
+        await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot yorumları alınamadı." });
         return Response.json({ error: "Failed to fetch from Apify (Trustpilot)" }, { status: 502 });
       }
     } else {
@@ -146,6 +152,7 @@ export async function POST(request, { params }) {
           { reviewer_name: "New User " + Math.floor(Math.random() * 100), rating: 5, body: "Fresh review added!", reviewed_at: new Date().toISOString() }
         ];
       } else {
+        await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Apify anahtarı yapılandırılmamış." });
         return Response.json(
           { error: "Apify token is not configured. Add APIFY_API_TOKEN to your environment variables." },
           { status: 500 }
@@ -194,6 +201,7 @@ export async function POST(request, { params }) {
       console.error("Source update error:", updateError);
     }
 
+    await finishSyncHistory({ historyId, sourceId: source.id, status: "done", reviewsCount: reviewsToUpsert.length });
     return Response.json({ success: true, message: "Sync complete", updated: reviewsToUpsert.length });
   } catch (err) {
     console.error("Sync error:", err);
