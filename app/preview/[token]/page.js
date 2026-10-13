@@ -62,6 +62,8 @@ export default async function PreviewPage({ params }) {
     backgroundColor: widget.background_color, textColor: widget.text_color,
     accentColor: widget.accent_color, showReviewerAvatar: widget.show_reviewer_avatar,
     showReviewedDate: widget.show_reviewed_date,
+    showRatingSummary: widget.show_rating_summary, fontFamily: widget.font_family,
+    cardDensity: widget.card_density, cornerStyle: widget.corner_style,
   }, userPlan);
   Object.assign(widget, safeSettings, {
     max_reviews: safeSettings.maxReviews, minimum_rating: safeSettings.minimumRating,
@@ -73,6 +75,8 @@ export default async function PreviewPage({ params }) {
     show_reviewer_avatar: safeSettings.showReviewerAvatar, show_reviewed_date: safeSettings.showReviewedDate,
     show_badge: safeSettings.showBadge, smart_filter: safeSettings.smartFilter,
     show_review_button: safeSettings.showReviewButton,
+    show_rating_summary: safeSettings.showRatingSummary, font_family: safeSettings.fontFamily,
+    card_density: safeSettings.cardDensity, corner_style: safeSettings.cornerStyle,
   });
   const widgetDisplayLocale = widget.widget_locale === "auto" ? locale : widget.widget_locale;
   const reviewLimit = Math.min(Number(widget.max_reviews) || 5, limits.maxReviews);
@@ -119,7 +123,13 @@ export default async function PreviewPage({ params }) {
   const border = colors.border;
   const cardBg = colors.card;
   const shadow = colors.shadow;
-  const layout = limits.canChooseLayout && ["grid", "carousel"].includes(widget.layout) ? widget.layout : "list";
+  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry"].includes(widget.layout) ? widget.layout : "list";
+  const previewFont = widget.font_family === "arial" ? "Arial, sans-serif" : widget.font_family === "georgia" ? "Georgia, serif" : "system-ui, sans-serif";
+  const cardPadding = widget.card_density === "compact" ? 10 : 16;
+  const cardRadius = { small: 6, medium: 12, large: 20 }[widget.corner_style] || 12;
+  const averageRating = reviewsList.length
+    ? (reviewsList.reduce((total, review) => total + Number(review.rating || 0), 0) / reviewsList.length).toFixed(1)
+    : "0.0";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col">
@@ -169,16 +179,18 @@ export default async function PreviewPage({ params }) {
             <div
               style={{
                 width: "100%",
-                maxWidth: layout === "grid" ? 640 : 500,
+                maxWidth: layout === "grid" || layout === "masonry" ? 640 : 500,
                 margin: "0 auto",
                 background: bg,
                 borderRadius: 16,
                 padding: widget.theme === "minimal" ? 0 : 20,
                 boxSizing: "border-box",
+                fontFamily: previewFont,
               }}
             >
-              {widget.widget_title && <h3 style={{ color: text, fontSize: 18, fontWeight: 600, marginBottom: 14 }}>{widget.widget_title}</h3>}
-              <div className={layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : layout === "carousel" ? "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" : "space-y-3"}>
+              {widget.widget_title && <h3 style={{ color: text, fontSize: 18, fontWeight: 600, marginBottom: 14, fontFamily: previewFont }}>{widget.widget_title}</h3>}
+              {widget.show_rating_summary && reviewsList.length > 0 && <div style={{ width: "fit-content", margin: "0 auto 14px", borderRadius: 999, background: "#fffbeb", color: "#92400e", padding: "8px 14px", fontSize: 14, fontWeight: 600, fontFamily: previewFont }}>★ {averageRating}/5 · {reviewsList.length} {t(widgetDisplayLocale, "yorum", "reviews")}</div>}
+              <div className={layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : layout === "carousel" ? "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" : layout === "masonry" ? "columns-1 sm:columns-2 gap-3" : "space-y-3"} style={{ fontFamily: previewFont }}>
               {reviewsList.length === 0 ? (
                 <p
                   style={{
@@ -197,13 +209,14 @@ export default async function PreviewPage({ params }) {
                     style={{
                       background: cardBg,
                       border: border,
-                      borderRadius: 12,
-                      padding: 16,
+                      borderRadius: cardRadius,
+                      padding: cardPadding,
                       marginBottom: layout === "list" ? 12 : 0,
                       minWidth: layout === "carousel" ? "82%" : 0,
+                      breakInside: layout === "masonry" ? "avoid" : undefined,
                       scrollSnapAlign: layout === "carousel" ? "start" : undefined,
                       boxShadow: shadow,
-                      fontFamily: "system-ui, sans-serif",
+                      fontFamily: previewFont,
                     }}
                   >
                     <div
@@ -295,7 +308,7 @@ export default async function PreviewPage({ params }) {
                   style={{
                     textAlign: "center",
                     marginTop: 16,
-                    fontFamily: "system-ui, sans-serif",
+                      fontFamily: previewFont,
                   }}
                 >
                   <span

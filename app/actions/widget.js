@@ -67,6 +67,10 @@ export async function updateWidgetAction(formData) {
     smartFilter: requestedSmartFilter,
     showReviewButton,
     layout: formData.get("layout"),
+    showRatingSummary: formData.get("showRatingSummary") === "true",
+    fontFamily: formData.get("fontFamily"),
+    cardDensity: formData.get("cardDensity"),
+    cornerStyle: formData.get("cornerStyle"),
     minimumRating: formData.get("minimumRating"),
     sortOrder: formData.get("sortOrder"),
     includeKeywords: formData.get("includeKeywords"),
@@ -93,8 +97,9 @@ export async function updateWidgetAction(formData) {
            exclude_keywords = $10, date_from = $11, date_to = $12,
            widget_locale = $13, widget_title = $14, background_color = $15,
            text_color = $16, accent_color = $17, show_reviewer_avatar = $18,
-           show_reviewed_date = $19, allowed_domains = $20
-       WHERE id = $21 AND user_id = $22`,
+           show_reviewed_date = $19, allowed_domains = $20,
+           show_rating_summary = $21, font_family = $22, card_density = $23, corner_style = $24
+       WHERE id = $25 AND user_id = $26`,
       [
         settings.theme,
         settings.maxReviews,
@@ -116,6 +121,10 @@ export async function updateWidgetAction(formData) {
         settings.showReviewerAvatar,
         settings.showReviewedDate,
         settings.allowedDomains,
+        settings.showRatingSummary,
+        settings.fontFamily,
+        settings.cardDensity,
+        settings.cornerStyle,
         widgetId,
         user.id,
       ]

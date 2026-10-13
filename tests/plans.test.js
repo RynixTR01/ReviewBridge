@@ -15,6 +15,10 @@ test("free plan cannot bypass theme, review, badge, or smart-filter limits", () 
     showBadge: false,
     smartFilter: true,
     showReviewButton: true,
+    showRatingSummary: true,
+    fontFamily: "georgia",
+    cardDensity: "compact",
+    cornerStyle: "large",
   }, "free"), {
     theme: "light",
     maxReviews: 10,
@@ -22,6 +26,10 @@ test("free plan cannot bypass theme, review, badge, or smart-filter limits", () 
     smartFilter: false,
     showReviewButton: true,
     layout: "list",
+    showRatingSummary: false,
+    fontFamily: "system",
+    cardDensity: "comfortable",
+    cornerStyle: "medium",
     minimumRating: 1,
     sortOrder: "newest",
     includeKeywords: "",
@@ -78,6 +86,21 @@ test("paid widget settings are validated and dangerous color input is discarded"
   assert.equal(settings.textColor, "#111827");
   assert.equal(settings.showReviewerAvatar, false);
   assert.deepEqual(settings.allowedDomains, ["example.com", "shop.example.com"]);
+});
+
+test("paid widget settings allow masonry and validate typography and card styling", () => {
+  const settings = normalizeWidgetSettings({
+    layout: "masonry",
+    showRatingSummary: true,
+    fontFamily: "georgia",
+    cardDensity: "compact",
+    cornerStyle: "large",
+  }, "pro");
+  assert.equal(settings.layout, "masonry");
+  assert.equal(settings.showRatingSummary, true);
+  assert.equal(settings.fontFamily, "georgia");
+  assert.equal(settings.cardDensity, "compact");
+  assert.equal(settings.cornerStyle, "large");
 });
 
 test("widget text colors preserve WCAG AA contrast against the selected background", () => {

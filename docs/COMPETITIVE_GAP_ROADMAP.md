@@ -11,11 +11,11 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - Neon Postgres ve Neon Auth üzerinde Next.js/Vercel uygulaması.
 - Google Maps ve Trustpilot kaynakları; Apify tabanlı veri alma akışı.
 - Kaynak ekleme, yinelenen kaynak kontrolü, elle eşitleme, eşitleme geçmişi, retry ve takılmış işleri temizleme.
-- Tek sütun yorum widget'ı; light/dark/minimal temalar; yorum sayısı; yazısız yorum filtresi; yorum kaynağına gitme düğmesi; ReviewBridge rozeti.
+- List, grid, carousel ve masonry yorum düzenleri; light/dark/minimal temalar; ortalama puan rozeti; font, kart aralığı ve köşe ayarları; yorum kaynağına gitme düğmesi; ReviewBridge rozeti.
 - Türkçe/İngilizce arayüz, mobil düzen, e-posta/parola ve Google ile giriş, profil/hesap silme, Lemon Squeezy aboneliği.
 - Dashboard'da kaynak ve yorum sayıları, puan özeti ve eşitleme durumu.
-- Kaynak bazında isteğe bağlı günlük otomatik eşitleme, manuel retry, eşitleme geçmişi ve takılmış işleri temizleyen günlük Vercel Cron var. Üstelik dış sağlayıcı kullanımı doğurabileceği için otomatik eşitleme varsayılan olarak kapalıdır.
-- GitHub Actions içinde unit test, lint ve build çalışıyor. Tarayıcı E2E ve canlı smoke testi henüz yok.
+- Kaynak bazında isteğe bağlı günlük otomatik eşitleme, manuel retry, artan gecikmeli ve en fazla üç otomatik retry, eşitleme geçmişi ve takılmış işleri temizleyen günlük Vercel Cron var. Cron sıklığı nedeniyle retry zamanları minimum bekleme süresidir; gerçek çalışma sonraki günlük cron çağrısında olabilir. Otomatik eşitleme varsayılan olarak kapalıdır.
+- GitHub Actions içinde unit test, lint, build ve Playwright ile herkese açık ana sayfa/dil seçimi/mobil taşma E2E testi çalışıyor. Neon erişimini kontrol eden `/api/health` endpoint'i var; dış uptime alarmı ayrıca yapılandırılmalı. Gerçek provider entegrasyon testi henüz yok.
 
 ## Eksiklerin tam envanteri ve öncelik sırası
 
@@ -26,17 +26,17 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 3. **Platform veri erişimi ve saklama kuralları belirsiz.** Apify scraper ile elde edilen verinin Google/Trustpilot şartlarına uygunluğu, attribution, saklama ve silme gereklilikleri platform bazında doğrulanmalı. Yetkili API/OAuth yolu varsa, scraper davranışından ayrı değerlendirilmelidir.
 4. **Yorum kimliği kararlı değil.** Provider ID varsa saklanıyor; yoksa normalize edilmiş kaynak/yorumcu/puan/metin ve güvenilir tarih parçasından SHA-256 ID üretiliyor. Provider tarihi eksikse geçici çekim zamanı ID'ye katılmıyor.
 5. **Yorum metni ile widget'ın kaynağı/güncelliği gösterilmiyor.** Embed artık platformu, işletme adını ve son güncelleme tarihini gösteriyor; son eşitleme hata verdiyse veya veri 7 günden eskiyse uyarı gösteriyor.
-6. **Eşitleme yaşam döngüsü tam otomatik değil.** Atomik kilit, arka plan Apify işi, callback ile timeout/abort sonucu, günlük isteğe bağlı dispatcher ve takılmış iş temizliği eklendi. Dağıtık retry/backoff hâlâ eksik.
+6. **Eşitleme yaşam döngüsü tam otomatik değil.** Atomik kilit, arka plan Apify işi, callback ile timeout/abort sonucu, günlük isteğe bağlı dispatcher, takılmış iş temizliği ve en fazla üç retry/backoff eklendi. Günlük cron sebebiyle retry gecikebilir; dağıtık iş kuyruğu ve bağımsız alarm yok.
 7. **Abonelik planı ve webhook olayları sağlamlaştırılmalı.** İmza, duplicate, tarih sıralaması ve mevcut abonelik kimliği korunuyor; variant ID eşlemesi environment variable ile destekleniyor. Lemon panelindeki gerçek variant ID'leri henüz bu çalışma alanından doğrulanamadı.
 
 **Kabul ölçütü:** İmzasız/tekrarlı ödeme webhook'u planı değiştiremez; kaynak fetch hatası başarı gibi görünmez; sync tekrarları duplicate üretmez; eski yorumlar başarısız denemede korunur.
 
 ### P1 — Rakiplerle doğrudan özellik farkları
 
-8. **Widget düzenleri eksik.** List, grid ve carousel ile canlı önizleme eklendi. Küçük rating badge ve masonry/floating düzenleri hâlâ yok.
+8. **Widget düzenleri eksik.** List, grid, carousel ve masonry ile canlı önizleme ve ortalama puan rozeti eklendi. Sabit/floating banner ayrı tasarım işi olarak kalıyor.
 9. **İnce taneli filtre ve sıralama eksik.** Minimum yıldız, tarih aralığı, anahtar kelime include/exclude, en yeni/puan sırası ve yazısız yorum filtresi sunulmalı. Plan limitleri sunucuda uygulanmalı.
 10. **Yorum moderasyonu eksik.** İşletme, yorumu widget'tan gizleyebilmeli veya sabitleyebilmeli; orijinal kaynak metni bozulmadan kalmalı. Moderasyon yalnızca widget görünümünü yönetmeli, kaynak platformdaki review'ı değiştirmemeli.
-11. **Widget tasarım seçenekleri sınırlı.** Renk, avatar/tarih, başlık ve alan adı allowlist'i eklendi; yazı tipi ile boşluk/kenarlık kontrolleri yok. Metin rengi WCAG AA kontrastına göre düzeltiliyor.
+11. **Widget tasarım seçenekleri sınırlı.** Renk, avatar/tarih, başlık, alan adı allowlist'i, sistem/Arial/Georgia yazı tipi, sıkı/rahat kart boşluğu ve üç köşe biçimi eklendi. Metin rengi WCAG AA kontrastına göre düzeltiliyor.
 12. **Gömülü widget dil seçimi eksik.** Site arayüzü TR/EN seçimini destekliyor; embed içindeki CTA, boş durum, kaynak etiketi ve tarih gösterimi ayrıca widget dili ayarı kullanmalı.
 13. **Widget etkileşim analitiği eksik.** Günlük görüntülenme, kaynak tıklaması, CTA tıklaması ve CTR anonim toplu sayaçla dashboard'a eklendi; 90 gün sonunda siliniyor. Sayaçlar yaklaşık değerlerdir ve dağıtık bot koruması yok.
 14. **Widget görünümü ve kopyalanan kodun kurulumu sınırlı.** WordPress/Shopify/Webflow/custom yönergeleri ve tekrar script yüklenmesini önleme eklendi. Başka alan adındaki gerçek kurulum otomatik algılanamaz; platforma özel plugin ve kurulum doğrulaması yok.
@@ -59,9 +59,9 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 
 22. **Fiyat/özellik kaynağı tek değil.** Aylık fiyatlar ve kaynak/yorum limitleri ortak plan sabitlerinden besleniyor; metinsel özellik listeleri ve Lemon Squeezy panel eşleşmesi hâlâ ayrı doğrulanmalı.
 23. **Marketing ile uygulama metinleri çelişebiliyor.** Desteklenen kaynaklar ve günlük opt-in sync FAQ/landing'de aynı duruma getirildi; örnek widget demo olarak işaretli.
-24. **Erişilebilirlik ve embed performans güvencesi eksik.** Kontrast düzeltmesi, landmark/list/star etiketleri, klavyeyle carousel, ETag ile yeniden doğrulama ve reduced-motion desteği eklendi. Browser E2E ve saha gecikme ölçümü eksik.
+24. **Erişilebilirlik ve embed performans güvencesi eksik.** Kontrast düzeltmesi, landmark/list/star etiketleri, klavyeyle carousel, ETag ile yeniden doğrulama ve reduced-motion desteği eklendi. Genel site için mobil E2E eklendi; widget embed için keyboard/mobile browser E2E ve saha gecikme ölçümü eksik.
 25. **İstek sınırlandırma ve alan adı kontrolü eksik.** Embed ve event API'de geçici process bazlı hız sınırı, domain allowlist ve olay türü doğrulaması var. Dağıtık limit ve daha güçlü bot/abuse koruması yok.
-26. **Test/izleme eksik.** Plan/webhook/widget/allowlist unit testleri, lint/build ve GitHub Actions eklendi. URL/provider/sync entegrasyon testleri, E2E, production smoke, error alarmı ve uptime alarmı hâlâ gerekli.
+26. **Test/izleme eksik.** Plan/webhook/widget/allowlist/retry/source URL unit testleri, lint/build, temel Playwright E2E ve GitHub Actions eklendi. Health endpoint'i hazır; provider/sync entegrasyon testleri, embed odaklı E2E, production smoke, error alarmı ve dış uptime alarmı hâlâ gerekli.
 27. **Destek, durum ve dokümantasyon eksik.** Yardım sayfası ve operasyon runbook'u eklendi. Her connector kılavuzu, herkese açık status sayfası ve destek yanıt hedefi işletme kararı gerektiriyor.
 28. **Gizlilik/silme belgeleri ürünün gerçek davranışını izlemeli.** Üçüncü taraf kaynak verisi, analitik olayları, saklama süreleri, silme ve sağlayıcı listesi uygulamayla aynı olmalı. Hukuki ifadeler yayın öncesi insan uzman kontrolünden geçmeli.
 29. **Hoş geldin e-postası uç noktası dışarıdan tetiklenebiliyordu.** E-posta yalnızca doğrulanmış oturum sahibine gönderiliyor; ad escape ediliyor ve Neon alanı üzerinden bir kez gönderilmesi korunuyor.
@@ -73,15 +73,15 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 | Alan | ReviewBridge kodunda görülen | Rakiplerde görülen | Öncelik / karar |
 |---|---|---|---|
 | Kaynak kapsamı | Google Maps ve Trustpilot | Trustmary ve EmbedSocial daha geniş yorum toplama seçenekleri sunuyor; Elfsight çeşitli platform yorumlarını tek widget'ta topluyor | P2; erişim, saklama ve silme koşulu doğrulanmadan yeni connector eklenmez |
-| Widget yerleşimi | Liste, grid, carousel | Slider, rating özeti ve çeşitli kart düzenleri | P1; rating badge sonraki açık iş |
+| Widget yerleşimi | Liste, grid, carousel, masonry ve rating özeti | Slider, rating özeti ve çeşitli kart düzenleri | Temel fark kapandı; floating banner açık |
 | Filtreleme | Yazısız yorum filtresi, yıldız/tarih/kelime/sıralama | Yıldız, anahtar kelime ve kötü yorumları hariç tutma seçenekleri | P1; temel fark kapandı |
 | Moderasyon | Widget başına gizle/sabitle | Görünür yorumları seçme, gizleme ve sabitleme | P1; kapandı |
-| Tasarım | Açık/koyu/minimal, renk, başlık, avatar/tarih, locale, alan adı | Boşluk ve yazı tipi kontrolü de var | P1; font/spacing sonraki açık iş |
+| Tasarım | Açık/koyu/minimal, renk, başlık, avatar/tarih, locale, alan adı, font, kart aralığı ve köşeler | Boşluk ve yazı tipi kontrolü de var | Temel fark kapandı |
 | Analitik | Günlük görüntülenme, kaynak/CTA tıklaması ve CTR | Daha ayrıntılı entegrasyon olayları ve A/B testleri | P1/P2; anonim temel sayaç kapandı, varyant deneyi trafik bekliyor |
 | Yorum toplama | Harici kaynaklardan gösterim | Anket, memnuniyet toplama ve AI özetleme/analiz | P2; ayrı ürün kolu, widget iyileştirmelerinden sonra |
 | Ajans kullanımı | Tek kullanıcı planında sınırsız kaynak vaadi | Çoklu marka/site, müşteri alanları ve ekip/roller | P2; tenant izolasyonu olmadan ajans çalışma alanı sunulmamalı |
 | Kurulum | Kopyalanabilir script | Platforma özel kılavuzlar ve daha fazla embed senaryosu | P1/P2; kurulum doğrulaması ve platform rehberleri |
-| Operasyon | Elle sync ve hata geçmişi | Otomatik veri yenileme ve destek akışları | P0/P2; önce güvenilir retry/lock, sonra ayarlanabilir cron |
+| Operasyon | Elle sync, kilit, sınırlı otomatik yenileme ve hata geçmişi | Otomatik veri yenileme ve destek akışları | Kaynak bazlı retry/backoff eklendi; cron günlük olduğu için gerçek retry gecikebilir, sık cron/kuyruk ayrıca planlanmalı |
 
 ### Araştırma kaynakları
 
@@ -122,11 +122,11 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - [x] Aşama 1'in uygulanabilir altyapısı: stable provider ID, atomik sync lock, arka plan Apify işleri, durum callback'leri, opt-in daily sync, attribution ve freshness.
 - [x] Aşama 3–6'nın uygulanabilir widget işleri: filtre/sort, hide/pin, list/grid/carousel, renk/locale, günlük toplu metrikler, onboarding/kurulum, multi-widget, domain allowlist.
 - [x] Aşama 9'in yerel otomasyonu: test/lint/build GitHub Actions; privacy/ops docs.
-- [~] Yerel kod tamamlandı; bu checkout'ta henüz commit/PR/production deploy yapılmadı. Production release için GitHub CI ve Vercel Preview kontrolü, ardından dağıtım ve canlı smoke testi gerekiyor.
+- [x] Önceki rekabet yol haritası kodu ve düzeltmeler PR #11 ile main'e alındı; Vercel production deployment hazır oldu ve canlı ana sayfa/kontrol paneli doğrulandı.
 - [ ] **Canlı servis ayarları:** Lemon Squeezy'deki Pro/Agency variant ID'lerini Vercel'e ekle; operasyon dosyasındaki tüm gerekli production değişkenlerini doğrula; Apify kullanım/bütçesini ve Production Cron loglarını denetle. Kaynak başına auto-sync kullanıcı tarafından açılmalı.
 - [ ] **Sağlayıcı ve hukuk:** Google/Trustpilot veri erişimi, gösterim/atıf, saklama ve silme kurallarını gerçek kullanılan Apify aktörleri ve hesap koşulları üzerinden doğrula; gizlilik/şartlar metnini hukuk uzmanına kontrol ettir. Başka platformları bu doğrulamadan önce açma.
-- [ ] **Eşitleme dayanıklılığı:** Dağıtık görev kuyruğu, artan gecikmeli retry/backoff ve alarm ekle. Şu an atomik DB kilidi, callback, günlük opt-in cron ve takılmış iş temizliği var; retry ve izleme tam otomatik değil.
-- [ ] **Widget paritesi ve erişilebilirlik:** rating badge, masonry/floating düzenleri, yazı tipi/boşluk/kenarlık ayarları ve gerçek tarayıcı mobil/klavye testleri. Liste/grid/carousel, ETag ile yeniden doğrulama ve reduced-motion desteği mevcut.
-- [ ] **Test ve operasyon:** provider/sync entegrasyon testleri, Playwright E2E, üretimde test hesabıyla smoke, hata/uptime alarmı ve connector başına kurulum/arıza kılavuzu. Unit test/lint/build CI mevcut; gerçek servis uçtan uca doğrulaması yok.
+- [x] **Eşitleme dayanıklılığı:** DB'de izlenen, 15 dk/1 saat/6 saat artan gecikmeli ve en fazla üç retry eklendi; Apify başarısızlığı/işleme hatası/takılmış iş retry kuyruğuna girer. Günlük cron gerçek retry zamanını geciktirebilir; ayrıca dağıtık kuyruğa ve dış alarma geçilmedi.
+- [x] **Widget paritesi:** ortalama puan rozeti, masonry, font, kart boşluğu ve köşe ayarları preview ve embed'e eklendi. Gerçek browser mobil/klavye otomasyon testi hâlâ gerekiyor.
+- [~] **Test ve operasyon:** health endpoint'i, retry ve kaynak URL birim testleri, herkese açık akışlar için Playwright E2E, Google Maps/Trustpilot kurulum ve sorun giderme kılavuzları eklendi. Provider/sync entegrasyon testleri, widget embed E2E, dış hata/uptime alarmı ve test hesaplı üretim smoke testi hâlâ gerekli.
 - [ ] **İleri ürün işleri:** agency çalışma alanı ve ekip rolleri, e-posta bildirim tercihleri, anket/yorum toplama ve AI analizi, A/B deneyleri, ek platform connector'ları, herkese açık durum sayfası/SLA. Anket/AI ve yeni kaynaklar ürün/sağlayıcı kararı; A/B gerçek trafik; workspace rol modeli ayrı tasarım ister.
 - [ ] **Plan/faturalama eşlemesi:** Uygulama plan metni ve fiyatları ortak kod sabitinden geliyor; Lemon Squeezy ürün/variant fiyatlarının aynı olduğuna panel üzerinden bakılmalı.

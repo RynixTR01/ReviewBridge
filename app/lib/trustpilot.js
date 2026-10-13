@@ -9,17 +9,22 @@
  * Returns: "apple.com" or null if the input can't be parsed.
  */
 export function extractTrustpilotDomain(input) {
-  if (!input) return null;
-  input = input.trim();
+  if (typeof input !== "string" || !input.trim()) return null;
+  const value = input.trim();
+  const validDomain = (domain) => /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(domain);
 
-  // If it contains trustpilot.com/review/, extract domain after it
-  const tpMatch = input.match(/trustpilot\.com\/review\/([^/?#]+)/);
-  if (tpMatch) return tpMatch[1];
-
-  // If it looks like a plain domain (has a dot, no spaces, no slashes)
-  if (input.includes('.') && !input.includes(' ') && !input.includes('/')) {
-    return input.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  if (!value.includes("/") && !value.includes("://")) {
+    const domain = value.replace(/^www\./i, "").toLowerCase();
+    return validDomain(domain) ? domain : null;
   }
 
-  return null;
+  try {
+    const url = new URL(value.includes("://") ? value : "https://" + value);
+    if (!/(^|\.)trustpilot\.com$/i.test(url.hostname)) return null;
+    const match = url.pathname.match(/^\/review\/([^/]+)\/?$/i);
+    const domain = match?.[1]?.toLowerCase();
+    return domain && validDomain(domain) ? domain : null;
+  } catch {
+    return null;
+  }
 }
