@@ -25,13 +25,13 @@ export default function AddSourcePage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Sources
+          Kaynaklara dön
         </Link>
       </div>
 
       <div className="bg-white border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Add New Source</h1>
-        <p className="text-muted mb-8">Connect your Google or Trustpilot account to start fetching reviews.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Yeni kaynak ekle</h1>
+        <p className="text-muted mb-8">Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.</p>
 
         {state?.error && (
           <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-3">
@@ -91,7 +91,7 @@ export default function AddSourcePage() {
               name="identifier"
               type="text"
               required
-              placeholder="Paste your Google Maps URL or Trustpilot URL / domain"
+              placeholder="Paste your Google Haritalar bağlantısı or Trustpilot URL / domain"
               className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
