@@ -252,6 +252,17 @@ export default async function DashboardPage() {
             const isGoogle = source.platform === "google";
             const stats = reviewStats[source.id];
             const syncedCount = stats?.count || 0;
+            const syncStatus = source.sync_status || "done";
+            const syncBadgeStyle = syncStatus === "pending"
+              ? "bg-blue-50 text-blue-700"
+              : syncStatus === "error"
+              ? "bg-red-50 text-red-700"
+              : "bg-green-50 text-green-700";
+            const syncLabel = syncStatus === "pending"
+              ? "Fetching reviews…"
+              : syncStatus === "error"
+              ? "Sync failed"
+              : `${syncedCount} synced`;
             const googleScore = source.total_score;
             const googleTotal = source.total_reviews_count;
             
@@ -274,7 +285,7 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground text-lg">{source.business_name}</h3>
+                      <h3 className="font-semibold text-foreground text-lg">{source.business_name?.replace(" (Syncing...)", "")}</h3>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-medium text-muted capitalize px-2 py-0.5 bg-muted-bg rounded-md">
                           {source.platform}
@@ -295,17 +306,22 @@ export default async function DashboardPage() {
                           </span>
                         )}
 
-                        {/* Synced count */}
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-green-50 text-green-700 rounded-md">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {syncedCount} synced
+                        {/* Current sync state */}
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md ${syncBadgeStyle}`}>
+                          {syncStatus === "done" && (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          {syncLabel}
                         </span>
 
                         <span className="text-xs text-muted">
-                          Synced: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString() : "Never"}
+                          Last successful sync: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString() : "Never"}
                         </span>
+                        {syncStatus === "error" && source.last_sync_error && (
+                          <span className="text-xs text-red-600">{source.last_sync_error}</span>
+                        )}
 
                         {/* Theme badge */}
                         {widgetId && (
