@@ -17,10 +17,10 @@ export default function DeleteSourceButton({ sourceId }) {
       if (response.ok) {
         router.refresh();
       } else {
-        alert("Failed to delete source. Please try again.");
+        alert("Kaynak silinemedi. Lütfen yeniden deneyin.");
       }
     } catch {
-      alert("Failed to delete source. Please try again.");
+      alert("Kaynak silinemedi. Lütfen yeniden deneyin.");
     } finally {
       setDeleting(false);
       setConfirming(false);
@@ -35,13 +35,13 @@ export default function DeleteSourceButton({ sourceId }) {
           disabled={deleting}
           className="text-xs font-medium text-white bg-red-500 px-2.5 py-1.5 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
         >
-          {deleting ? "Deleting..." : "Confirm"}
+          {deleting ? "Siliniyor..." : "Sil"}
         </button>
         <button
           onClick={() => setConfirming(false)}
           className="text-xs font-medium text-muted px-2.5 py-1.5 rounded-md hover:bg-muted-bg transition-colors"
         >
-          Cancel
+          Vazgeç
         </button>
       </div>
     );
@@ -50,7 +50,7 @@ export default function DeleteSourceButton({ sourceId }) {
   return (
     <button
       onClick={() => setConfirming(true)}
-      title="Delete source"
+      title="Kaynağı sil"
       className="p-2 text-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
     >
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
