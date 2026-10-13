@@ -20,6 +20,7 @@ Set these for the Production environment and redeploy after changing them:
 
 - On 13 October 2026, `CRON_SECRET` was added as a Vercel **Production** secret and the resulting production deployment reached **Ready**. Confirm the next scheduled Cron invocation in Vercel Logs before treating the scheduled cleanup/auto-sync path as live-verified. Do not manually trigger it in production: opted-in sources can start billable Apify runs.
 - The Vercel project settings showed the Neon database/auth values and Apify token/webhook configuration. `LEMONSQUEEZY_PRO_VARIANT_ID` and `LEMONSQUEEZY_AGENCY_VARIANT_ID` were not present when checked; payment plan mapping remains unverified until the exact IDs from the Lemon Squeezy dashboard are configured.
+- The Apify account's current billing page showed $0.02 of $5.00 included usage, with $4.98 remaining. Its two most recent Google Maps actor runs each cost $0.01 and succeeded. This account-level view does not prove that a ReviewBridge production sync delivered its webhook successfully; do not manually run the production cron because opted-in sources may start billable jobs.
 
 ## Release verification
 
