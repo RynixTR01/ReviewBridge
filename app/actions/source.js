@@ -7,9 +7,8 @@ import { redirect } from "next/navigation";
 import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
-import { buildGoogleMapsActorInput } from "@/app/lib/apify";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -80,7 +79,7 @@ export async function addSourceAction(prevState, formData) {
     // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
     if (process.env.APIFY_API_TOKEN) {
       if (platform === "google") {
-// For Google, we skip the synchronous fetch. The webhook will handle it.
+        // For Google, we skip the synchronous fetch. The webhook will handle it.
         businessName = "Google Business (Syncing...)";
         // We will call startApifyRun *after* creating the source in the DB.
       } else if (platform === "trustpilot") {
@@ -169,7 +168,7 @@ export async function addSourceAction(prevState, formData) {
   // If Google, start the async Apify run now that we have the source.id
   if (platform === "google" && process.env.APIFY_API_TOKEN) {
     try {
-const runId = await startApifyRun(
+      const runId = await startApifyRun(
         APIFY_ACTORS.GOOGLE_MAPS,
         {
           ...buildGoogleMapsActorInput(identifier, rawInput),
