@@ -240,8 +240,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Embed on your site</h3>
-              <p className="text-sm text-muted">One line of code, done</p>
+              <h3 className="font-semibold text-foreground mb-1">Sitenize yerleştirin</h3>
+              <p className="text-sm text-muted">Tek satır kodla tamam</p>
             </div>
           </div>
 
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
               </svg>
               Add your first source
             </Link>
-            <p className="text-xs text-muted mt-3">Free forever · No credit card required</p>
+            <p className="text-xs text-muted mt-3">Sonsuza dek ücretsiz · Kredi kartı gerekmez</p>
           </div>
         </div>
       ) : (
