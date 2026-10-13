@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
+import { finishSyncHistory } from "@/lib/sync-history";
 
 export async function GET(request, { params }) {
   try {
@@ -32,6 +33,7 @@ export async function GET(request, { params }) {
            AND sync_started_at < NOW() - INTERVAL '15 minutes'`,
         [sourceId, user.id, "Sync timed out. Please try again."]
       );
+      await finishSyncHistory({ sourceId, status: "error", errorMessage: "Eşitleme zaman aşımına uğradı." });
     }
 
     const currentSource = await queryOne(
