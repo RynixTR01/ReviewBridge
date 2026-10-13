@@ -9,13 +9,14 @@ import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
     // If someone calls this directly without formData, or due to a signature mismatch
     formData = prevState;
     if (!formData || !formData.get) {
-       return { error: "Form data is missing." };
+       return { error: "Form verisi eksik." };
     }
   }
 
@@ -29,19 +30,19 @@ export async function addSourceAction(prevState, formData) {
   if (!identifier) {
     return {
       error: platform === "google"
-        ? "This is not a supported Google Maps business link. Open the business in Google Maps and paste its Maps URL or Place ID. Google Search links (google.com/search) do not work."
-        : "Please enter a valid Trustpilot URL or company domain.",
+        ? "Bu Google Haritalar işletme bağlantısı desteklenmiyor. İşletmeyi Google Haritalar’da açıp Maps bağlantısını veya Place ID’yi yapıştırın. Google arama bağlantıları (google.com/search) çalışmaz."
+        : "Geçerli bir Trustpilot bağlantısı veya şirket alan adı girin.",
     };
   }
 
   if (!platform || !identifier) {
-    return { error: "Platform and Identifier are required." };
+    return { error: "Platform ve bağlantı bilgisi gereklidir." };
   }
 
   const user = await getCurrentUser();
 
   if (!user) {
-    return { error: "Not authenticated" };
+    return { error: "Oturum açmanız gerekiyor." };
   }
 
 
@@ -62,11 +63,11 @@ export async function addSourceAction(prevState, formData) {
 
 
   if (count >= limits.maxSources) {
-    return { error: `Your ${plan} plan is limited to ${limits.maxSources} source(s). Please upgrade to add more.` };
+    return { error: `Your ${plan} plan is limited to ${limits.maxSources} source(s). Daha fazla kaynak eklemek için planınızı yükseltin.` };
   }
 
   // 1. Call SerpAPI (or similar service) to verify and fetch reviews
-  let businessName = "Unknown Business";
+  let businessName = "Bilinmeyen işletme";
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
@@ -80,12 +81,12 @@ export async function addSourceAction(prevState, formData) {
     if (process.env.APIFY_API_TOKEN) {
       if (platform === "google") {
         // For Google, we skip the synchronous fetch. The webhook will handle it.
-        businessName = "Google Business (Syncing...)";
+        businessName = "Google işletmesi (eşitleniyor...)";
         // We will call startApifyRun *after* creating the source in the DB.
       } else if (platform === "trustpilot") {
         const companyDomain = extractTrustpilotDomain(identifier);
         if (!companyDomain) {
-          return { error: 'Could not extract company domain. Please paste your Trustpilot URL or company domain (e.g. apple.com)' };
+          return { error: 'Şirket alan adı bulunamadı. Trustpilot bağlantınızı veya şirket alan adınızı girin (ör. apple.com).' };
         }
 
         // Override identifier with clean domain for DB storage
@@ -131,7 +132,7 @@ export async function addSourceAction(prevState, formData) {
           { reviewer_name: "Charlie", rating: 5, body: "Highly recommended.", reviewed_at: new Date().toISOString() }
         ];
       } else {
-        return { error: "Apify token is not configured. Add APIFY_API_TOKEN to your environment variables." };
+        return { error: "Apify anahtarı yapılandırılmamış. Ortam değişkenlerine APIFY_API_TOKEN ekleyin." };
       }
     }
   } catch (err) {
@@ -140,6 +141,7 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 2. Insert into sources
+  const startsAsyncGoogleSync = platform === "google" && Boolean(process.env.APIFY_API_TOKEN);
   let newSource;
   try {
     newSource = await queryOne(
@@ -155,18 +157,19 @@ export async function addSourceAction(prevState, formData) {
         businessName,
         totalScore,
         totalReviewsCount,
-        new Date().toISOString(),
-        platform === "google" ? new Date().toISOString() : null,
-        platform === "google" ? "pending" : "done",
+        startsAsyncGoogleSync ? null : new Date().toISOString(),
+        startsAsyncGoogleSync ? new Date().toISOString() : null,
+        startsAsyncGoogleSync ? "pending" : "done",
       ]
     );
   } catch (sourceError) {
     console.error("Insert source error:", sourceError);
-    return { error: "Failed to save the source to database." };
+    return { error: "Kaynak veritabanına kaydedilemedi." };
   }
 
+  const historyId = await startSyncHistory(newSource.id);
   // If Google, start the async Apify run now that we have the source.id
-  if (platform === "google" && process.env.APIFY_API_TOKEN) {
+  if (startsAsyncGoogleSync) {
     try {
       const runId = await startApifyRun(
         APIFY_ACTORS.GOOGLE_MAPS,
@@ -182,12 +185,17 @@ export async function addSourceAction(prevState, formData) {
         "UPDATE public.sources SET apify_run_id = $1 WHERE id = $2",
         [runId, newSource.id]
       );
+      await attachSyncRun(historyId, runId);
     } catch (err) {
       console.error("Failed to start initial Google sync:", err);
       await query(
-        "UPDATE public.sources SET sync_status = $1, last_sync_error = $2 WHERE id = $3",
-        ["error", "Failed to start background sync", newSource.id]
+        `UPDATE public.sources
+         SET sync_status = $1, last_sync_error = $2,
+             apify_run_id = NULL, sync_started_at = NULL
+         WHERE id = $3`,
+        ["error", "Arka plan eşitlemesi başlatılamadı", newSource.id]
       );
+      await finishSyncHistory({ historyId, sourceId: newSource.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
     }
   }
 
@@ -222,6 +230,10 @@ export async function addSourceAction(prevState, formData) {
     } catch (reviewsError) {
       console.error("Insert reviews error:", reviewsError);
     }
+  }
+
+  if (!startsAsyncGoogleSync) {
+    await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsToInsert.length });
   }
 
   // 4. Create default widget

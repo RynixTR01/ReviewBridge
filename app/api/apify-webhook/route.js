@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { getDatasetItems, mapApifyReviews, APIFY_ACTORS } from "@/app/lib/apify";
 import { query, queryOne } from "@/lib/db";
+import { finishSyncHistory } from "@/lib/sync-history";
 
 export async function POST(request) {
   try {
@@ -63,6 +64,7 @@ export async function POST(request) {
         [sourceId, `Apify run ended with status: ${runStatus}`]
       );
       
+      await finishSyncHistory({ sourceId, runId, status: "error", errorMessage: `Apify run ended with status: ${runStatus}` });
       return Response.json({ message: `Run failed with status ${runStatus}` }, { status: 200 });
     }
 
@@ -97,6 +99,7 @@ export async function POST(request) {
         [sourceId]
       );
 
+      await finishSyncHistory({ sourceId, runId, status: "done", reviewsCount: mappedReviews.length });
       console.log(`Successfully synced ${mappedReviews.length} reviews for source ${sourceId}`);
 
       return Response.json({ success: true, count: mappedReviews.length }, { status: 200 });
@@ -111,6 +114,7 @@ export async function POST(request) {
          WHERE id = $1`,
         [sourceId, `Failed to process reviews: ${processError.message}`]
       );
+      await finishSyncHistory({ sourceId, runId, status: "error", errorMessage: "Yorumlar işlenirken eşitleme başarısız oldu." });
 
       return Response.json({ error: 'Failed to process reviews' }, { status: 500 });
     }

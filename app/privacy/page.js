@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Privacy Policy</h1>
-        <p className="text-muted mb-10">Last updated: April 2026</p>
+        <p className="text-muted mb-10">Last updated: October 2026</p>
 
         <div className="prose-custom space-y-8 text-muted leading-relaxed">
           <section>
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>Neon</strong> — Database and authentication</li>
               <li><strong>Vercel</strong> — Hosting and deployment</li>
-              <li><strong>Google Maps API</strong> — Fetching public review data</li>
+              <li><strong>Apify</strong> — Processing listing URLs and retrieving publicly available review data</li>
               <li><strong>LemonSqueezy</strong> — Payment processing</li>
             </ul>
           </section>

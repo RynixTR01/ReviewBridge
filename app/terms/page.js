@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Terms of Service</h1>
-        <p className="text-muted mb-10">Last updated: April 2026</p>
+        <p className="text-muted mb-10">Last updated: October 2026</p>
 
         <div className="prose-custom space-y-8 text-muted leading-relaxed">
           <section>
@@ -42,8 +42,8 @@ export default function TermsPage() {
             <p>ReviewBridge offers Free, Pro, and Agency subscription plans. Each plan has specific feature limits as described on our pricing page. We reserve the right to modify pricing with 30 days advance notice.</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>Free Plan</strong> — 1 source, up to 10 reviews displayed, light theme only</li>
-              <li><strong>Pro Plan ($7/month)</strong> — Up to 5 sources, unlimited reviews, all themes, badge removal</li>
-              <li><strong>Agency Plan ($19/month)</strong> — Unlimited sources, unlimited reviews, priority support</li>
+              <li><strong>Pro Plan ($7/month)</strong> — Up to 5 sources, up to 20 reviews shown per widget, all themes, badge removal</li>
+              <li><strong>Agency Plan ($19/month)</strong> — Unlimited sources, up to 20 reviews shown per widget, priority support</li>
             </ul>
           </section>
 

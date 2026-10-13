@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const PROGRESS_MESSAGES = [
-  { at: 0, text: "Connecting to Google..." },
-  { at: 3000, text: "Fetching reviews..." },
-  { at: 6000, text: "Almost done..." },
-  { at: 10000, text: "This is taking longer than usual..." },
+  { at: 0, text: "Google bağlantısı kuruluyor..." },
+  { at: 3000, text: "Yorumlar alınıyor..." },
+  { at: 6000, text: "Neredeyse tamamlandı..." },
+  { at: 10000, text: "İşlem normalden uzun sürüyor..." },
 ];
 
 const TIMEOUT_MS = 30000;
@@ -44,7 +44,7 @@ export default function SyncButton({ sourceId }) {
     // Schedule timeout
     const timeoutTimer = setTimeout(() => {
       setSyncing(false);
-      setError("Sync timed out. Please try again.");
+      setError("Eşitleme zaman aşımına uğradı. Yeniden deneyin.");
       setMessage("");
     }, TIMEOUT_MS);
 
@@ -74,7 +74,7 @@ export default function SyncButton({ sourceId }) {
         const data = await response.json();
         
         if (data.status === 'pending') {
-          setMessage("Syncing in background...");
+          setMessage("Arka planda eşitleniyor...");
           
           const pollInterval = setInterval(async () => {
             try {
@@ -86,14 +86,14 @@ export default function SyncButton({ sourceId }) {
               if (statusData.sync_status === 'done') {
                 clearInterval(pollInterval);
                 setSuccess(true);
-                setMessage("Sync complete!");
+                setMessage("Eşitleme tamamlandı!");
                 setSyncing(false);
                 router.refresh();
                 setTimeout(() => setSuccess(false), 3000);
               } else if (statusData.sync_status === 'error') {
                 clearInterval(pollInterval);
                 setSyncing(false);
-                setError(statusData.last_sync_error || "Sync failed. Please try again.");
+                setError(statusData.last_sync_error || "Eşitleme başarısız. Yeniden deneyin.");
                 setMessage("");
               }
             } catch (err) {
@@ -116,21 +116,21 @@ export default function SyncButton({ sourceId }) {
         } else {
           // Synchronous sync complete (Trustpilot)
           setSuccess(true);
-          setMessage("Sync complete!");
+          setMessage("Eşitleme tamamlandı!");
           setSyncing(false);
           router.refresh();
           setTimeout(() => setSuccess(false), 3000);
         }
       } else {
         setSyncing(false);
-        setError("Sync failed. Please try again.");
+        setError("Eşitleme başarısız. Yeniden deneyin.");
         setMessage("");
       }
     } catch {
       timers.forEach(clearTimeout);
       timersRef.current = [];
       setSyncing(false);
-      setError("Sync failed. Please try again.");
+      setError("Eşitleme başarısız. Yeniden deneyin.");
       setMessage("");
     }
   }
@@ -141,22 +141,20 @@ export default function SyncButton({ sourceId }) {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
-        Synced!
+        Eşitlendi!
       </span>
     );
   }
 
   if (error) {
     return (
-      <button
-        onClick={handleSync}
-        className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-        Retry sync
-      </button>
+      <div className="flex flex-col items-start gap-2">
+        <p role="alert" className="max-w-xs text-xs text-red-700">{error}</p>
+        <button onClick={handleSync} className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+          Yeniden dene
+        </button>
+      </div>
     );
   }
 
@@ -169,7 +167,7 @@ export default function SyncButton({ sourceId }) {
       <svg className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
-      {syncing ? message : "Sync"}
+      {syncing ? message : "Eşitle"}
     </button>
   );
 }

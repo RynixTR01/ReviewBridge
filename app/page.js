@@ -91,8 +91,9 @@ function HeroSection() {
 
         <p className="mt-4 text-sm text-muted/70">No credit card required · Cancel anytime · Setup in 2 minutes</p>
 
-        {/* Widget preview - Bella Cafe Istanbul */}
-        <div className="mt-16 max-w-lg mx-auto glass-card p-6 text-left">
+        {/* Clearly label this static example so it is not mistaken for a real customer review. */}
+        <p className="mt-16 mb-2 text-center text-xs font-medium text-muted">Demo widget · sample business and reviews</p>
+        <div className="max-w-lg mx-auto glass-card p-6 text-left">
           <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center text-white font-bold text-sm">BC</div>
             <div>
@@ -166,7 +167,7 @@ function HowItWorksSection() {
     {
       num: "1",
       title: "Connect your listing",
-      desc: "Enter your Google Place ID or Trustpilot URL. We fetch your reviews automatically.",
+      desc: "Enter your Google Maps URL or Place ID, or your Trustpilot URL. Reviews start fetching after you connect the source.",
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -250,7 +251,7 @@ function PricingSection() {
       desc: "For growing businesses",
       features: [
         "Up to 5 sources",
-        "Unlimited reviews",
+        "Up to 20 reviews shown per widget",
         "All themes unlocked",
         "Remove ReviewBridge badge",
         "Smart Filter \u2014 show only written reviews",
@@ -266,7 +267,7 @@ function PricingSection() {
       desc: "For agencies & multi-site",
       features: [
         "Unlimited sources",
-        "Unlimited reviews",
+        "Up to 20 reviews shown per widget",
         "All themes unlocked",
         "Remove badge",
         "Manage multiple sites",
@@ -349,7 +350,7 @@ function FAQSection() {
     },
     {
       q: "How often are reviews updated?",
-      a: "Reviews sync automatically. You can also manually sync anytime from your dashboard.",
+      a: "Reviews are fetched when you connect a source. You can start a manual sync from your dashboard; scheduled automatic syncing is not available yet."
     },
     {
       q: "Will it work on any website?",

@@ -25,13 +25,13 @@ export default function AddSourcePage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to Sources
+          Kaynaklara dön
         </Link>
       </div>
 
       <div className="bg-white border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Add New Source</h1>
-        <p className="text-muted mb-8">Connect your Google or Trustpilot account to start fetching reviews.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Yeni kaynak ekle</h1>
+        <p className="text-muted mb-8">Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.</p>
 
         {state?.error && (
           <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-3">
@@ -47,13 +47,13 @@ export default function AddSourcePage() {
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p>Source added! Reviews are still being fetched. Click Sync on your dashboard in 2-3 minutes. Redirecting...</p>
+            <p>Kaynak eklendi! Yorumlar alınmaya devam ediyor. 2-3 dakika sonra panelden eşitlemeyi deneyin. Yönlendiriliyorsunuz...</p>
           </div>
         )}
 
         <form action={formAction} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">Review Platform</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Yorum platformu</label>
             <div className="grid grid-cols-2 gap-4">
               <label className="cursor-pointer">
                 <input type="radio" name="platform" value="google" className="peer sr-only" defaultChecked />
@@ -84,13 +84,14 @@ export default function AddSourcePage() {
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
               Place ID or URL
             </label>
-            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Maps or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
+            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Haritalar or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
+            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">Google Haritalar işletme bağlantınızı bulmak için yardıma mı ihtiyacınız var?</Link>
             <input
               id="identifier"
               name="identifier"
               type="text"
               required
-              placeholder="Paste your Google Maps URL or Trustpilot URL / domain"
+              placeholder="Paste your Google Haritalar bağlantısı or Trustpilot URL / domain"
               className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>

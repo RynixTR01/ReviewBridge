@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import FaqAccordion from "./FaqAccordion";
 
 export const metadata = {
-  title: "Help — ReviewBridge",
+  title: "Yardım — ReviewBridge",
 };
 
-export default async function HelpPage() {
+export default async function YardımPage() {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -17,22 +17,22 @@ export default async function HelpPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Help</h1>
-        <p className="text-muted mt-1">Find answers and get support.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Yardım</h1>
+        <p className="text-muted mt-1">Yanıtları bulun ve destek alın.</p>
       </div>
 
       {/* FAQ Section */}
       <div className="mb-10">
-        <h2 className="text-lg font-bold text-foreground mb-4">Frequently Asked Questions</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Sık sorulan sorular</h2>
         <FaqAccordion />
       </div>
 
-      {/* Resources Section */}
+      {/* Kaynaklar Section */}
       <div>
-        <h2 className="text-lg font-bold text-foreground mb-4">Resources</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Kaynaklar</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
-            href="/dashboard"
+            href="/dashboard/help#google-maps-url"
             className="bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/20 transition-all group"
           >
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-primary-light transition-colors">
@@ -40,8 +40,8 @@ export default async function HelpPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
             </div>
-            <h3 className="font-semibold text-foreground text-sm mb-1">Getting Started Guide</h3>
-            <p className="text-xs text-muted">Learn how to set up your first widget.</p>
+            <h3 className="font-semibold text-foreground text-sm mb-1">Google Maps URL Guide</h3>
+            <p className="text-xs text-muted">Find the correct listing URL to connect.</p>
           </Link>
 
           <Link
