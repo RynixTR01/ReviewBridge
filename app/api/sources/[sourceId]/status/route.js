@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/server";
-import { queryOne } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 
 export async function GET(request, { params }) {
   try {
@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
 
     // Scope by owner in SQL so the Neon connection cannot bypass the old RLS policy.
     const source = await queryOne(
-      `SELECT sync_status, last_synced_at, last_sync_error
+      `SELECT sync_status, sync_started_at, last_synced_at, last_sync_error
        FROM public.sources WHERE id = $1 AND user_id = $2`,
       [sourceId, user.id]
     );
@@ -22,10 +22,28 @@ export async function GET(request, { params }) {
       return Response.json({ error: "Source not found" }, { status: 404 });
     }
 
+    const startedAt = source.sync_started_at ? new Date(source.sync_started_at).getTime() : 0;
+    if (source.sync_status === "pending" && startedAt > 0 && Date.now() - startedAt > 15 * 60_000) {
+      await query(
+        `UPDATE public.sources
+         SET sync_status = 'error', last_sync_error = $3,
+             apify_run_id = NULL, sync_started_at = NULL
+         WHERE id = $1 AND user_id = $2 AND sync_status = 'pending'
+           AND sync_started_at < NOW() - INTERVAL '15 minutes'`,
+        [sourceId, user.id, "Sync timed out. Please try again."]
+      );
+    }
+
+    const currentSource = await queryOne(
+      `SELECT sync_status, last_synced_at, last_sync_error
+       FROM public.sources WHERE id = $1 AND user_id = $2`,
+      [sourceId, user.id]
+    );
+
     return Response.json({
-      sync_status: source.sync_status,
-      last_synced_at: source.last_synced_at,
-      last_sync_error: source.last_sync_error
+      sync_status: currentSource.sync_status,
+      last_synced_at: currentSource.last_synced_at,
+      last_sync_error: currentSource.last_sync_error
     }, { status: 200 });
 
   } catch (error) {
