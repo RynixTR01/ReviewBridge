@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { query } from "@/lib/db";
 
 export async function GET(request) {
   try {
@@ -9,35 +9,24 @@ export async function GET(request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use service role to bypass RLS for background cleanup
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Calculate the threshold time: 15 minutes ago
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
     // Find sources stuck in 'pending' for more than 15 minutes and mark as error
-    const { data, error } = await supabase
-      .from('sources')
-      .update({
-        sync_status: 'error',
-        last_sync_error: 'Sync timed out. Please try again.',
-        apify_run_id: null
-      })
-      .eq('sync_status', 'pending')
-      .not('sync_started_at', 'is', null)
-      .lt('sync_started_at', fifteenMinutesAgo)
-      .select('id');
-
-    if (error) {
-      console.error('Cleanup Cron DB Error:', error);
-      return Response.json({ error: 'Database update failed' }, { status: 500 });
-    }
+    const data = await query(
+      `UPDATE public.sources
+       SET sync_status = 'error', last_sync_error = 'Sync timed out. Please try again.',
+           apify_run_id = NULL
+       WHERE sync_status = 'pending'
+         AND sync_started_at IS NOT NULL
+         AND sync_started_at < $1
+       RETURNING id`,
+      [fifteenMinutesAgo]
+    );
 
     return Response.json({ 
       success: true, 
-      message: `Cleaned up ${data?.length || 0} stale syncs.` 
+      message: `Cleaned up ${data.length} stale syncs.`
     }, { status: 200 });
 
   } catch (err) {

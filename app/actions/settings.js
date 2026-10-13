@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
@@ -19,12 +20,13 @@ export async function updateProfileAction(formData) {
     return { error: "Not authenticated." };
   }
 
-  const { error } = await supabase
-    .from("users")
-    .update({ full_name: fullName })
-    .eq("id", user.id);
-
-  if (error) {
+  try {
+    const profile = await queryOne(
+      "UPDATE public.users SET full_name = $1 WHERE id = $2 RETURNING id",
+      [fullName, user.id]
+    );
+    if (!profile) throw new Error("User profile not found.");
+  } catch (error) {
     console.error("Update profile error:", error);
     return { error: "Failed to update profile. Please try again." };
   }
@@ -48,50 +50,28 @@ export async function deleteAccountAction(formData) {
     return { error: "Not authenticated." };
   }
 
-  // Use service role to bypass RLS for cascading deletions
+  // Supabase remains the authentication provider; its admin client is used only
+  // to remove the auth identity after the Neon application data is deleted.
   const serviceSupabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
-  // 1. Get all source IDs for the user
-  const { data: sources } = await serviceSupabase
-    .from("sources")
-    .select("id")
-    .eq("user_id", user.id);
-
-  const sourceIds = (sources || []).map((s) => s.id);
-
-  // 2. Delete all reviews for user's sources
-  if (sourceIds.length > 0) {
-    await serviceSupabase
-      .from("reviews")
-      .delete()
-      .in("source_id", sourceIds);
+  try {
+    await query("DELETE FROM public.users WHERE id = $1", [user.id]);
+  } catch (error) {
+    console.error("Delete Neon account data error:", error);
+    return { error: "Failed to delete account data. Please try again." };
   }
 
-  // 3. Delete all widgets for user
-  await serviceSupabase
-    .from("widgets")
-    .delete()
-    .eq("user_id", user.id);
+  // The Neon foreign keys cascade the profile deletion to sources, reviews,
+  // and widgets. Keep account deletion in Supabase Auth for now.
+  const { error: authDeleteError } = await serviceSupabase.auth.admin.deleteUser(user.id);
+  if (authDeleteError) {
+    console.error("Delete Supabase auth user error:", authDeleteError);
+    return { error: "Account data was deleted, but the login could not be removed." };
+  }
 
-  // 4. Delete all sources for user
-  await serviceSupabase
-    .from("sources")
-    .delete()
-    .eq("user_id", user.id);
-
-  // 5. Delete user from public.users table
-  await serviceSupabase
-    .from("users")
-    .delete()
-    .eq("id", user.id);
-
-  // 6. Delete from auth.users (fully removes the Supabase account)
-  await serviceSupabase.auth.admin.deleteUser(user.id);
-
-  // 7. Sign out
   await supabase.auth.signOut();
 
   redirect("/");

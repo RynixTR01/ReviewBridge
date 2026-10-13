@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 export async function updateWidgetAction(formData) {
@@ -23,11 +24,10 @@ export async function updateWidgetAction(formData) {
     return { error: "Not authenticated" };
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT plan FROM public.users WHERE id = $1",
+    [user.id]
+  );
   const userPlan = profile?.plan || "free";
 
   if (userPlan === 'free' && maxReviews > 10) {
@@ -40,19 +40,23 @@ export async function updateWidgetAction(formData) {
   }
 
   // Update widget settings
-  const { error } = await supabase
-    .from("widgets")
-    .update({
-      theme: theme || "light",
-      max_reviews: isNaN(maxReviews) ? 5 : maxReviews,
-      show_badge: showBadge,
-      smart_filter: smartFilter,
-      show_review_button: showReviewButton,
-    })
-    .eq("id", widgetId)
-    .eq("user_id", user.id); // Ensure user owns the widget
-
-  if (error) {
+  try {
+    await query(
+      `UPDATE public.widgets
+       SET theme = $1, max_reviews = $2, show_badge = $3,
+           smart_filter = $4, show_review_button = $5
+       WHERE id = $6 AND user_id = $7`,
+      [
+        theme || "light",
+        Number.isNaN(maxReviews) ? 5 : maxReviews,
+        showBadge,
+        smartFilter,
+        showReviewButton,
+        widgetId,
+        user.id,
+      ]
+    );
+  } catch (error) {
     console.error("Widget update error:", error);
     return { error: "Failed to update widget settings." };
   }

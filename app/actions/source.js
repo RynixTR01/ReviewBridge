@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PLAN_LIMITS } from "@/lib/plans";
@@ -39,19 +40,19 @@ export async function addSourceAction(prevState, formData) {
 
 
   // Check plan limits
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT plan FROM public.users WHERE id = $1",
+    [user.id]
+  );
 
   const plan = profile?.plan || "free";
   const limits = PLAN_LIMITS[plan];
 
-  const { count, error: sourcesFetchError } = await supabase
-    .from("sources")
-    .select("*", { count: "exact", head: true, cache: "no-store" })
-    .eq("user_id", user.id);
+  const sourceCount = await queryOne(
+    "SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1",
+    [user.id]
+  );
+  const count = sourceCount?.count ?? 0;
 
 
   if (count >= limits.maxSources) {
@@ -137,23 +138,27 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 2. Insert into sources
-  const { data: newSource, error: sourceError } = await supabase
-    .from("sources")
-    .insert({
-      user_id: user.id,
-      platform,
-      place_id: identifier,
-      business_name: businessName,
-      total_score: totalScore,
-      total_reviews_count: totalReviewsCount,
-      last_synced_at: new Date().toISOString(),
-      sync_started_at: platform === 'google' ? new Date().toISOString() : null,
-      sync_status: platform === 'google' ? 'pending' : 'done'
-    })
-    .select()
-    .single();
-
-  if (sourceError) {
+  let newSource;
+  try {
+    newSource = await queryOne(
+      `INSERT INTO public.sources
+         (user_id, platform, place_id, business_name, total_score,
+          total_reviews_count, last_synced_at, sync_started_at, sync_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [
+        user.id,
+        platform,
+        identifier,
+        businessName,
+        totalScore,
+        totalReviewsCount,
+        new Date().toISOString(),
+        platform === "google" ? new Date().toISOString() : null,
+        platform === "google" ? "pending" : "done",
+      ]
+    );
+  } catch (sourceError) {
     console.error("Insert source error:", sourceError);
     return { error: "Failed to save the source to database." };
   }
@@ -175,16 +180,16 @@ export async function addSourceAction(prevState, formData) {
         newSource.id
       );
 
-      await supabase
-        .from('sources')
-        .update({ apify_run_id: runId })
-        .eq('id', newSource.id);
+      await query(
+        "UPDATE public.sources SET apify_run_id = $1 WHERE id = $2",
+        [runId, newSource.id]
+      );
     } catch (err) {
       console.error("Failed to start initial Google sync:", err);
-      await supabase
-        .from('sources')
-        .update({ sync_status: 'error', last_sync_error: 'Failed to start background sync' })
-        .eq('id', newSource.id);
+      await query(
+        "UPDATE public.sources SET sync_status = $1, last_sync_error = $2 WHERE id = $3",
+        ["error", "Failed to start background sync", newSource.id]
+      );
     }
   }
 
@@ -198,30 +203,53 @@ export async function addSourceAction(prevState, formData) {
   }));
 
   if (reviewsToInsert.length > 0) {
-    const { error: reviewsError } = await supabase.from("reviews").insert(reviewsToInsert);
-    if (reviewsError) console.error("Insert reviews error:", reviewsError);
+    const values = [];
+    const placeholders = reviewsToInsert.map((review, index) => {
+      const offset = index * 5;
+      values.push(
+        newSource.id,
+        review.reviewer_name,
+        review.rating,
+        review.body,
+        review.reviewed_at
+      );
+      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+    });
+    try {
+      await query(
+        `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
+         VALUES ${placeholders.join(", ")}`,
+        values
+      );
+    } catch (reviewsError) {
+      console.error("Insert reviews error:", reviewsError);
+    }
   }
 
   // 4. Create default widget
   const embedToken = crypto.randomUUID().replace(/-/g, "");
-  const { data: newWidget, error: widgetError } = await supabase
-    .from("widgets")
-    .insert({
-      user_id: user.id,
-      source_id: newSource.id,
-      theme: "light",
-      max_reviews: 5,
-      show_badge: true,
-      embed_token: embedToken,
-      user_plan: plan,
-      source_place_id: identifier,
-      source_platform: platform,
-      source_maps_url: rawInput,
-    })
-    .select()
-    .single();
-
-  if (widgetError) {
+  let newWidget;
+  try {
+    newWidget = await queryOne(
+      `INSERT INTO public.widgets
+         (user_id, source_id, theme, max_reviews, show_badge, embed_token,
+          user_plan, source_place_id, source_platform, source_maps_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        user.id,
+        newSource.id,
+        "light",
+        5,
+        true,
+        embedToken,
+        plan,
+        identifier,
+        platform,
+        rawInput,
+      ]
+    );
+  } catch (widgetError) {
     console.error("Widget creation error:", widgetError);
   }
 

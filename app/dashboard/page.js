@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { PLAN_LIMITS } from "@/lib/plans";
 import SyncButton from "./SyncButton";
 import DeleteSourceButton from "./DeleteSourceButton";
@@ -24,22 +25,24 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   // Fetch sources and their corresponding widget
-  const { data: sources, error } = await supabase
-    .from("sources")
-    .select("*, widgets(id, theme)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching sources:", error);
-  }
+  const sources = await query(
+    `SELECT s.*,
+       COALESCE(w.widgets, '[]'::json) AS widgets
+     FROM public.sources AS s
+     LEFT JOIN LATERAL (
+       SELECT json_agg(json_build_object('id', id, 'theme', theme)) AS widgets
+       FROM public.widgets WHERE source_id = s.id
+     ) AS w ON true
+     WHERE s.user_id = $1
+     ORDER BY s.created_at DESC`,
+    [user.id]
+  );
 
   // Fetch user profile for plan and email
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan, email")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT plan, email FROM public.users WHERE id = $1",
+    [user.id]
+  );
 
   const userPlan = profile?.plan || "free";
   const userEmail = profile?.email || user.email || "";
@@ -51,10 +54,10 @@ export default async function DashboardPage() {
   let lastSyncDate = null;
 
   if (sourceIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("source_id, rating")
-      .in("source_id", sourceIds);
+    const reviews = await query(
+      "SELECT source_id, rating FROM public.reviews WHERE source_id = ANY($1::uuid[])",
+      [sourceIds]
+    );
 
     if (reviews) {
       totalReviews = reviews.length;

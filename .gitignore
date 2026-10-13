@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.neon
+
+# Local database migration tools and private backups
+/.local-tools/
+/backups/
+/supabase-public-*.dump*
+/supabase-public-*.list.txt
+/supabase-public-*.schema.sql
+/supabase-public-*.neon-restore.list.txt

@@ -1,11 +1,5 @@
 import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
-
-// Webhooks run server-to-server without a user session.
-// Use Supabase Service Role Key to bypass RLS.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+import { query, queryOne } from "@/lib/db";
 
 export async function POST(request) {
   try {
@@ -73,25 +67,23 @@ export async function POST(request) {
       return Response.json({ success: true, message: "Event not handled" });
     }
 
-    // Find and update user by email or user_id
-    let updateQuery = supabaseAdmin.from("users").update({ plan });
+    // Prefer the account ID when supplied, otherwise resolve by email.
+    const updatedUser = userId
+      ? await queryOne(
+          'UPDATE public.users SET plan = $2 WHERE id = $1 RETURNING id',
+          [userId, plan]
+        )
+      : await queryOne(
+          'UPDATE public.users SET plan = $2 WHERE email = $1 RETURNING id',
+          [userEmail, plan]
+        );
 
-    if (userId) {
-      updateQuery = updateQuery.eq("id", userId);
-    } else if (userEmail) {
-      updateQuery = updateQuery.eq("email", userEmail);
-    }
-
-    const { data: updatedUser, error } = await updateQuery.select('id').single();
-
-    if (error) {
-      console.error("Webhook update error:", error);
+    if (!updatedUser) {
+      console.error("Webhook update did not match a user");
       return Response.json({ error: "Failed to update user plan" }, { status: 500 });
     }
 
-    if (updatedUser?.id) {
-      await supabaseAdmin.from("widgets").update({ user_plan: plan }).eq("user_id", updatedUser.id);
-    }
+    await query('UPDATE public.widgets SET user_plan = $2 WHERE user_id = $1', [updatedUser.id, plan]);
 
     console.log(`Webhook processed: ${eventName} → plan=${plan} for ${userEmail || userId}`);
     return Response.json({ success: true, event: eventName, plan });

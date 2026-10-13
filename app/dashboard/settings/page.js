@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ProfileForm, DangerZone } from "./SettingsClient";
 
@@ -14,11 +15,10 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("full_name, email, plan, created_at")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT full_name, email, plan, created_at FROM public.users WHERE id = $1",
+    [user.id]
+  );
 
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-US", {

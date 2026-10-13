@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 
 export async function GET(request, { params }) {
   try {
@@ -10,22 +11,17 @@ export async function GET(request, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { sourceId } = params;
+    const { sourceId } = await params;
 
-    // Fetch source status
-    const { data: source, error: sourceError } = await supabase
-      .from('sources')
-      .select('sync_status, last_synced_at, last_sync_error, user_id')
-      .eq('id', sourceId)
-      .single();
+    // Scope by owner in SQL so the Neon connection cannot bypass the old RLS policy.
+    const source = await queryOne(
+      `SELECT sync_status, last_synced_at, last_sync_error
+       FROM public.sources WHERE id = $1 AND user_id = $2`,
+      [sourceId, user.id]
+    );
 
-    if (sourceError || !source) {
+    if (!source) {
       return Response.json({ error: "Source not found" }, { status: 404 });
-    }
-
-    // Ensure the user owns this source
-    if (source.user_id !== user.id) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return Response.json({

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -31,11 +32,10 @@ export default async function UpgradePage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan, email")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT plan, email FROM public.users WHERE id = $1",
+    [user.id]
+  );
 
   const currentPlan = profile?.plan || "free";
   const userEmail = profile?.email || user.email || "";

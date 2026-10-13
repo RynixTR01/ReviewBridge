@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
 import crypto from 'crypto';
 import { getDatasetItems, mapApifyReviews, APIFY_ACTORS } from "@/app/lib/apify";
+import { query, queryOne } from "@/lib/db";
 
 export async function POST(request) {
   try {
@@ -39,19 +39,13 @@ export async function POST(request) {
     const actId = resource.actId;
     const runStatus = resource.status; // SUCCEEDED, FAILED, TIMED_OUT, ABORTED
 
-    // Use service role to bypass RLS since this is a background webhook
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Verify the source actually exists and matches the runId
-    const { data: source, error: sourceError } = await supabase
-      .from('sources')
-      .select('id, apify_run_id, platform')
-      .eq('id', sourceId)
-      .single();
+    const source = await queryOne(
+      'SELECT id, apify_run_id, platform FROM public.sources WHERE id = $1',
+      [sourceId]
+    );
 
-    if (sourceError || !source) {
+    if (!source) {
       return Response.json({ error: 'Source not found' }, { status: 404 });
     }
 
@@ -61,15 +55,13 @@ export async function POST(request) {
     }
 
     if (runStatus !== 'SUCCEEDED') {
-      await supabase
-        .from('sources')
-        .update({
-          sync_status: 'error',
-          last_sync_error: `Apify run ended with status: ${runStatus}`,
-          apify_run_id: null,
-          sync_started_at: null
-        })
-        .eq('id', sourceId);
+      await query(
+        `UPDATE public.sources
+         SET sync_status = 'error', last_sync_error = $2,
+             apify_run_id = NULL, sync_started_at = NULL
+         WHERE id = $1`,
+        [sourceId, `Apify run ended with status: ${runStatus}`]
+      );
       
       return Response.json({ message: `Run failed with status ${runStatus}` }, { status: 200 });
     }
@@ -82,37 +74,28 @@ export async function POST(request) {
       const mappedReviews = mapApifyReviews(rawItems, platform);
 
       if (mappedReviews.length > 0) {
-        // Only insert columns that exist in the Supabase schema
-        const reviewsToInsert = mappedReviews.map(r => ({
-          source_id: sourceId,
-          reviewer_name: r.reviewer_name,
-          rating: r.rating,
-          body: r.body,
-          reviewed_at: r.reviewed_at
-        }));
-
-        // Use the proper array format for onConflict
-        const { error: upsertError } = await supabase
-          .from('reviews')
-          .upsert(reviewsToInsert, { 
-            onConflict: ['source_id', 'reviewer_name', 'reviewed_at'], 
-            ignoreDuplicates: true 
-          });
-
-        if (upsertError) throw upsertError;
+        const values = [];
+        const rows = mappedReviews.map((review, index) => {
+          const offset = index * 5;
+          values.push(sourceId, review.reviewer_name, review.rating, review.body, review.reviewed_at);
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+        });
+        await query(
+          `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
+           VALUES ${rows.join(', ')}
+           ON CONFLICT (source_id, reviewer_name, reviewed_at) DO NOTHING`,
+          values
+        );
       }
 
       // Mark sync as done
-      await supabase
-        .from('sources')
-        .update({
-          sync_status: 'done',
-          apify_run_id: null,
-          sync_started_at: null,
-          last_synced_at: new Date().toISOString(),
-          last_sync_error: null
-        })
-        .eq('id', sourceId);
+      await query(
+        `UPDATE public.sources
+         SET sync_status = 'done', apify_run_id = NULL, sync_started_at = NULL,
+             last_synced_at = NOW(), last_sync_error = NULL
+         WHERE id = $1`,
+        [sourceId]
+      );
 
       console.log(`Successfully synced ${mappedReviews.length} reviews for source ${sourceId}`);
 
@@ -121,15 +104,13 @@ export async function POST(request) {
       // Catch errors during fetching or DB inserting
       console.error('Error processing reviews:', processError);
       
-      await supabase
-        .from('sources')
-        .update({
-          sync_status: 'error',
-          last_sync_error: `Failed to process reviews: ${processError.message}`,
-          apify_run_id: null,
-          sync_started_at: null
-        })
-        .eq('id', sourceId);
+      await query(
+        `UPDATE public.sources
+         SET sync_status = 'error', last_sync_error = $2,
+             apify_run_id = NULL, sync_started_at = NULL
+         WHERE id = $1`,
+        [sourceId, `Failed to process reviews: ${processError.message}`]
+      );
 
       return Response.json({ error: 'Failed to process reviews' }, { status: 500 });
     }

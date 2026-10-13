@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 
@@ -19,24 +20,21 @@ export async function POST(request, { params }) {
     }
 
     // Verify ownership of source
-    const { data: source, error: sourceError } = await supabase
-      .from("sources")
-      .select("*")
-      .eq("id", sourceId)
-      .eq("user_id", user.id)
-      .single();
+    const source = await queryOne(
+      'SELECT * FROM public.sources WHERE id = $1 AND user_id = $2',
+      [sourceId, user.id]
+    );
 
-    if (sourceError || !source) {
+    if (!source) {
       return Response.json({ error: "Source not found or access denied" }, { status: 404 });
     }
 
     // --- Sync Rate Limiting ---
     // Fetch user plan to determine cooldown
-    const { data: profile } = await supabase
-      .from('users')
-      .select('plan')
-      .eq('id', user.id)
-      .single();
+    const profile = await queryOne(
+      'SELECT plan FROM public.users WHERE id = $1',
+      [user.id]
+    );
     const userPlan = profile?.plan || 'free';
 
     const SYNC_COOLDOWNS_MS = {
@@ -80,15 +78,13 @@ export async function POST(request, { params }) {
           source.id
         );
 
-        await supabase
-          .from('sources')
-          .update({
-            apify_run_id: runId,
-            sync_status: 'pending',
-            sync_started_at: new Date().toISOString(),
-            last_sync_error: null
-          })
-          .eq('id', source.id);
+        await query(
+          `UPDATE public.sources
+           SET apify_run_id = $2, sync_status = 'pending',
+               sync_started_at = NOW(), last_sync_error = NULL
+           WHERE id = $1 AND user_id = $3`,
+          [source.id, runId, user.id]
+        );
 
         return Response.json({ status: 'pending', message: 'Syncing in background...' });
       } catch (err) {
@@ -155,22 +151,31 @@ export async function POST(request, { params }) {
     }));
 
     if (reviewsToUpsert.length > 0) {
-      const { error: insertError } = await supabase
-        .from("reviews")
-        .upsert(reviewsToUpsert, { onConflict: 'source_id,reviewer_name,reviewed_at' });
-
-      if (insertError) {
+      const values = [];
+      const rows = reviewsToUpsert.map((review, index) => {
+        const offset = index * 5;
+        values.push(review.source_id, review.reviewer_name, review.rating, review.body, review.reviewed_at);
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+      });
+      try {
+        await query(
+          `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
+           VALUES ${rows.join(', ')}
+           ON CONFLICT (source_id, reviewer_name, reviewed_at) DO NOTHING`,
+          values
+        );
+      } catch (insertError) {
         console.error("Reviews insert error:", insertError);
       }
     }
 
     // Update last_synced_at
-    const { error: updateError } = await supabase
-      .from("sources")
-      .update({ last_synced_at: new Date().toISOString() })
-      .eq("id", source.id);
-
-    if (updateError) {
+    try {
+      await query(
+        'UPDATE public.sources SET last_synced_at = NOW() WHERE id = $1 AND user_id = $2',
+        [source.id, user.id]
+      );
+    } catch (updateError) {
       console.error("Source update error:", updateError);
     }
 

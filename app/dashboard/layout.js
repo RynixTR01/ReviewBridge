@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 
@@ -16,11 +17,20 @@ export default async function DashboardLayout({ children }) {
   }
 
   // Get user profile to check plan
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan, full_name")
-    .eq("id", user.id)
-    .single();
+  let profile = await queryOne(
+    "SELECT plan, full_name FROM public.users WHERE id = $1",
+    [user.id]
+  );
+
+  if (!profile) {
+    profile = await queryOne(
+      `INSERT INTO public.users (id, email, full_name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+       RETURNING plan, full_name`,
+      [user.id, user.email || "", user.user_metadata?.full_name || ""]
+    );
+  }
 
   const plan = profile?.plan || "free";
   const planDisplay = plan.charAt(0).toUpperCase() + plan.slice(1);

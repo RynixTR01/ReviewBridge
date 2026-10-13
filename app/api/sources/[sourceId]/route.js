@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { query } from "@/lib/db";
 
 export async function DELETE(request, { params }) {
   const { sourceId } = await params;
@@ -12,28 +13,16 @@ export async function DELETE(request, { params }) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Verify user owns this source
-  const { data: source } = await supabase
-    .from("sources")
-    .select("id, user_id")
-    .eq("id", sourceId)
-    .eq("user_id", user.id)
-    .single();
-
-  if (!source) {
-    return Response.json({ error: "Source not found" }, { status: 404 });
-  }
-
-  // Delete reviews first (cascade should handle this, but be explicit)
-  await supabase.from("reviews").delete().eq("source_id", sourceId);
-
-  // Delete widgets for this source
-  await supabase.from("widgets").delete().eq("source_id", sourceId);
-
-  // Delete the source
-  const { error } = await supabase.from("sources").delete().eq("id", sourceId);
-
-  if (error) {
+  try {
+    // Ownership is checked in the DELETE itself; foreign keys cascade related reviews/widgets.
+    const deleted = await query(
+      'DELETE FROM public.sources WHERE id = $1 AND user_id = $2 RETURNING id',
+      [sourceId, user.id]
+    );
+    if (deleted.length === 0) {
+      return Response.json({ error: "Source not found" }, { status: 404 });
+    }
+  } catch (error) {
     console.error("Delete source error:", error);
     return Response.json({ error: "Failed to delete source" }, { status: 500 });
   }

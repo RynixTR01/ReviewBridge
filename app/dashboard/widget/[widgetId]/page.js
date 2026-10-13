@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { query, queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import WidgetEditor from "./WidgetEditor";
@@ -21,31 +22,32 @@ export default async function WidgetPage({ params }) {
   }
 
   // Fetch widget with source
-  const { data: widget, error: widgetError } = await supabase
-    .from("widgets")
-    .select("*, sources(*)")
-    .eq("id", widgetId)
-    .eq("user_id", user.id)
-    .single();
+  const widget = await queryOne(
+    `SELECT w.*, row_to_json(s) AS sources
+     FROM public.widgets AS w
+     JOIN public.sources AS s ON s.id = w.source_id
+     WHERE w.id = $1 AND w.user_id = $2`,
+    [widgetId, user.id]
+  );
 
-  if (widgetError || !widget) {
+  if (!widget) {
     redirect("/dashboard");
   }
 
   // Fetch some reviews to show in preview
-  const { data: reviews } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("source_id", widget.source_id)
-    .order("reviewed_at", { ascending: false })
-    .limit(20);
+  const reviews = await query(
+    `SELECT * FROM public.reviews
+     WHERE source_id = $1
+     ORDER BY reviewed_at DESC
+     LIMIT 20`,
+    [widget.source_id]
+  );
 
   // Get user plan
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan")
-    .eq("id", user.id)
-    .single();
+  const profile = await queryOne(
+    "SELECT plan FROM public.users WHERE id = $1",
+    [user.id]
+  );
 
   const plan = profile?.plan || "free";
   const limits = PLAN_LIMITS[plan];

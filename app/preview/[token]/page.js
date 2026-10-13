@@ -1,16 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
+import { query, queryOne } from "@/lib/db";
 
 export const metadata = {
   title: "Widget Preview — ReviewBridge",
   description: "Preview how your ReviewBridge widget will look on a real website.",
 };
 
-// Public page — no auth required
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Public page — the unguessable embed token grants read access to this widget.
 
 function createStarsHtml(rating) {
   let stars = "";
@@ -26,11 +22,10 @@ export default async function PreviewPage({ params }) {
   const token = resolvedParams.token;
 
   // Fetch widget
-  const { data: widget } = await supabase
-    .from("widgets")
-    .select("*")
-    .eq("embed_token", token)
-    .single();
+  const widget = await queryOne(
+    'SELECT * FROM public.widgets WHERE embed_token = $1',
+    [token]
+  );
 
   if (!widget) {
     return (
@@ -67,12 +62,10 @@ export default async function PreviewPage({ params }) {
     }
   }
 
-  const { data: fetchedReviews } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("source_id", widget.source_id)
-    .order("reviewed_at", { ascending: false })
-    .limit(fetchLimit);
+  const fetchedReviews = await query(
+    'SELECT * FROM public.reviews WHERE source_id = $1 ORDER BY reviewed_at DESC LIMIT $2',
+    [widget.source_id, fetchLimit]
+  );
 
   let reviewsList = (fetchedReviews || []).map((r) => ({
     ...r,

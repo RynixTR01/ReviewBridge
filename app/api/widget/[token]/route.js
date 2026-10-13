@@ -1,12 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
-
-// We use the basic supabase-js client for public edge routes rather than the SSR client
-// to ensure we make an unauthenticated request.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { query, queryOne } from "@/lib/db";
 
 export async function GET(request, { params }) {
   const resolvedParams = await params;
@@ -20,13 +13,12 @@ export async function GET(request, { params }) {
   }
 
   // 1. Fetch widget details using the token
-  const { data: widget, error: widgetError } = await supabase
-    .from("widgets")
-    .select("*")
-    .eq("embed_token", token)
-    .single();
+  const widget = await queryOne(
+    'SELECT * FROM public.widgets WHERE embed_token = $1',
+    [token]
+  );
 
-  if (widgetError || !widget) {
+  if (!widget) {
     return new Response("console.error('ReviewBridge: Widget not found or invalid token');", {
       headers: { "Content-Type": "application/javascript" },
       status: 404,
@@ -44,16 +36,10 @@ export async function GET(request, { params }) {
   // 2. Fetch reviews — grab extra rows so smart filter still fills the count
   const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
 
-  const { data: fetchedReviews, error: reviewsError } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("source_id", widget.source_id)
-    .order("reviewed_at", { ascending: false })
-    .limit(fetchLimit);
-
-  if (reviewsError) {
-    console.error("Widget API: Error fetching reviews", reviewsError);
-  }
+  const fetchedReviews = await query(
+    'SELECT * FROM public.reviews WHERE source_id = $1 ORDER BY reviewed_at DESC LIMIT $2',
+    [widget.source_id, fetchLimit]
+  );
 
   let reviewsList = fetchedReviews || [];
   
