@@ -49,7 +49,7 @@ export default async function TermsPage() {
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>{t(locale, "Ücretsiz Plan", "Free Plan")}</strong> — {t(locale, "1 kaynak, en fazla 10 yorum gösterimi, yalnızca açık tema", "1 source, up to 10 reviews displayed, light theme only")}</li>
               <li><strong>{t(locale, "Pro Planı (aylık 7 $)", "Pro Plan ($7/month)")}</strong> — {t(locale, "En fazla 5 kaynak, bileşen başına en fazla 20 yorum, tüm temalar, rozet kaldırma", "Up to 5 sources, up to 20 reviews shown per widget, all themes, badge removal")}</li>
-              <li><strong>{t(locale, "Ajans Planı (aylık 19 $)", "Agency Plan ($19/month)")}</strong> — {t(locale, "Sınırsız kaynak, bileşen başına en fazla 20 yorum, öncelikli destek", "Unlimited sources, up to 20 reviews shown per widget, priority support")}</li>
+              <li><strong>{t(locale, "Ajans Planı (aylık 19 $)", "Agency Plan ($19/month)")}</strong> — {t(locale, "Sınırsız kaynak, bileşen başına en fazla 20 yorum, tüm temalar ve ReviewBridge rozetini kaldırma", "Unlimited sources, up to 20 reviews shown per widget, all themes, and badge removal")}</li>
             </ul>
           </section>
 

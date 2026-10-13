@@ -11,7 +11,7 @@ function getFaqItems(locale) { return [
   },
   {
     question: t(locale, "Yorumlar ne sıklıkla eşitlenir?", "How often are reviews synced?"),
-    answer: t(locale, "Bir kaynak eklediğinizde yorumlar alınmaya başlar. Paneldeki “Eşitle” düğmesiyle istediğiniz zaman yeniden eşitleyebilirsiniz. Zamanlanmış otomatik eşitleme şu anda kullanılamıyor.", "Reviews are fetched when you add a source. Use the Sync button in your dashboard to sync again whenever you like. Scheduled automatic syncing is not available yet."),
+    answer: t(locale, "Bir kaynak eklediğinizde yorumlar alınır. Paneldeki “Eşitle” düğmesiyle yeniden eşitleyebilir veya kaynak için günlük otomatik eşitlemeyi açabilirsiniz. Otomatik eşitleme Apify kullanımına bağlıdır; istemiyorsanız kapalı bırakın.", "Reviews are fetched when you add a source. You can sync again from the dashboard or enable daily automatic syncing for that source. Automatic syncing uses your Apify account, so leave it off if you do not want scheduled runs."),
   },
   {
     question: t(locale, "Bileşen her web sitesinde çalışır mı?", "Does the widget work on every website?"),

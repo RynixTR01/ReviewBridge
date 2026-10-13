@@ -143,9 +143,11 @@ export function mapApifyReviews(items, platform) {
   if (platform === 'google') {
     return items.map(item => {
       let parsedDate = new Date().toISOString();
+      let dateEstimated = true;
       if (item.publishedAtDate) {
         try {
           parsedDate = new Date(item.publishedAtDate).toISOString();
+          dateEstimated = false;
         } catch (e) {
           // fallback to current date if parsing fails
         }
@@ -157,15 +159,18 @@ export function mapApifyReviews(items, platform) {
         reviewer_name: item.name || 'Anonymous',
         rating: item.stars || item.rating || 0,
         body: item.text || null,
-        reviewed_at: parsedDate
+        reviewed_at: parsedDate,
+        review_date_estimated: dateEstimated,
       };
     });
   } else if (platform === 'trustpilot') {
     return items.map(item => {
       let parsedDate = new Date().toISOString();
+      let dateEstimated = true;
       if (item.dates?.publishedDate) {
          try {
            parsedDate = new Date(item.dates.publishedDate).toISOString();
+           dateEstimated = false;
          } catch(e) {}
       }
       return {
@@ -175,7 +180,8 @@ export function mapApifyReviews(items, platform) {
         reviewer_name: item.consumer?.displayName || 'Anonymous',
         rating: item.rating || 0,
         body: item.text || null,
-        reviewed_at: parsedDate
+        reviewed_at: parsedDate,
+        review_date_estimated: dateEstimated,
       };
     });
   }

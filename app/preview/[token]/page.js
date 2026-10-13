@@ -2,6 +2,8 @@ import { extractPlaceId } from "@/app/lib/extractPlaceId";
 import { query, queryOne } from "@/lib/db";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
+import { filterWidgetReviews, getWidgetColors } from "@/lib/widget-rendering";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -29,7 +31,10 @@ export default async function PreviewPage({ params }) {
 
   // Fetch widget
   const widget = await queryOne(
-    'SELECT * FROM public.widgets WHERE embed_token = $1',
+    `SELECT w.*, u.plan AS current_user_plan, s.business_name, s.platform AS current_source_platform,
+            s.last_synced_at, s.sync_status
+     FROM public.widgets w JOIN public.users u ON u.id = w.user_id
+     JOIN public.sources s ON s.id = w.source_id WHERE w.embed_token = $1`,
     [token]
   );
 
@@ -44,8 +49,33 @@ export default async function PreviewPage({ params }) {
     );
   }
 
-  const userPlan = widget.user_plan || "free";
-  const reviewLimit = userPlan === "free" ? Math.min(widget.max_reviews, 10) : widget.max_reviews;
+  const userPlan = widget.current_user_plan || widget.user_plan || "free";
+  const limits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
+  const safeSettings = normalizeWidgetSettings({
+    theme: widget.theme, maxReviews: widget.max_reviews, showBadge: widget.show_badge,
+    smartFilter: widget.smart_filter, showReviewButton: widget.show_review_button,
+    layout: widget.layout, minimumRating: widget.minimum_rating, sortOrder: widget.sort_order,
+    includeKeywords: widget.include_keywords, excludeKeywords: widget.exclude_keywords,
+    dateFrom: widget.date_from ? String(widget.date_from).slice(0, 10) : "",
+    dateTo: widget.date_to ? String(widget.date_to).slice(0, 10) : "",
+    widgetLocale: widget.widget_locale, widgetTitle: widget.widget_title,
+    backgroundColor: widget.background_color, textColor: widget.text_color,
+    accentColor: widget.accent_color, showReviewerAvatar: widget.show_reviewer_avatar,
+    showReviewedDate: widget.show_reviewed_date,
+  }, userPlan);
+  Object.assign(widget, safeSettings, {
+    max_reviews: safeSettings.maxReviews, minimum_rating: safeSettings.minimumRating,
+    sort_order: safeSettings.sortOrder, include_keywords: safeSettings.includeKeywords,
+    exclude_keywords: safeSettings.excludeKeywords, date_from: safeSettings.dateFrom,
+    date_to: safeSettings.dateTo, widget_locale: safeSettings.widgetLocale,
+    widget_title: safeSettings.widgetTitle, background_color: safeSettings.backgroundColor,
+    text_color: safeSettings.textColor, accent_color: safeSettings.accentColor,
+    show_reviewer_avatar: safeSettings.showReviewerAvatar, show_reviewed_date: safeSettings.showReviewedDate,
+    show_badge: safeSettings.showBadge, smart_filter: safeSettings.smartFilter,
+    show_review_button: safeSettings.showReviewButton,
+  });
+  const widgetDisplayLocale = widget.widget_locale === "auto" ? locale : widget.widget_locale;
+  const reviewLimit = Math.min(Number(widget.max_reviews) || 5, limits.maxReviews);
   const isSmartFilterOn = widget.smart_filter === true || widget.smart_filter === "true";
   const fetchLimit = isSmartFilterOn && userPlan !== "free" ? 50 : reviewLimit;
 
@@ -58,40 +88,38 @@ export default async function PreviewPage({ params }) {
       reviewUrl = placeId 
         ? 'https://search.google.com/local/writereview?placeid=' + placeId
         : null;
-      buttonLabel = t(locale, "⭐ Google'da yorum bırak", "⭐ Leave a review on Google");
+      buttonLabel = t(widgetDisplayLocale, "⭐ Google'da yorum bırak", "⭐ Leave a review on Google");
     } else if (widget.source_platform === 'trustpilot') {
       const domain = widget.source_place_id;
       reviewUrl = domain
         ? 'https://www.trustpilot.com/review/' + domain + '#writeareview'
         : null;
-      buttonLabel = t(locale, "⭐ Trustpilot'da yorum bırak", "⭐ Leave a review on Trustpilot");
+      buttonLabel = t(widgetDisplayLocale, "⭐ Trustpilot'ta yorum bırak", "⭐ Leave a review on Trustpilot");
     }
   }
 
   const fetchedReviews = await query(
     'SELECT * FROM public.reviews WHERE source_id = $1 ORDER BY reviewed_at DESC LIMIT $2',
-    [widget.source_id, fetchLimit]
+    [widget.source_id, Math.max(fetchLimit, 100)]
   );
-
-  let reviewsList = (fetchedReviews || []).map((r) => ({
-    ...r,
-    body:
-      r.body && r.body !== "null" && r.body !== '"null"'
-        ? r.body.trim().replace(/^"+|"+$/g, "").trim()
-        : null,
-  }));
-
-  if (isSmartFilterOn && userPlan !== "free") {
-    reviewsList = reviewsList.filter((r) => r.body && r.body.length > 2);
-  }
-  reviewsList = reviewsList.slice(0, reviewLimit);
+  const moderationRows = limits.canModerateReviews
+    ? await query("SELECT review_id, state FROM public.widget_review_preferences WHERE widget_id = $1", [widget.id])
+    : [];
+  const moderation = Object.fromEntries((moderationRows || []).map((row) => [row.review_id, row.state]));
+  const reviewsList = filterWidgetReviews(fetchedReviews, { ...widget, max_reviews: reviewLimit }, {
+    moderation,
+    canUseAdvancedFilters: limits.canUseAdvancedFilters,
+    canUseSmartFilter: limits.canSelectTheme,
+  });
 
   // Theme
-  const bg = widget.theme === "dark" ? "#1f2937" : widget.theme === "minimal" ? "transparent" : "#ffffff";
-  const text = widget.theme === "dark" ? "#f9fafb" : "#111827";
-  const border = widget.theme === "minimal" ? "none" : widget.theme === "dark" ? "1px solid #374151" : "1px solid #e5e7eb";
-  const cardBg = widget.theme === "dark" ? "#374151" : "#ffffff";
-  const shadow = widget.theme === "minimal" ? "none" : "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)";
+  const colors = getWidgetColors(widget);
+  const bg = colors.background;
+  const text = colors.text;
+  const border = colors.border;
+  const cardBg = colors.card;
+  const shadow = colors.shadow;
+  const layout = limits.canChooseLayout && ["grid", "carousel"].includes(widget.layout) ? widget.layout : "list";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col">
@@ -141,7 +169,7 @@ export default async function PreviewPage({ params }) {
             <div
               style={{
                 width: "100%",
-                maxWidth: 500,
+                maxWidth: layout === "grid" ? 640 : 500,
                 margin: "0 auto",
                 background: bg,
                 borderRadius: 16,
@@ -149,6 +177,8 @@ export default async function PreviewPage({ params }) {
                 boxSizing: "border-box",
               }}
             >
+              {widget.widget_title && <h3 style={{ color: text, fontSize: 18, fontWeight: 600, marginBottom: 14 }}>{widget.widget_title}</h3>}
+              <div className={layout === "grid" ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : layout === "carousel" ? "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" : "space-y-3"}>
               {reviewsList.length === 0 ? (
                 <p
                   style={{
@@ -158,7 +188,7 @@ export default async function PreviewPage({ params }) {
                     fontFamily: "system-ui, sans-serif",
                   }}
                 >
-                  {t(locale, "Yorum bulunamadı.", "No reviews found.")}
+                  {t(widgetDisplayLocale, "Yorum bulunamadı.", "No reviews found.")}
                 </p>
               ) : (
                 reviewsList.map((r, i) => (
@@ -169,7 +199,9 @@ export default async function PreviewPage({ params }) {
                       border: border,
                       borderRadius: 12,
                       padding: 16,
-                      marginBottom: 12,
+                      marginBottom: layout === "list" ? 12 : 0,
+                      minWidth: layout === "carousel" ? "82%" : 0,
+                      scrollSnapAlign: layout === "carousel" ? "start" : undefined,
                       boxShadow: shadow,
                       fontFamily: "system-ui, sans-serif",
                     }}
@@ -182,7 +214,7 @@ export default async function PreviewPage({ params }) {
                         marginBottom: 10,
                       }}
                     >
-                      <div
+                      {widget.show_reviewer_avatar !== false && <div
                         style={{
                           width: 36,
                           height: 36,
@@ -197,7 +229,7 @@ export default async function PreviewPage({ params }) {
                         }}
                       >
                         {r.reviewer_name?.charAt(0).toUpperCase() || "A"}
-                      </div>
+                      </div>}
                       <div>
                         <div
                           style={{
@@ -229,9 +261,11 @@ export default async function PreviewPage({ params }) {
                         {r.body}
                       </p>
                     )}
+                    {widget.show_reviewed_date !== false && r.reviewed_at && <p style={{ color: text, opacity: 0.6, fontSize: 12, marginTop: 8 }}>{new Date(r.reviewed_at).toLocaleDateString(widgetDisplayLocale === "tr" ? "tr-TR" : "en-US")}</p>}
                   </div>
                 ))
               )}
+              </div>
 
               {widget.show_review_button && reviewUrl && buttonLabel && (
                 <div style={{ textAlign: 'center', marginTop: 16 }}>
@@ -242,7 +276,7 @@ export default async function PreviewPage({ params }) {
                     style={{
                       display: 'inline-block',
                       padding: '10px 20px',
-                      background: '#4285f4',
+                      background: colors.accent,
                       color: '#ffffff',
                       borderRadius: 8,
                       textDecoration: 'none',
@@ -275,6 +309,11 @@ export default async function PreviewPage({ params }) {
                   </span>
                 </div>
               )}
+              {(widget.sync_status === "error" || !widget.last_synced_at) && <p style={{ color: "#b45309", fontSize: 12, textAlign: "center", marginTop: 10 }}>{widget.sync_status === "error" ? t(widgetDisplayLocale, "Son eşitleme başarısız oldu.", "The latest sync failed.") : t(widgetDisplayLocale, "Henüz başarılı bir eşitleme yok.", "No successful sync yet.")}</p>}
+              <p style={{ color: text, opacity: 0.6, fontSize: 12, textAlign: "center", marginTop: 10 }}>
+                {widget.current_source_platform === "google" ? "Google" : "Trustpilot"} {t(widgetDisplayLocale, "yorumları", "reviews")} · {widget.business_name}
+                {widget.last_synced_at && <> · {t(widgetDisplayLocale, "Son güncelleme", "Last updated")}: {new Date(widget.last_synced_at).toLocaleDateString(widgetDisplayLocale === "tr" ? "tr-TR" : "en-US")}</>}
+              </p>
             </div>
           </div>
         </div>

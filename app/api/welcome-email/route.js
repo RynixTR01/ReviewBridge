@@ -1,18 +1,46 @@
 import { Resend } from "resend";
+import { getCurrentUser } from "@/lib/auth/server";
+import { queryOne } from "@/lib/db";
 
 export async function POST(request) {
   try {
-    const { email, fullName } = await request.json();
-
-    if (!email) {
-      return Response.json({ error: "Email is required" }, { status: 400 });
+    const user = await getCurrentUser();
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (process.env.RESEND_API_KEY) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const firstName = fullName ? fullName.split(" ")[0] : "there";
+    const email = user.email;
+    if (!email) {
+      return Response.json({ error: "Account email is unavailable" }, { status: 400 });
+    }
 
-      await resend.emails.send({
+    if (!process.env.RESEND_API_KEY) {
+      return Response.json({ success: true, skipped: true });
+    }
+
+    const claimed = await queryOne(
+      `UPDATE public.users
+       SET welcome_email_sent_at = NOW()
+       WHERE id = $1 AND welcome_email_sent_at IS NULL
+       RETURNING id`,
+      [user.id]
+    );
+    if (!claimed) {
+      const account = await queryOne(
+        "SELECT welcome_email_sent_at FROM public.users WHERE id = $1",
+        [user.id]
+      );
+      if (!account) {
+        return Response.json({ error: "Account profile is unavailable" }, { status: 503 });
+      }
+      return Response.json({ success: true, duplicate: Boolean(account.welcome_email_sent_at) });
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const firstName = escapeHtml((user.name || "there").trim().split(/\s+/)[0]);
+
+    try {
+      const { error } = await resend.emails.send({
       from: "ReviewBridge <onboarding@resend.dev>",
       to: email,
       subject: "Welcome to ReviewBridge! 🎉",
@@ -44,6 +72,14 @@ export async function POST(request) {
         </div>
       `,
       });
+      if (error) throw error;
+    } catch (emailError) {
+      await queryOne(
+        `UPDATE public.users SET welcome_email_sent_at = NULL
+         WHERE id = $1 AND welcome_email_sent_at IS NOT NULL RETURNING id`,
+        [user.id]
+      );
+      throw emailError;
     }
 
     return Response.json({ success: true });
@@ -51,4 +87,14 @@ export async function POST(request) {
     console.error("Welcome email error:", err);
     return Response.json({ error: "Failed to send email" }, { status: 500 });
   }
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
 }

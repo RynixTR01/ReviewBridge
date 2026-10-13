@@ -10,6 +10,7 @@ import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
+import { createStableReviewId } from "@/lib/review-id";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -69,7 +70,7 @@ export async function addSourceAction(prevState, formData) {
   );
 
   const plan = profile?.plan || "free";
-  const limits = PLAN_LIMITS[plan];
+  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 
   const sourceCount = await queryOne(
     "SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1",
@@ -120,6 +121,9 @@ export async function addSourceAction(prevState, formData) {
             })
           }
         );
+        if (!tpResponse.ok) {
+          throw new Error(`Trustpilot provider returned ${tpResponse.status}`);
+        }
         const tpData = await tpResponse.json();
 
         if (Array.isArray(tpData)) {
@@ -127,15 +131,16 @@ export async function addSourceAction(prevState, formData) {
           
           businessName = companyDomain;
           reviewsList = tpData.map(item => ({
+            review_id: item.id || item.reviewId || null,
             reviewer_name: item.consumer?.displayName || 'Anonymous',
             rating: item.rating || 0,
             body: item.text || null,
-            reviewed_at: item.dates?.publishedDate || new Date().toISOString()
+            reviewed_at: item.dates?.publishedDate || new Date().toISOString(),
+            review_date_estimated: !item.dates?.publishedDate,
           }));
         } else {
           console.error("Trustpilot actor failed:", tpData);
-          businessName = companyDomain;
-          reviewsList = [];
+          return { error: "Trustpilot yanıtı okunamadı. Bağlantıyı kontrol edip yeniden deneyin." };
         }
       }
     } else {
@@ -153,7 +158,7 @@ export async function addSourceAction(prevState, formData) {
     }
   } catch (err) {
     console.error("Error fetching reviews:", err);
-    // Proceed without failing. Save the source with 0 reviews so we can retry syncing later.
+    return { error: "Yorumlar alınamadı. Kaynak eklenmedi; lütfen daha sonra yeniden deneyin." };
   }
 
   // 2. Insert into sources
@@ -218,37 +223,48 @@ export async function addSourceAction(prevState, formData) {
   // 3. Insert reviews (only for synchronous platforms like Trustpilot)
   const reviewsToInsert = reviewsList.slice(0, reviewsToFetch).map((r) => ({
     source_id: newSource.id,
+    external_review_id: createStableReviewId(platform, r),
     reviewer_name: r.reviewer_name || "Anonymous",
     rating: r.rating || 5,
     body: r.body || "",
     reviewed_at: r.reviewed_at ? new Date(r.reviewed_at) : new Date().toISOString(),
   }));
 
+  let reviewsSaved = true;
   if (reviewsToInsert.length > 0) {
     const values = [];
     const placeholders = reviewsToInsert.map((review, index) => {
-      const offset = index * 5;
+      const offset = index * 6;
       values.push(
         newSource.id,
+        review.external_review_id,
         review.reviewer_name,
         review.rating,
         review.body,
         review.reviewed_at
       );
-      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
     });
     try {
       await query(
-        `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
-         VALUES ${placeholders.join(", ")}`,
+        `INSERT INTO public.reviews (source_id, external_review_id, reviewer_name, rating, body, reviewed_at)
+         VALUES ${placeholders.join(", ")}
+         ON CONFLICT DO NOTHING`,
         values
       );
     } catch (reviewsError) {
       console.error("Insert reviews error:", reviewsError);
+      reviewsSaved = false;
+      await query(
+        `UPDATE public.sources SET sync_status = 'error',
+           last_sync_error = 'Yorumlar veritabanına kaydedilemedi.' WHERE id = $1`,
+        [newSource.id]
+      );
+      await finishSyncHistory({ historyId, sourceId: newSource.id, status: "error", errorMessage: "Yorumlar veritabanına kaydedilemedi." });
     }
   }
 
-  if (!startsAsyncGoogleSync) {
+  if (!startsAsyncGoogleSync && reviewsSaved) {
     await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsToInsert.length });
   }
 
@@ -290,4 +306,25 @@ export async function addSourceAction(prevState, formData) {
   } else {
     redirect("/dashboard");
   }
+}
+
+export async function setSourceAutoSyncAction(formData) {
+  const sourceId = formData.get("sourceId")?.toString();
+  const enabled = formData.get("enabled") === "true";
+  const user = await getCurrentUser();
+  if (!user || !sourceId) return { error: "Not authenticated" };
+
+  try {
+    const updated = await queryOne(
+      "UPDATE public.sources SET auto_sync_enabled = $1 WHERE id = $2 AND user_id = $3 RETURNING id",
+      [enabled, sourceId, user.id],
+    );
+    if (!updated) return { error: "Source not found." };
+  } catch (error) {
+    console.error("Auto sync preference update failed:", error);
+    return { error: "Could not update automatic sync setting." };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
 }

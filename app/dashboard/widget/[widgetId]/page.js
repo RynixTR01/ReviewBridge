@@ -53,7 +53,12 @@ export default async function WidgetPage({ params }) {
   );
 
   const plan = profile?.plan || "free";
-  const limits = PLAN_LIMITS[plan];
+  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+  const moderationRows = await query(
+    "SELECT review_id, state FROM public.widget_review_preferences WHERE widget_id = $1",
+    [widget.id]
+  );
+  const moderation = Object.fromEntries((moderationRows || []).map((item) => [item.review_id, item.state]));
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -80,6 +85,7 @@ export default async function WidgetPage({ params }) {
         source={widget.sources} 
         reviews={reviews || []} 
         planLimits={limits} 
+        moderation={moderation}
       />
     </div>
   );

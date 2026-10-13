@@ -51,17 +51,6 @@ export default function SignupPage() {
       return;
     }
 
-    // Send welcome email via our API
-    try {
-      await fetch("/api/welcome-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, fullName }),
-      });
-    } catch {
-      // Welcome email is best-effort; don't block signup
-    }
-
     setSuccess(true);
     setLoading(false);
   }
@@ -77,6 +66,14 @@ export default function SignupPage() {
         setError(verifyError.message);
         setVerifying(false);
         return;
+      }
+
+      // Send the welcome message after verification, when the account session
+      // exists and the server can safely identify its owner.
+      try {
+        await fetch("/api/welcome-email", { method: "POST" });
+      } catch {
+        // Welcome email is best-effort; don't block sign-in.
       }
 
       router.push("/dashboard");
