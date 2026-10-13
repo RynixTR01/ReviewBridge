@@ -4,34 +4,34 @@ import { useState } from "react";
 
 const faqItems = [
   {
-    question: "How do I find my Google Maps URL?",
+    question: "Google Haritalar bağlantımı nasıl bulurum?",
     answer:
       "Search for your business in Google Maps and open its business listing. Copy the listing URL from your browser address bar; it should be a Google Maps address containing /maps/ (for example, google.com/maps/place/...). Google Search results links (google.com/search) and shortened maps.app.goo.gl links are not supported.",
   },
   {
-    question: "How often are reviews synced?",
+    question: "Yorumlar ne sıklıkla eşitlenir?",
     answer:
       "Reviews start fetching when you connect a source. You can manually sync anytime by clicking the \"Sync\" button on your dashboard. Scheduled automatic syncing is not currently available.",
   },
   {
-    question: "Will the widget work on any website?",
+    question: "Widget her web sitesinde çalışır?",
     answer:
-      "Yes. The embed code works on any website that supports HTML — WordPress, Shopify, Wix, Webflow, Squarespace, or custom sites.",
+      "Evet. Yerleştirme kodu HTML destekleyen WordPress, Shopify, Wix, Webflow, Squarespace ve özel web sitelerinde çalışır.",
   },
   {
-    question: "How do I add the embed code to my website?",
+    question: "Yerleştirme kodunu web siteme nasıl eklerim?",
     answer:
       "Copy the embed code from your dashboard, then paste it into your website's HTML where you want the reviews to appear. Most website builders have an \"HTML block\" or \"Custom code\" section.",
   },
   {
-    question: "What happens if I cancel my Pro subscription?",
+    question: "Pro aboneliğimi iptal edersem ne olur?",
     answer:
-      "Your account will be downgraded to the Free plan at the end of your billing period. Your data will be kept but Pro features will be disabled.",
+      "Faturalandırma döneminiz bitince hesabınız Ücretsiz plana geçer. Verileriniz korunur, Pro özellikleri devre dışı kalır.",
   },
   {
-    question: "How do I contact support?",
+    question: "Destek ekibine nasıl ulaşırım?",
     answer:
-      "Email us at support@reviewbridge.app — we typically respond within 24 hours.",
+      "support@reviewbridge.app adresine e-posta gönderin; genellikle 24 saat içinde yanıt veririz.",
   },
 ];
 
