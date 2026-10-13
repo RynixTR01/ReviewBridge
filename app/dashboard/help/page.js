@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import FaqAccordion from "./FaqAccordion";
 
 export const metadata = {
-  title: "Help — ReviewBridge",
+  title: "Yardım — ReviewBridge",
 };
 
-export default async function HelpPage() {
+export default async function YardımPage() {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -17,19 +17,19 @@ export default async function HelpPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Help</h1>
-        <p className="text-muted mt-1">Find answers and get support.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Yardım</h1>
+        <p className="text-muted mt-1">Yanıtları bulun ve destek alın.</p>
       </div>
 
       {/* FAQ Section */}
       <div className="mb-10">
-        <h2 className="text-lg font-bold text-foreground mb-4">Frequently Asked Questions</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Sık sorulan sorular</h2>
         <FaqAccordion />
       </div>
 
-      {/* Resources Section */}
+      {/* Kaynaklar Section */}
       <div>
-        <h2 className="text-lg font-bold text-foreground mb-4">Resources</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">Kaynaklar</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
             href="/dashboard/help#google-maps-url"
