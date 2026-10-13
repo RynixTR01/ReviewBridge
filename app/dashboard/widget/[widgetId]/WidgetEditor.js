@@ -15,6 +15,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
   const [showReviewButton, setShowReviewButton] = useState(widget.show_review_button || false);
   const [layout, setLayout] = useState(widget.layout || "list");
+  const [floatingPreviewVisible, setFloatingPreviewVisible] = useState(true);
   const [showRatingSummary, setShowRatingSummary] = useState(widget.show_rating_summary === true);
   const [fontFamily, setFontFamily] = useState(widget.font_family || "system");
   const [cardDensity, setCardDensity] = useState(widget.card_density || "comfortable");
@@ -139,6 +140,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
     sortOrder,
     maxReviews,
   });
+  const previewReviews = previewLayout === "floating" ? displayedReviews.slice(0, 1) : displayedReviews;
   const averageRating = displayedReviews.length
     ? (displayedReviews.reduce((total, review) => total + Number(review.rating || 0), 0) / displayedReviews.length).toFixed(1)
     : "0.0";
@@ -200,8 +202,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
             <div className="space-y-4 rounded-xl border border-border p-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">{t(locale, "Görünüm düzeni", "Display layout")}</label>
-                <select value={layout} onChange={(e) => setLayout(e.target.value)} disabled={!planLimits.canChooseLayout} className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-foreground disabled:opacity-60">
-                  <option value="list">{t(locale, "Liste", "List")}</option><option value="grid">{t(locale, "Izgara", "Grid")}</option><option value="carousel">{t(locale, "Yatay kaydırmalı", "Carousel")}</option><option value="masonry">{t(locale, "Dengeli kartlar", "Masonry")}</option>
+                <select value={layout} onChange={(e) => { setLayout(e.target.value); setFloatingPreviewVisible(true); }} disabled={!planLimits.canChooseLayout} className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-foreground disabled:opacity-60">
+                  <option value="list">{t(locale, "Liste", "List")}</option><option value="grid">{t(locale, "Izgara", "Grid")}</option><option value="carousel">{t(locale, "Yatay kaydırmalı", "Carousel")}</option><option value="masonry">{t(locale, "Dengeli kartlar", "Masonry")}</option><option value="floating">{t(locale, "Sabit yorum bandı", "Floating review banner")}</option>
                 </select>
                 {!planLimits.canChooseLayout && <p className="mt-1 text-xs text-amber-600">{t(locale, "Ek düzenler için Pro gerekir.", "Upgrade to Pro to unlock additional layouts.")}</p>}
               </div>
@@ -398,15 +400,17 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
             <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
           </div>
 
-          <div className="px-3 pb-6 sm:px-6 sm:pb-8">
-            <div className={`mx-auto mt-4 ${previewLayout === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : previewLayout === "carousel" ? "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" : previewLayout === "masonry" ? "columns-1 gap-4 sm:columns-2" : "space-y-4"}`} style={{ maxWidth: previewLayout === "grid" || previewLayout === "masonry" ? 640 : 500, fontFamily: previewFont }}>
+          <div className="relative min-h-[360px] px-3 pb-6 sm:px-6 sm:pb-8">
+            {previewLayout === "floating" && !floatingPreviewVisible && <button type="button" onClick={() => setFloatingPreviewVisible(true)} className="absolute bottom-3 right-3 rounded-full bg-white px-3 py-2 text-xs font-medium text-foreground shadow-lg">{t(locale, "Bandı göster", "Show banner")}</button>}
+            {(previewLayout !== "floating" || floatingPreviewVisible) && <div className={`${previewLayout === "floating" ? "absolute bottom-3 right-3 max-h-[72%] overflow-y-auto rounded-2xl p-3 pt-10 shadow-xl" : `mx-auto mt-4 ${previewLayout === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : previewLayout === "carousel" ? "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" : previewLayout === "masonry" ? "columns-1 gap-4 sm:columns-2" : "space-y-4"}`}`} style={{ maxWidth: previewLayout === "floating" ? 360 : previewLayout === "grid" || previewLayout === "masonry" ? 640 : 500, width: previewLayout === "floating" ? "min(360px, calc(100% - 24px))" : undefined, margin: previewLayout === "floating" ? 0 : undefined, fontFamily: previewFont, backgroundColor: previewLayout === "floating" ? previewBg : undefined, borderRadius: previewLayout === "floating" ? 16 : undefined, zIndex: previewLayout === "floating" ? 1 : undefined }}>
+              {previewLayout === "floating" && <button type="button" onClick={() => setFloatingPreviewVisible(false)} aria-label={t(locale, "Yorum bandını kapat", "Dismiss review banner")} className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/90 text-lg leading-none text-gray-700 shadow-sm">×</button>}
               {widgetTitle && <h3 className="text-lg font-semibold sm:col-span-2" style={{ color: previewText }}>{widgetTitle}</h3>}
               {showRatingSummary && displayedReviews.length > 0 && <div className="mb-3 flex w-fit items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800"><span aria-hidden="true">★</span><span>{averageRating}/5 · {displayedReviews.length} {t(locale, "yorum", "reviews")}</span></div>}
               
               {displayedReviews.length === 0 ? (
                  <p className="text-sm opacity-50 text-center" style={{ color: previewText }}>{t(locale, "Henüz yorum yok.", "No reviews yet.")}</p>
               ) : (
-                displayedReviews.map((r, idx) => (
+                previewReviews.map((r, idx) => (
                   <div 
                     key={idx} 
                     className={`relative transition-all ${previewLayout === "carousel" ? "min-w-[85%] snap-start sm:min-w-[70%]" : ""} ${previewLayout === "masonry" ? "mb-4 break-inside-avoid" : ""}`}
@@ -459,7 +463,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
                   </a>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       </div>
