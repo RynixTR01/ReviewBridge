@@ -1,41 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/app/LanguageProvider";
+import { t } from "@/lib/i18n";
 
-const faqItems = [
+function getFaqItems(locale) { return [
   {
-    question: "Google Haritalar bağlantımı nasıl bulurum?",
-    answer:
-      "İşletmenizi Google Haritalar’da aratıp profilini açın. Tarayıcının adres çubuğundaki bağlantıyı kopyalayın; bağlantıda /maps/ bulunmalıdır (ör. google.com/maps/place/...). Google arama sonuçları (google.com/search) ve kısaltılmış maps.app.goo.gl bağlantıları desteklenmez.",
+    question: t(locale, "Google Haritalar bağlantımı nasıl bulurum?", "How do I find my Google Maps link?"),
+    answer: t(locale, "İşletmenizi Google Haritalar’da aratıp profilini açın. Tarayıcının adres çubuğundaki bağlantıyı kopyalayın; bağlantıda /maps/ bulunmalıdır (ör. google.com/maps/place/...). Google arama sonuçları (google.com/search) ve kısaltılmış maps.app.goo.gl bağlantıları desteklenmez.", "Search for your business in Google Maps and open its profile. Copy the URL from your browser; it should contain /maps/ (for example, google.com/maps/place/...). Google Search results (google.com/search) and shortened maps.app.goo.gl links are not supported."),
   },
   {
-    question: "Yorumlar ne sıklıkla eşitlenir?",
-    answer:
-      "Bir kaynak eklediğinizde yorumlar alınmaya başlar. Paneldeki “Eşitle” düğmesiyle istediğiniz zaman yeniden eşitleyebilirsiniz. Zamanlanmış otomatik eşitleme şu anda kullanılamıyor.",
+    question: t(locale, "Yorumlar ne sıklıkla eşitlenir?", "How often are reviews synced?"),
+    answer: t(locale, "Bir kaynak eklediğinizde yorumlar alınmaya başlar. Paneldeki “Eşitle” düğmesiyle istediğiniz zaman yeniden eşitleyebilirsiniz. Zamanlanmış otomatik eşitleme şu anda kullanılamıyor.", "Reviews are fetched when you add a source. Use the Sync button in your dashboard to sync again whenever you like. Scheduled automatic syncing is not available yet."),
   },
   {
-    question: "Widget her web sitesinde çalışır mı?",
-    answer:
-      "Evet. Yerleştirme kodu HTML destekleyen WordPress, Shopify, Wix, Webflow, Squarespace ve özel web sitelerinde çalışır.",
+    question: t(locale, "Bileşen her web sitesinde çalışır mı?", "Does the widget work on every website?"),
+    answer: t(locale, "Evet. Yerleştirme kodu HTML destekleyen WordPress, Shopify, Wix, Webflow, Squarespace ve özel web sitelerinde çalışır.", "Yes. The embed code works on WordPress, Shopify, Wix, Webflow, Squarespace, and custom websites that support HTML."),
   },
   {
-    question: "Yerleştirme kodunu web siteme nasıl eklerim?",
-    answer:
-      "Panelinizdeki yerleştirme kodunu kopyalayıp yorumların görünmesini istediğiniz yere yapıştırın. Çoğu site oluşturucuda “HTML bloğu” veya “Özel kod” bölümü bulunur.",
+    question: t(locale, "Yerleştirme kodunu web siteme nasıl eklerim?", "How do I add the embed code to my site?"),
+    answer: t(locale, "Panelinizdeki yerleştirme kodunu kopyalayıp yorumların görünmesini istediğiniz yere yapıştırın. Çoğu site oluşturucuda “HTML bloğu” veya “Özel kod” bölümü bulunur.", "Copy the embed code from your dashboard and paste it where you want reviews to appear. Most site builders offer an HTML block or custom code section."),
   },
   {
-    question: "Pro aboneliğimi iptal edersem ne olur?",
-    answer:
-      "Faturalandırma döneminiz bitince hesabınız Ücretsiz plana geçer. Verileriniz korunur, Pro özellikleri devre dışı kalır.",
+    question: t(locale, "Pro aboneliğimi iptal edersem ne olur?", "What happens if I cancel Pro?"),
+    answer: t(locale, "Faturalandırma döneminiz bitince hesabınız Ücretsiz plana geçer. Verileriniz korunur, Pro özellikleri devre dışı kalır.", "At the end of your billing period, your account moves to the Free plan. Your data stays, but Pro features are disabled."),
   },
   {
-    question: "Destek ekibine nasıl ulaşırım?",
-    answer:
-      "support@reviewbridge.app adresine e-posta gönderin; genellikle 24 saat içinde yanıt veririz.",
+    question: t(locale, "Destek ekibine nasıl ulaşırım?", "How do I contact support?"),
+    answer: t(locale, "support@reviewbridge.app adresine e-posta gönderin; genellikle 24 saat içinde yanıt veririz.", "Email support@reviewbridge.app; we usually respond within 24 hours."),
   },
-];
+]; }
 
 export default function FaqAccordion() {
+  const locale = useLocale();
+  const faqItems = getFaqItems(locale);
   const [openIndex, setOpenIndex] = useState(null);
   const toggle = (index) => setOpenIndex(openIndex === index ? null : index);
 

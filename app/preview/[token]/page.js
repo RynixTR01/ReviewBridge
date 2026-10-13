@@ -1,10 +1,15 @@
 import { extractPlaceId } from "@/app/lib/extractPlaceId";
 import { query, queryOne } from "@/lib/db";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
-export const metadata = {
-  title: "Widget Preview — ReviewBridge",
-  description: "Preview how your ReviewBridge widget will look on a real website.",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return {
+    title: `${t(locale, "Bileşen önizlemesi", "Widget preview")} — ReviewBridge`,
+    description: t(locale, "ReviewBridge bileşeninizin gerçek bir web sitesinde nasıl görüneceğini önizleyin.", "Preview how your ReviewBridge widget will look on a real website."),
+  };
+}
 
 // Public page — the unguessable embed token grants read access to this widget.
 
@@ -18,6 +23,7 @@ function createStarsHtml(rating) {
 }
 
 export default async function PreviewPage({ params }) {
+  const locale = await getLocale();
   const resolvedParams = await params;
   const token = resolvedParams.token;
 
@@ -31,8 +37,8 @@ export default async function PreviewPage({ params }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Widget not found</h1>
-          <p className="text-gray-500">The preview link is invalid or the widget has been deleted.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t(locale, "Bileşen bulunamadı", "Widget not found")}</h1>
+          <p className="text-gray-500">{t(locale, "Önizleme bağlantısı geçersiz veya bileşen silinmiş.", "The preview link is invalid or the widget has been deleted.")}</p>
         </div>
       </div>
     );
@@ -52,13 +58,13 @@ export default async function PreviewPage({ params }) {
       reviewUrl = placeId 
         ? 'https://search.google.com/local/writereview?placeid=' + placeId
         : null;
-      buttonLabel = "⭐ Leave a review on Google";
+      buttonLabel = t(locale, "⭐ Google'da yorum bırak", "⭐ Leave a review on Google");
     } else if (widget.source_platform === 'trustpilot') {
       const domain = widget.source_place_id;
       reviewUrl = domain
         ? 'https://www.trustpilot.com/review/' + domain + '#writeareview'
         : null;
-      buttonLabel = "⭐ Leave a review on Trustpilot";
+      buttonLabel = t(locale, "⭐ Trustpilot'da yorum bırak", "⭐ Leave a review on Trustpilot");
     }
   }
 
@@ -96,7 +102,7 @@ export default async function PreviewPage({ params }) {
             R
           </span>
           ReviewBridge
-          <span className="text-xs font-normal text-gray-400 ml-2">Widget Preview</span>
+          <span className="text-xs font-normal text-gray-400 ml-2">{t(locale, "Bileşen önizlemesi", "Widget preview")}</span>
         </div>
         <CopyPreviewButton token={token} />
       </header>
@@ -112,7 +118,7 @@ export default async function PreviewPage({ params }) {
               <div className="w-3 h-3 rounded-full bg-green-400" />
             </div>
             <div className="flex-1 bg-white rounded-lg border border-gray-200 px-3 py-1 text-sm text-gray-400 font-mono">
-              yourwebsite.com
+              {t(locale, "siteniz.com", "yourwebsite.com")}
             </div>
           </div>
 
@@ -122,13 +128,13 @@ export default async function PreviewPage({ params }) {
               className="text-xl font-bold mb-1"
               style={{ color: widget.theme === "dark" ? "#f9fafb" : "#111827" }}
             >
-              Welcome to Our Store
+              {t(locale, "Mağazamıza hoş geldiniz", "Welcome to Our Store")}
             </h2>
             <p
               className="text-sm mb-6"
               style={{ color: widget.theme === "dark" ? "#9ca3af" : "#6b7280" }}
             >
-              See what our customers are saying about us.
+              {t(locale, "Müşterilerimizin hakkımızda neler söylediğini görün.", "See what our customers are saying about us.")}
             </p>
 
             {/* Widget Rendered Inline */}
@@ -152,7 +158,7 @@ export default async function PreviewPage({ params }) {
                     fontFamily: "system-ui, sans-serif",
                   }}
                 >
-                  No reviews found.
+                  {t(locale, "Yorum bulunamadı.", "No reviews found.")}
                 </p>
               ) : (
                 reviewsList.map((r, i) => (
@@ -265,7 +271,7 @@ export default async function PreviewPage({ params }) {
                       opacity: 0.6,
                     }}
                   >
-                    Powered by ReviewBridge
+                    {t(locale, "ReviewBridge tarafından desteklenir", "Powered by ReviewBridge")}
                   </span>
                 </div>
               )}

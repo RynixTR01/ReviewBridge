@@ -4,8 +4,11 @@ import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addSourceAction } from "@/app/actions/source";
+import { useLocale } from "@/app/LanguageProvider";
+import { t } from "@/lib/i18n";
 
 export default function AddSourcePage() {
+  const locale = useLocale();
   const [state, formAction, pending] = useActionState(addSourceAction, null);
   const router = useRouter();
 
@@ -25,20 +28,20 @@ export default function AddSourcePage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Kaynaklara dön
+          {t(locale, "Kaynaklara dön", "Back to sources")}
         </Link>
       </div>
 
       <div className="bg-white border border-border shadow-sm rounded-2xl p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Yeni kaynak ekle</h1>
-        <p className="text-muted mb-8">Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t(locale, "Yeni kaynak ekle", "Add a new source")}</h1>
+        <p className="text-muted mb-8">{t(locale, "Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.", "Connect your Google or Trustpilot profile to start fetching reviews.")}</p>
 
         {state?.error && (
           <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-3">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p>{state.error}</p>
+            <p>{locale === "tr" ? state.error : "Could not add the source. Check the link and try again."}</p>
           </div>
         )}
 
@@ -47,13 +50,13 @@ export default function AddSourcePage() {
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p>Kaynak eklendi! Yorumlar alınmaya devam ediyor. 2-3 dakika sonra panelden eşitlemeyi deneyin. Yönlendiriliyorsunuz...</p>
+            <p>{t(locale, "Kaynak eklendi! Yorumlar alınmaya devam ediyor. 2-3 dakika sonra panelden eşitlemeyi deneyin. Yönlendiriliyorsunuz...", "Source added! Reviews are still being fetched. Try syncing from the dashboard in 2–3 minutes. Redirecting...")}</p>
           </div>
         )}
 
         <form action={formAction} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">Yorum platformu</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">{t(locale, "Yorum platformu", "Review platform")}</label>
             <div className="grid grid-cols-2 gap-4">
               <label className="cursor-pointer">
                 <input type="radio" name="platform" value="google" className="peer sr-only" defaultChecked />
@@ -82,16 +85,16 @@ export default function AddSourcePage() {
 
           <div>
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
-              Place ID or URL
+              {t(locale, "Place ID veya bağlantı", "Place ID or URL")}
             </label>
-            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Haritalar or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
-            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">Google Haritalar işletme bağlantınızı bulmak için yardıma mı ihtiyacınız var?</Link>
+            <p className="text-xs text-muted mb-2">{t(locale, "Google için Google Haritalar işletme bağlantısını veya Place ID'yi girin. Google Arama bağlantıları (google.com/search) çalışmaz. Trustpilot için Trustpilot bağlantınızı veya şirket alan adınızı (ör. apple.com) girin.", "For Google, paste the Google Maps business listing URL or Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).")}</p>
+            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">{t(locale, "Google Haritalar işletme bağlantınızı bulmak için yardıma mı ihtiyacınız var?", "Need help finding your Google Maps business link?")}</Link>
             <input
               id="identifier"
               name="identifier"
               type="text"
               required
-              placeholder="Paste your Google Haritalar bağlantısı or Trustpilot URL / domain"
+              placeholder={t(locale, "Google Haritalar bağlantısı veya Trustpilot adresi / alan adı", "Google Maps link or Trustpilot URL / domain")}
               className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
@@ -107,10 +110,10 @@ export default function AddSourcePage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Connecting & Fetching Reviews...
+                {t(locale, "Bağlanıyor ve yorumlar alınıyor...", "Connecting and fetching reviews...")}
               </>
             ) : (
-              "Connect Source"
+              t(locale, "Kaynağı bağla", "Connect source")
             )}
           </button>
         </form>

@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { updateProfileAction, deleteAccountAction } from "@/app/actions/settings";
+import { useLocale } from "@/app/LanguageProvider";
+import { t } from "@/lib/i18n";
 
 export function ProfileForm({ fullName, email, memberSince }) {
+  const locale = useLocale();
   const [name, setName] = useState(fullName || "");
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
@@ -16,9 +19,9 @@ export function ProfileForm({ fullName, email, memberSince }) {
       formData.append("full_name", name);
       const result = await updateProfileAction(formData);
       if (result?.error) {
-        setMessage(result.error);
+        setMessage(locale === "tr" ? "Profil güncellenemedi. Lütfen yeniden deneyin." : result.error);
       } else {
-        setMessage("Profile updated successfully!");
+        setMessage(t(locale, "Profil güncellendi!", "Profile updated successfully!"));
         setTimeout(() => setMessage(""), 3000);
       }
     });
@@ -26,31 +29,31 @@ export function ProfileForm({ fullName, email, memberSince }) {
 
   return (
     <div className="bg-white border border-border shadow-sm rounded-2xl p-6">
-      <h2 className="text-xl font-bold text-foreground mb-6">Profile</h2>
+      <h2 className="text-xl font-bold text-foreground mb-6">{t(locale, "Profil", "Profile")}</h2>
       <form onSubmit={handleSave} className="space-y-5">
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
+          <label className="block text-sm font-semibold text-foreground mb-2">{t(locale, "Ad soyad", "Full name")}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={50}
             className="w-full px-4 py-2.5 rounded-xl border border-border bg-white text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-            placeholder="Your full name"
+            placeholder={t(locale, "Adınız Soyadınız", "Your full name")}
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">Email</label>
+          <label className="block text-sm font-semibold text-foreground mb-2">{t(locale, "E-posta", "Email")}</label>
           <input
             type="email"
             value={email}
             disabled
             className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted-bg text-muted cursor-not-allowed"
           />
-          <p className="text-xs text-muted mt-1">Email cannot be changed.</p>
+          <p className="text-xs text-muted mt-1">{t(locale, "E-posta adresi değiştirilemez.", "Email cannot be changed.")}</p>
         </div>
         <div>
-          <span className="text-sm font-semibold text-foreground">Member since</span>
+          <span className="text-sm font-semibold text-foreground">{t(locale, "Üyelik tarihi", "Member since")}</span>
           <p className="text-sm text-muted mt-1">{memberSince}</p>
         </div>
         <div className="pt-2 flex items-center gap-4">
@@ -59,10 +62,10 @@ export function ProfileForm({ fullName, email, memberSince }) {
             disabled={isPending}
             className="bg-foreground text-white font-medium px-6 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50"
           >
-            {isPending ? "Saving..." : "Save Changes"}
+            {isPending ? t(locale, "Kaydediliyor...", "Saving...") : t(locale, "Değişiklikleri kaydet", "Save changes")}
           </button>
           {message && (
-            <span className={`text-sm font-medium ${message.includes("error") || message.includes("must") ? "text-danger" : "text-success"}`}>
+            <span className={`text-sm font-medium ${message.includes("updated") || message.includes("güncellendi") ? "text-success" : "text-danger"}`}>
               {message}
             </span>
           )}
@@ -73,6 +76,7 @@ export function ProfileForm({ fullName, email, memberSince }) {
 }
 
 export function DangerZone() {
+  const locale = useLocale();
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -80,7 +84,7 @@ export function DangerZone() {
 
   const handleDelete = () => {
     if (confirmation !== "DELETE") {
-      setError("Please type DELETE to confirm.");
+      setError(t(locale, "Onaylamak için DELETE yazın.", "Please type DELETE to confirm."));
       return;
     }
     setError("");
@@ -89,19 +93,19 @@ export function DangerZone() {
       formData.append("confirmation", confirmation);
       const result = await deleteAccountAction(formData);
       if (result?.error) {
-        setError(result.error);
+        setError(locale === "tr" ? "Hesap silinemedi. Lütfen yeniden deneyin." : result.error);
       }
     });
   };
 
   return (
     <div className="bg-white border border-red-200 shadow-sm rounded-2xl p-6 mt-6">
-      <h2 className="text-xl font-bold text-red-600 mb-2">Danger Zone</h2>
+      <h2 className="text-xl font-bold text-red-600 mb-2">{t(locale, "Tehlikeli işlemler", "Danger zone")}</h2>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-foreground">Delete Account</h3>
+          <h3 className="font-semibold text-foreground">{t(locale, "Hesabı sil", "Delete account")}</h3>
           <p className="text-sm text-muted mt-1">
-            Permanently delete your account and all data. This cannot be undone.
+            {t(locale, "Hesabınızı ve tüm verilerinizi kalıcı olarak silin. Bu işlem geri alınamaz.", "Permanently delete your account and all data. This cannot be undone.")}
           </p>
         </div>
         {!showConfirm ? (
@@ -109,12 +113,12 @@ export function DangerZone() {
             onClick={() => setShowConfirm(true)}
             className="flex-shrink-0 px-5 py-2.5 rounded-xl border-2 border-red-300 text-red-600 font-semibold hover:bg-red-50 transition-colors"
           >
-            Delete Account
+            {t(locale, "Hesabı sil", "Delete account")}
           </button>
         ) : (
           <div className="flex flex-col gap-2 w-full sm:w-auto">
             <p className="text-sm font-medium text-red-600">
-              Type <span className="font-bold">DELETE</span> to confirm:
+              {t(locale, "Onaylamak için ", "Type ")}<span className="font-bold">DELETE</span>{t(locale, " yazın:", " to confirm:")}
             </p>
             <input
               type="text"
@@ -130,13 +134,13 @@ export function DangerZone() {
                 disabled={isPending}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
               >
-                {isPending ? "Deleting..." : "Confirm Delete"}
+                {isPending ? t(locale, "Siliniyor...", "Deleting...") : t(locale, "Silmeyi onayla", "Confirm delete")}
               </button>
               <button
                 onClick={() => { setShowConfirm(false); setConfirmation(""); setError(""); }}
                 className="px-4 py-2.5 rounded-xl border border-border text-muted font-medium hover:bg-muted-bg transition-colors"
               >
-                Cancel
+                {t(locale, "Vazgeç", "Cancel")}
               </button>
             </div>
           </div>

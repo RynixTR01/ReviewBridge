@@ -2,12 +2,16 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ProfileForm, DangerZone } from "./SettingsClient";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
-export const metadata = {
-  title: "Settings — ReviewBridge",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: `${t(locale, "Ayarlar", "Settings")} — ReviewBridge` };
+}
 
 export default async function SettingsPage() {
+  const locale = await getLocale();
   const user = await getCurrentUser();
 
   if (!user) {
@@ -20,18 +24,18 @@ export default async function SettingsPage() {
   );
 
   const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-US", {
+    ? new Date(profile.created_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
-    : "Unknown";
+    : t(locale, "Bilinmiyor", "Unknown");
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted mt-1">Manage your account and preferences.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t(locale, "Ayarlar", "Settings")}</h1>
+        <p className="text-muted mt-1">{t(locale, "Hesabınızı ve tercihlerinizi yönetin.", "Manage your account and preferences.")}</p>
       </div>
 
       <ProfileForm
