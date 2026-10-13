@@ -44,6 +44,7 @@ export default async function UpgradePage() {
   );
 
   const currentPlan = profile?.plan || "free";
+  const billingTestMode = process.env.BILLING_MODE !== "live";
   const userEmail = profile?.email || user.email || "";
 
   const proCheckoutUrl = process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL
@@ -125,7 +126,9 @@ export default async function UpgradePage() {
 
   const faqs = [
     { q: t(locale, "İstediğim zaman iptal edebilir miyim?", "Can I cancel anytime?"), a: t(locale, "Evet. Taahhüt yoktur; istediğiniz zaman iptal edebilirsiniz.", "Yes. There is no commitment; you can cancel anytime.") },
-    { q: t(locale, "Hemen ücret alınır mı?", "Will I be charged immediately?"), a: t(locale, "Evet. Yükseltme sonrası faturalandırma başlar ve özelliklere hemen erişirsiniz.", "Yes. Billing starts after you upgrade and features become available immediately.") },
+    { q: t(locale, "Hemen ücret alınır mı?", "Will I be charged immediately?"), a: billingTestMode
+      ? t(locale, "Hayır. Ödeme sistemi şu anda test modunda; gerçek ücret alınmaz.", "No. Payments are currently in test mode; no real charge is made.")
+      : t(locale, "Evet. Yükseltme sonrası faturalandırma başlar ve özelliklere hemen erişirsiniz.", "Yes. Billing starts after you upgrade and features become available immediately.") },
     { q: t(locale, "Planımı değiştirebilir miyim?", "Can I change my plan?"), a: t(locale, "İstediğiniz zaman plan değiştirebilirsiniz. Yardım için destek ekibiyle iletişime geçin.", "You can change plans at any time. Contact support if you need help.") },
   ];
 
@@ -142,6 +145,12 @@ export default async function UpgradePage() {
         <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">{t(locale, "Size uygun planı seçin", "Choose the right plan for you")}</h1>
         <p className="text-muted text-lg max-w-xl mx-auto">{t(locale, "İtibarınızı güçlendirin ve daha fazla ziyaretçiyi müşteriye dönüştürün.", "Build trust and turn more visitors into customers.")}</p>
       </div>
+
+      {billingTestMode && (
+        <p className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
+          {t(locale, "Ödeme sistemi test modunda. Plan denemeleri için gerçek ücret alınmaz.", "Payments are in test mode. Plan trials do not incur real charges.")}
+        </p>
+      )}
 
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
