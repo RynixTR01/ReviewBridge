@@ -140,6 +140,7 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 2. Insert into sources
+  const startsAsyncGoogleSync = platform === "google" && Boolean(process.env.APIFY_API_TOKEN);
   let newSource;
   try {
     newSource = await queryOne(
@@ -155,9 +156,9 @@ export async function addSourceAction(prevState, formData) {
         businessName,
         totalScore,
         totalReviewsCount,
-        new Date().toISOString(),
-        platform === "google" ? new Date().toISOString() : null,
-        platform === "google" ? "pending" : "done",
+        startsAsyncGoogleSync ? null : new Date().toISOString(),
+        startsAsyncGoogleSync ? new Date().toISOString() : null,
+        startsAsyncGoogleSync ? "pending" : "done",
       ]
     );
   } catch (sourceError) {
@@ -166,7 +167,7 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // If Google, start the async Apify run now that we have the source.id
-  if (platform === "google" && process.env.APIFY_API_TOKEN) {
+  if (startsAsyncGoogleSync) {
     try {
       const runId = await startApifyRun(
         APIFY_ACTORS.GOOGLE_MAPS,
@@ -185,7 +186,10 @@ export async function addSourceAction(prevState, formData) {
     } catch (err) {
       console.error("Failed to start initial Google sync:", err);
       await query(
-        "UPDATE public.sources SET sync_status = $1, last_sync_error = $2 WHERE id = $3",
+        `UPDATE public.sources
+         SET sync_status = $1, last_sync_error = $2,
+             apify_run_id = NULL, sync_started_at = NULL
+         WHERE id = $3`,
         ["error", "Failed to start background sync", newSource.id]
       );
     }
