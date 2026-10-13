@@ -74,6 +74,8 @@ export async function GET(_request, { params }) {
     accentColor: widget.accent_color,
     showReviewerAvatar: widget.show_reviewer_avatar,
     showReviewedDate: widget.show_reviewed_date,
+    showRatingSummary: widget.show_rating_summary, fontFamily: widget.font_family,
+    cardDensity: widget.card_density, cornerStyle: widget.corner_style,
     allowedDomains: Array.isArray(widget.allowed_domains) ? widget.allowed_domains.join(",") : "",
   }, plan);
   Object.assign(widget, safeSettings, {
@@ -91,6 +93,8 @@ export async function GET(_request, { params }) {
     accent_color: safeSettings.accentColor,
     show_reviewer_avatar: safeSettings.showReviewerAvatar,
     show_reviewed_date: safeSettings.showReviewedDate,
+    show_rating_summary: safeSettings.showRatingSummary, font_family: safeSettings.fontFamily,
+    card_density: safeSettings.cardDensity, corner_style: safeSettings.cornerStyle,
     allowed_domains: safeSettings.allowedDomains,
     show_badge: safeSettings.showBadge,
     smart_filter: safeSettings.smartFilter,
@@ -114,7 +118,13 @@ export async function GET(_request, { params }) {
   });
 
   const colors = getWidgetColors(widget);
-  const layout = limits.canChooseLayout && ["grid", "carousel"].includes(widget.layout) ? widget.layout : "list";
+  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry"].includes(widget.layout) ? widget.layout : "list";
+  const fontFamily = widget.font_family === "arial" ? "Arial, sans-serif" : widget.font_family === "georgia" ? "Georgia, serif" : "system-ui,sans-serif";
+  const cardPadding = widget.card_density === "compact" ? 10 : 16;
+  const cardRadius = { small: 6, medium: 12, large: 20 }[widget.corner_style] || 12;
+  const averageRating = widgetReviews.length
+    ? (widgetReviews.reduce((total, review) => total + Number(review.rating || 0), 0) / widgetReviews.length).toFixed(1)
+    : "0.0";
   const title = escapeHtml(widget.widget_title || "");
   const business = escapeHtml(widget.business_name || "");
   const platform = widget.source_platform === "google" ? "Google" : widget.source_platform === "trustpilot" ? "Trustpilot" : "Review source";
@@ -142,7 +152,7 @@ export async function GET(_request, { params }) {
     const dateLine = widget.show_reviewed_date !== false && date
       ? `<time class="rb-date" datetime="${escapeHtml(date)}" style="display:block;margin-top:8px;font-size:12px;opacity:.65" data-date="${escapeHtml(date)}"></time>`
       : "";
-    return `<article role="listitem" class="rb-card" style="min-width:0;box-sizing:border-box;background:${colors.card};border:${colors.border};border-radius:12px;padding:16px;box-shadow:${colors.shadow};font-family:system-ui,sans-serif;color:${colors.text}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${avatar}<div><div style="font-size:14px;font-weight:600">${reviewer}</div><div style="font-size:15px">${stars(review.rating, colors.accent)}</div></div></div>${body ? `<p style="font-size:14px;line-height:1.55;opacity:.92;margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${body}</p>` : ""}${dateLine}</article>`;
+    return `<article role="listitem" class="rb-card" style="min-width:0;box-sizing:border-box;background:${colors.card};border:${colors.border};border-radius:${cardRadius}px;padding:${cardPadding}px;box-shadow:${colors.shadow};font-family:${fontFamily};color:${colors.text}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${avatar}<div><div style="font-size:14px;font-weight:600">${reviewer}</div><div style="font-size:15px">${stars(review.rating, colors.accent)}</div></div></div>${body ? `<p style="font-size:14px;line-height:1.55;opacity:.92;margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${body}</p>` : ""}${dateLine}</article>`;
   }).join("");
 
   const buttonHref = reviewUrl ? escapeHtml(reviewUrl) : "";
@@ -166,7 +176,8 @@ export async function GET(_request, { params }) {
     const cta = buttonHref ? `<div style="text-align:center;margin-top:16px"><a data-rb-event="cta_click" href="${buttonHref}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 18px;background:${colors.accent};color:#fff;border-radius:8px;text-decoration:none;font:500 14px system-ui,sans-serif">⭐ ${reviewLabel}</a></div>` : "";
     const badge = widget.show_badge ? `<div style="text-align:center;margin-top:12px;font:12px system-ui,sans-serif"><a href="https://reviewbridge.com" target="_blank" rel="noopener noreferrer" style="color:${colors.text};opacity:.6;text-decoration:none">${tr ? "ReviewBridge tarafından desteklenir" : "Powered by ReviewBridge"}</a></div>` : "";
     const carouselAccess = layout === "carousel" ? ` tabindex="0" aria-label="${tr ? "Yorumları yatay kaydırın" : "Scroll reviews horizontally"}"` : "";
-    htmlByLocale[locale] = `${heading}<div class="rb-reviews rb-layout-${layout}" role="list" aria-label="${tr ? "Müşteri yorumları" : "Customer reviews"}"${carouselAccess}>${content}</div>${stale}${sourceAttribution}${cta}${badge}`;
+    const averageBadge = widget.show_rating_summary && widgetReviews.length ? `<div class="rb-rating-summary" aria-label="${tr ? "Ortalama puan" : "Average rating"}">★ ${averageRating}/5 · ${widgetReviews.length} ${tr ? "yorum" : "reviews"}</div>` : "";
+    htmlByLocale[locale] = `${heading}${averageBadge}<div class="rb-reviews rb-layout-${layout}" role="list" aria-label="${tr ? "Müşteri yorumları" : "Customer reviews"}"${carouselAccess}>${content}</div>${stale}${sourceAttribution}${cta}${badge}`;
   }
 
   const widgetId = `reviewbridge-embed-${token}`;
@@ -182,10 +193,10 @@ export async function GET(_request, { params }) {
   wrapper.id=id;
   wrapper.setAttribute('role','region');
   wrapper.setAttribute('aria-label','Customer reviews');
-  wrapper.style.cssText=${JSON.stringify(`width:100%;max-width:720px;margin:0 auto;background:${wrapperBackground};border-radius:16px;padding:${wrapperPadding};box-sizing:border-box;color:${colors.text}`)};
+  wrapper.style.cssText=${JSON.stringify(`width:100%;max-width:720px;margin:0 auto;background:${wrapperBackground};border-radius:16px;padding:${wrapperPadding};box-sizing:border-box;color:${colors.text};font-family:${fontFamily}`)};
   wrapper.innerHTML=${JSON.stringify(htmlByLocale.en)};
   var style=document.createElement('style');
-  style.textContent='#'+id+' .rb-layout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#'+id+' .rb-layout-list{display:grid;grid-template-columns:1fr;gap:12px}#'+id+' .rb-layout-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}#'+id+' .rb-layout-carousel .rb-card{flex:0 0 min(85%,380px);scroll-snap-align:start}@media(max-width:520px){#'+id+' .rb-layout-grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){#'+id+' *,#'+id+' *::before,#'+id+' *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#'+id+' .rb-layout-carousel{scroll-snap-type:none}}';
+  style.textContent='#'+id+' .rb-rating-summary{width:max-content;margin:0 auto 14px;border-radius:999px;background:#fffbeb;color:#92400e;padding:8px 14px;font:600 14px '+${JSON.stringify(fontFamily)}+'}#'+id+' .rb-layout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#'+id+' .rb-layout-list{display:grid;grid-template-columns:1fr;gap:12px}#'+id+' .rb-layout-masonry{columns:2;column-gap:12px}#'+id+' .rb-layout-masonry .rb-card{break-inside:avoid;margin:0 0 12px}#'+id+' .rb-layout-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}#'+id+' .rb-layout-carousel .rb-card{flex:0 0 min(85%,380px);scroll-snap-align:start}@media(max-width:520px){#'+id+' .rb-layout-grid{grid-template-columns:1fr}#'+id+' .rb-layout-masonry{columns:1}}@media(prefers-reduced-motion:reduce){#'+id+' *,#'+id+' *::before,#'+id+' *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}#'+id+' .rb-layout-carousel{scroll-snap-type:none}}';
   (document.head||document.documentElement).appendChild(style);
   target.appendChild(wrapper);
   var language=${JSON.stringify(widget.widget_locale || "auto")}==='auto'?((navigator.language||'en').toLowerCase().startsWith('tr')?'tr':'en'):${JSON.stringify(widget.widget_locale === "tr" ? "tr" : "en")};

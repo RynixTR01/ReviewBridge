@@ -383,6 +383,9 @@ export default async function DashboardPage() {
                         {syncStatus === "error" && source.last_sync_error && (
                           <span className="text-xs text-red-600">{locale === "tr" ? source.last_sync_error : "The last sync failed. Try again or check the source link."}</span>
                         )}
+                        {syncStatus === "error" && source.sync_retry_after && Number(source.sync_retry_count) <= 3 && (
+                          <span className="basis-full text-xs text-amber-700">{t(locale, "Otomatik yeniden deneme: ", "Automatic retry: ")}{new Date(source.sync_retry_after).toLocaleString(locale === "tr" ? "tr-TR" : "en-US")}</span>
+                        )}
                         {syncStatus === "done" && syncedCount === 0 && (
                           <span className="text-xs text-amber-700">
                             {t(locale, "Profil bağlantısını kontrol edin veya ", "Check the profile link or ")}<Link href="/dashboard/help#google-maps-url" className="underline">{t(locale, "bağlantı kılavuzunu açın", "open the link guide")}</Link>.

@@ -4,6 +4,7 @@ import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
+import { scheduleSyncRetry } from "@/lib/sync-retry";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -80,13 +81,15 @@ export async function POST(request, { params }) {
     // provider runs for the same source. Stuck claims become retryable after 15m.
     const syncClaim = await queryOne(
       `UPDATE public.sources
-       SET sync_status = 'pending', sync_started_at = NOW(), last_sync_error = NULL
+       SET sync_status = 'pending', sync_started_at = NOW(), last_sync_error = NULL,
+           sync_retry_after = NULL,
+           sync_retry_count = CASE WHEN $3::boolean THEN sync_retry_count ELSE 0 END
        WHERE id = $1 AND user_id = $2
          AND (sync_status IS DISTINCT FROM 'pending'
               OR sync_started_at IS NULL
               OR sync_started_at < NOW() - INTERVAL '15 minutes')
        RETURNING id`,
-      [source.id, userId]
+      [source.id, userId, cronAuthorized]
     );
     if (!syncClaim) {
       return Response.json(
@@ -128,13 +131,7 @@ export async function POST(request, { params }) {
         return Response.json({ status: 'pending', message: 'Syncing in background...' });
       } catch (err) {
         console.error("Failed to start Google sync:", err);
-        await query(
-          `UPDATE public.sources
-           SET sync_status = 'error', last_sync_error = $2,
-               apify_run_id = NULL, sync_started_at = NULL
-           WHERE id = $1 AND user_id = $3`,
-          [source.id, "Eşitleme başlatılamadı.", userId]
-        );
+        await scheduleSyncRetry(query, source.id, "Eşitleme başlatılamadı.");
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
         return Response.json({ error: "Eşitleme başlatılamadı." }, { status: 500 });
       }
@@ -155,11 +152,7 @@ export async function POST(request, { params }) {
         return Response.json({ status: "pending", message: "Trustpilot sync started in the background." });
       } catch (error) {
         console.error("Failed to start Trustpilot sync:", error);
-        await query(
-          `UPDATE public.sources SET sync_status = 'error', last_sync_error = $2,
-             apify_run_id = NULL, sync_started_at = NULL WHERE id = $1 AND user_id = $3`,
-          [source.id, "Trustpilot eşitlemesi başlatılamadı.", userId],
-        );
+        await scheduleSyncRetry(query, source.id, "Trustpilot eşitlemesi başlatılamadı.");
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot eşitlemesi başlatılamadı." });
         return Response.json({ error: "Failed to start Trustpilot sync" }, { status: 502 });
       }
@@ -212,7 +205,8 @@ export async function POST(request, { params }) {
     // Update last_synced_at
     await query(
       `UPDATE public.sources SET last_synced_at = NOW(), sync_status = 'done',
-         last_sync_error = NULL, sync_started_at = NULL
+         last_sync_error = NULL, sync_started_at = NULL, sync_retry_count = 0,
+         sync_retry_after = NULL
        WHERE id = $1 AND user_id = $2`,
       [source.id, userId]
     );
@@ -222,13 +216,7 @@ export async function POST(request, { params }) {
   } catch (err) {
     if (currentSourceId) {
       try {
-        await query(
-          `UPDATE public.sources SET sync_status = 'error',
-             last_sync_error = 'Yorumlar kaydedilemedi veya eşitleme tamamlanamadı.',
-             sync_started_at = NULL
-           WHERE id = $1`,
-          [currentSourceId]
-        );
+        await scheduleSyncRetry(query, currentSourceId, "Yorumlar kaydedilemedi veya eşitleme tamamlanamadı.");
       } catch (sourceUpdateError) {
         console.error("Could not mark source sync as failed:", sourceUpdateError);
       }

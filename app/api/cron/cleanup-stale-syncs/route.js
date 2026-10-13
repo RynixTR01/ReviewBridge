@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { finishSyncHistory } from "@/lib/sync-history";
+import { scheduleSyncRetry } from "@/lib/sync-retry";
 
 export const maxDuration = 60;
 
@@ -19,7 +20,7 @@ export async function GET(request) {
     const data = await query(
       `UPDATE public.sources
        SET sync_status = 'error', last_sync_error = 'Sync timed out. Please try again.',
-           apify_run_id = NULL
+           apify_run_id = NULL, sync_started_at = NULL
        WHERE sync_status = 'pending'
          AND sync_started_at IS NOT NULL
          AND sync_started_at < $1
@@ -27,9 +28,10 @@ export async function GET(request) {
       [fifteenMinutesAgo]
     );
 
-    await Promise.all((data || []).map(({ id }) =>
-      finishSyncHistory({ sourceId: id, status: "error", errorMessage: "Eşitleme zaman aşımına uğradı." })
-    ));
+    await Promise.all((data || []).map(async ({ id }) => {
+      await scheduleSyncRetry(query, id, "Eşitleme zaman aşımına uğradı.");
+      await finishSyncHistory({ sourceId: id, status: "error", errorMessage: "Eşitleme zaman aşımına uğradı." });
+    }));
 
     await query("DELETE FROM public.widget_daily_metrics WHERE metric_date < CURRENT_DATE - INTERVAL '90 days'");
 
@@ -43,13 +45,17 @@ export async function GET(request) {
           `SELECT s.id
            FROM public.sources s
            JOIN public.users u ON u.id = s.user_id
-           WHERE s.auto_sync_enabled = true
-             AND s.sync_status IS DISTINCT FROM 'pending'
-             AND (s.last_synced_at IS NULL OR s.last_synced_at < NOW() -
-               CASE u.plan WHEN 'agency' THEN INTERVAL '30 minutes'
-                           WHEN 'pro' THEN INTERVAL '2 hours'
-                           ELSE INTERVAL '24 hours' END)
-           ORDER BY s.last_synced_at ASC NULLS FIRST
+           WHERE s.sync_status IS DISTINCT FROM 'pending'
+             AND (
+               (s.sync_retry_after IS NOT NULL AND s.sync_retry_after <= NOW()
+                 AND s.sync_retry_count < 3)
+               OR (s.auto_sync_enabled = true AND s.sync_status IS DISTINCT FROM 'error'
+                 AND (s.last_synced_at IS NULL OR s.last_synced_at < NOW() -
+                   CASE u.plan WHEN 'agency' THEN INTERVAL '30 minutes'
+                               WHEN 'pro' THEN INTERVAL '2 hours'
+                               ELSE INTERVAL '24 hours' END))
+             )
+           ORDER BY s.sync_retry_after ASC NULLS LAST, s.last_synced_at ASC NULLS FIRST
            LIMIT 25`,
         );
 
@@ -69,6 +75,10 @@ export async function GET(request) {
           }
         }
       }
+    }
+
+    if (autoSyncFailed > 0) {
+      console.error("Scheduled sync dispatch had failures.", { autoSyncStarted, autoSyncFailed });
     }
 
     return Response.json({ 

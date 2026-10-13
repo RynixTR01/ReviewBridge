@@ -14,6 +14,10 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
   const [showReviewButton, setShowReviewButton] = useState(widget.show_review_button || false);
   const [layout, setLayout] = useState(widget.layout || "list");
+  const [showRatingSummary, setShowRatingSummary] = useState(widget.show_rating_summary === true);
+  const [fontFamily, setFontFamily] = useState(widget.font_family || "system");
+  const [cardDensity, setCardDensity] = useState(widget.card_density || "comfortable");
+  const [cornerStyle, setCornerStyle] = useState(widget.corner_style || "medium");
   const [minimumRating, setMinimumRating] = useState(widget.minimum_rating || 1);
   const [sortOrder, setSortOrder] = useState(widget.sort_order || "newest");
   const [includeKeywords, setIncludeKeywords] = useState(widget.include_keywords || "");
@@ -62,6 +66,10 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
       formData.append("smartFilter", (planLimits.canSelectTheme ? smartFilter : false).toString());
       formData.append("showReviewButton", showReviewButton.toString());
       formData.append("layout", layout);
+      formData.append("showRatingSummary", (planLimits.canChooseLayout && showRatingSummary).toString());
+      formData.append("fontFamily", fontFamily);
+      formData.append("cardDensity", cardDensity);
+      formData.append("cornerStyle", cornerStyle);
       formData.append("minimumRating", minimumRating.toString());
       formData.append("sortOrder", sortOrder);
       formData.append("includeKeywords", includeKeywords);
@@ -110,6 +118,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const previewCardBg = theme === "dark" ? "#374151" : "#ffffff";
   const previewBorder = theme === "minimal" ? "none" : theme === "dark" ? "1px solid #4b5563" : "1px solid #e5e7eb";
   const previewLayout = planLimits.canChooseLayout ? layout : "list";
+  const previewFont = fontFamily === "arial" ? "Arial, sans-serif" : fontFamily === "georgia" ? "Georgia, serif" : "system-ui, sans-serif";
+  const previewPadding = cardDensity === "compact" ? 10 : 16;
+  const previewRadius = { small: 6, medium: 12, large: 20 }[cornerStyle] || 12;
   const textContrastIsLow = contrastRatio(textColor, backgroundColor) < 4.5;
   const accentContrastIsLow = contrastRatio("#ffffff", accentColor) < 4.5;
 
@@ -131,6 +142,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
       return new Date(b.reviewed_at) - new Date(a.reviewed_at);
     })
     .slice(0, maxReviews);
+  const averageRating = displayedReviews.length
+    ? (displayedReviews.reduce((total, review) => total + Number(review.rating || 0), 0) / displayedReviews.length).toFixed(1)
+    : "0.0";
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
@@ -190,10 +204,22 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">{t(locale, "Görünüm düzeni", "Display layout")}</label>
                 <select value={layout} onChange={(e) => setLayout(e.target.value)} disabled={!planLimits.canChooseLayout} className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-foreground disabled:opacity-60">
-                  <option value="list">{t(locale, "Liste", "List")}</option><option value="grid">{t(locale, "Izgara", "Grid")}</option><option value="carousel">{t(locale, "Yatay kaydırmalı", "Carousel")}</option>
+                  <option value="list">{t(locale, "Liste", "List")}</option><option value="grid">{t(locale, "Izgara", "Grid")}</option><option value="carousel">{t(locale, "Yatay kaydırmalı", "Carousel")}</option><option value="masonry">{t(locale, "Dengeli kartlar", "Masonry")}</option>
                 </select>
-                {!planLimits.canChooseLayout && <p className="mt-1 text-xs text-amber-600">{t(locale, "Izgara ve yatay kaydırma için Pro gerekir.", "Upgrade to Pro to unlock grid and carousel layouts.")}</p>}
+                {!planLimits.canChooseLayout && <p className="mt-1 text-xs text-amber-600">{t(locale, "Ek düzenler için Pro gerekir.", "Upgrade to Pro to unlock additional layouts.")}</p>}
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Yazı tipi", "Font")}
+                  <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} disabled={!planLimits.canChooseLayout} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60"><option value="system">{t(locale, "Sistem", "System")}</option><option value="arial">Arial</option><option value="georgia">Georgia</option></select>
+                </label>
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Kart aralığı", "Card spacing")}
+                  <select value={cardDensity} onChange={(e) => setCardDensity(e.target.value)} disabled={!planLimits.canChooseLayout} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60"><option value="compact">{t(locale, "Sıkı", "Compact")}</option><option value="comfortable">{t(locale, "Rahat", "Comfortable")}</option></select>
+                </label>
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Kart köşeleri", "Card corners")}
+                  <select value={cornerStyle} onChange={(e) => setCornerStyle(e.target.value)} disabled={!planLimits.canChooseLayout} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60"><option value="small">{t(locale, "Hafif", "Subtle")}</option><option value="medium">{t(locale, "Orta", "Medium")}</option><option value="large">{t(locale, "Yuvarlak", "Rounded")}</option></select>
+                </label>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={showRatingSummary} onChange={(e) => setShowRatingSummary(e.target.checked)} disabled={!planLimits.canChooseLayout} />{t(locale, "Ortalama puan rozetini göster", "Show average rating badge")}</label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-semibold text-foreground">{t(locale, "En düşük puan", "Minimum rating")}
                   <select value={minimumRating} onChange={(e) => setMinimumRating(Number(e.target.value))} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60">{[1,2,3,4,5].map((rating) => <option key={rating} value={rating}>{rating}+ {t(locale, "yıldız", "stars")}</option>)}</select>
@@ -376,8 +402,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
           </div>
 
           <div className="px-3 pb-6 sm:px-6 sm:pb-8">
-            <div className={`mx-auto mt-4 ${previewLayout === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : previewLayout === "carousel" ? "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" : "space-y-4"}`} style={{ maxWidth: previewLayout === "grid" ? 640 : 500 }}>
+            <div className={`mx-auto mt-4 ${previewLayout === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : previewLayout === "carousel" ? "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" : previewLayout === "masonry" ? "columns-1 gap-4 sm:columns-2" : "space-y-4"}`} style={{ maxWidth: previewLayout === "grid" || previewLayout === "masonry" ? 640 : 500, fontFamily: previewFont }}>
               {widgetTitle && <h3 className="text-lg font-semibold sm:col-span-2" style={{ color: previewText }}>{widgetTitle}</h3>}
+              {showRatingSummary && displayedReviews.length > 0 && <div className="mb-3 flex w-fit items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800"><span aria-hidden="true">★</span><span>{averageRating}/5 · {displayedReviews.length} {t(locale, "yorum", "reviews")}</span></div>}
               
               {displayedReviews.length === 0 ? (
                  <p className="text-sm opacity-50 text-center" style={{ color: previewText }}>{t(locale, "Henüz yorum yok.", "No reviews yet.")}</p>
@@ -385,8 +412,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
                 displayedReviews.map((r, idx) => (
                   <div 
                     key={idx} 
-                    className={`relative p-4 rounded-xl transition-all ${previewLayout === "carousel" ? "min-w-[85%] snap-start sm:min-w-[70%]" : ""}`}
-                    style={{ backgroundColor: previewCardBg, color: previewText, border: previewBorder, boxShadow: theme === "minimal" ? "none" : undefined }}
+                    className={`relative transition-all ${previewLayout === "carousel" ? "min-w-[85%] snap-start sm:min-w-[70%]" : ""} ${previewLayout === "masonry" ? "mb-4 break-inside-avoid" : ""}`}
+                    style={{ padding: previewPadding, borderRadius: previewRadius, backgroundColor: previewCardBg, color: previewText, border: previewBorder, boxShadow: theme === "minimal" ? "none" : undefined }}
                   >
                     <div className="flex items-center gap-3 mb-2">
                        {showReviewerAvatar && <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: `${planLimits.canCustomizeColors ? accentColor : "#6366f1"}22`, color: planLimits.canCustomizeColors ? accentColor : "#6366f1" }}>

@@ -3,6 +3,7 @@ import { getDatasetItems, mapApifyReviews, APIFY_ACTORS } from "@/app/lib/apify"
 import { query, queryOne } from "@/lib/db";
 import { finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
+import { scheduleSyncRetry } from "@/lib/sync-retry";
 
 export async function POST(request) {
   try {
@@ -57,13 +58,7 @@ export async function POST(request) {
     }
 
     if (runStatus !== 'SUCCEEDED') {
-      await query(
-        `UPDATE public.sources
-         SET sync_status = 'error', last_sync_error = $2,
-             apify_run_id = NULL, sync_started_at = NULL
-         WHERE id = $1`,
-        [sourceId, `Apify run ended with status: ${runStatus}`]
-      );
+      await scheduleSyncRetry(query, sourceId, `Apify run ended with status: ${runStatus}`);
       
       await finishSyncHistory({ sourceId, runId, status: "error", errorMessage: `Apify run ended with status: ${runStatus}` });
       return Response.json({ message: `Run failed with status ${runStatus}` }, { status: 200 });
@@ -99,6 +94,7 @@ export async function POST(request) {
         `UPDATE public.sources
          SET sync_status = 'done', apify_run_id = NULL, sync_started_at = NULL,
              last_synced_at = NOW(), last_sync_error = NULL,
+             sync_retry_count = 0, sync_retry_after = NULL,
              business_name = CASE
                WHEN business_name IN ('Google işletmesi (eşitleniyor...)', 'Google Business (Syncing...)', 'Google Business', 'Bilinmeyen işletme')
                  AND $2::text IS NOT NULL THEN $2
@@ -116,13 +112,7 @@ export async function POST(request) {
       // Catch errors during fetching or DB inserting
       console.error('Error processing reviews:', processError);
       
-      await query(
-        `UPDATE public.sources
-         SET sync_status = 'error', last_sync_error = $2,
-             apify_run_id = NULL, sync_started_at = NULL
-         WHERE id = $1`,
-        [sourceId, `Failed to process reviews: ${processError.message}`]
-      );
+      await scheduleSyncRetry(query, sourceId, `Failed to process reviews: ${processError.message}`);
       await finishSyncHistory({ sourceId, runId, status: "error", errorMessage: "Yorumlar işlenirken eşitleme başarısız oldu." });
 
       return Response.json({ error: 'Failed to process reviews' }, { status: 500 });
