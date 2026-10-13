@@ -47,13 +47,13 @@ export default function AddSourcePage() {
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p>Source added! Reviews are still being fetched. Click Sync on your dashboard in 2-3 minutes. Redirecting...</p>
+            <p>Kaynak eklendi! Yorumlar alınmaya devam ediyor. 2-3 dakika sonra panelden eşitlemeyi deneyin. Yönlendiriliyorsunuz...</p>
           </div>
         )}
 
         <form action={formAction} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-3">Review Platform</label>
+            <label className="block text-sm font-semibold text-foreground mb-3">Yorum platformu</label>
             <div className="grid grid-cols-2 gap-4">
               <label className="cursor-pointer">
                 <input type="radio" name="platform" value="google" className="peer sr-only" defaultChecked />
@@ -84,8 +84,8 @@ export default function AddSourcePage() {
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
               Place ID or URL
             </label>
-            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Maps or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
-            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">Need help finding your Google Maps listing URL?</Link>
+            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Haritalar or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
+            <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">Google Haritalar işletme bağlantınızı bulmak için yardıma mı ihtiyacınız var?</Link>
             <input
               id="identifier"
               name="identifier"
