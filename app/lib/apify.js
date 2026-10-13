@@ -34,7 +34,7 @@ export function buildWebhookUrl(sourceId) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
   if (!appUrl) throw new Error("Missing webhook URL configuration");
 
-  const normalizedAppUrl = appUrl.replace(/\\/+$/, "");
+  const normalizedAppUrl = appUrl.replace(/\/+$/, "");
   return normalizedAppUrl + "/api/apify-webhook?sourceId=" + encodeURIComponent(sourceId);
 }
 
