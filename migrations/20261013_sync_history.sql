@@ -1,4 +1,4 @@
--- Additive sync history; existing source state remains authoritative.
+-- Additive sync history. Existing source state remains authoritative.
 CREATE TABLE IF NOT EXISTS public.sync_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   source_id uuid NOT NULL REFERENCES public.sources(id) ON DELETE CASCADE,
