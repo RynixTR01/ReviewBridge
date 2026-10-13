@@ -48,8 +48,23 @@ export default async function DashboardPage() {
   let reviewStats = {};
   let totalReviews = 0;
   let lastSyncDate = null;
+  let syncHistory = {};
 
   if (sourceIds.length > 0) {
+    try {
+      const historyRows = await query(
+        "SELECT source_id, status, started_at, completed_at, reviews_count, error_message " +
+        "FROM public.sync_history WHERE source_id = ANY($1::uuid[]) ORDER BY started_at DESC",
+        [sourceIds]
+      );
+      for (const row of historyRows || []) {
+        const history = syncHistory[row.source_id] || (syncHistory[row.source_id] = []);
+        if (history.length < 5) history.push(row);
+      }
+    } catch (historyError) {
+      console.warn("Sync history table is not available yet.", historyError?.message);
+    }
+
     const reviews = await query(
       "SELECT source_id, rating FROM public.reviews WHERE source_id = ANY($1::uuid[])",
       [sourceIds]
@@ -89,8 +104,8 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Your Sources</h1>
-            <p className="text-muted mt-1">Manage your connected review profiles.</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Kaynaklarınız</h1>
+            <p className="text-muted mt-1">Bağlı yorum profillerinizi yönetin.</p>
           </div>
           {userPlan === "pro" && (
             <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white rounded-full uppercase tracking-wide">Pro</span>
@@ -108,7 +123,7 @@ export default async function DashboardPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              View Plans
+              Planları gör
             </Link>
           )}
           {(userPlan === "pro" || userPlan === "agency") && (
@@ -118,7 +133,7 @@ export default async function DashboardPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted border border-border px-3 py-2 rounded-lg hover:bg-muted-bg hover:text-foreground transition-colors"
             >
-              Manage subscription
+              Aboneliği yönet
             </a>
           )}
           <Link
@@ -128,7 +143,7 @@ export default async function DashboardPage() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Add new source
+            Yeni kaynak ekle
           </Link>
         </div>
       </div>
@@ -138,19 +153,19 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
-            <p className="text-xs text-muted mt-1">Synced Reviews</p>
+            <p className="text-xs text-muted mt-1">Eşitlenen yorumlar</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{sources.length}</p>
-            <p className="text-xs text-muted mt-1">Sources Connected</p>
+            <p className="text-xs text-muted mt-1">Bağlı kaynak</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">
               {lastSyncDate
-                ? lastSyncDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                ? lastSyncDate.toLocaleDateString("tr-TR", { month: "short", day: "numeric" })
                 : "—"}
             </p>
-            <p className="text-xs text-muted mt-1">Last Sync</p>
+            <p className="text-xs text-muted mt-1">Son eşitleme</p>
           </div>
         </div>
       )}
@@ -167,7 +182,7 @@ export default async function DashboardPage() {
           <div className="bg-white border border-border rounded-xl p-4 mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                {used} / {isUnlimited ? "∞" : maxSources} sources used
+                {used} / {isUnlimited ? "∞" : maxSources} kaynak kullanılıyor
               </span>
               <span className="text-xs text-muted capitalize">{userPlan} plan</span>
             </div>
@@ -187,8 +202,8 @@ export default async function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
               </svg>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Welcome to ReviewBridge!</h2>
-            <p className="text-muted text-lg max-w-md mx-auto">You&apos;re 2 minutes away from showing real reviews on your website.</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">ReviewBridge’e hoş geldiniz!</h2>
+            <p className="text-muted text-lg max-w-md mx-auto">Gerçek yorumları web sitenizde göstermek için yalnızca birkaç adım kaldı.</p>
           </div>
 
           {/* 3 Steps */}
@@ -201,8 +216,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Connect your listing</h3>
-              <p className="text-sm text-muted">Paste your Google Maps URL</p>
+              <h3 className="font-semibold text-foreground mb-1">İşletme profilinizi bağlayın</h3>
+              <p className="text-sm text-muted">Google Haritalar bağlantınızı yapıştırın</p>
             </div>
 
             {/* Step 2 */}
@@ -213,8 +228,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Customize widget</h3>
-              <p className="text-sm text-muted">Pick a theme and style</p>
+              <h3 className="font-semibold text-foreground mb-1">Widget’ı özelleştirin</h3>
+              <p className="text-sm text-muted">Tema ve görünüm seçin</p>
             </div>
 
             {/* Step 3 */}
@@ -261,11 +276,11 @@ export default async function DashboardPage() {
               ? "bg-amber-50 text-amber-700"
               : "bg-green-50 text-green-700";
             const syncLabel = syncStatus === "pending"
-              ? "Fetching reviews…"
+              ? "Yorumlar alınıyor…"
               : syncStatus === "error"
-              ? "Sync failed"
+              ? "Eşitleme başarısız"
               : syncedCount === 0
-              ? "No reviews returned"
+              ? "Yorum bulunamadı"
               : `${syncedCount} synced`;
             const googleScore = source.total_score;
             const googleTotal = source.total_reviews_count;
@@ -306,7 +321,7 @@ export default async function DashboardPage() {
                         {/* Google total reviews */}
                         {googleTotal && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-muted-bg rounded-md">
-                            {googleTotal} Google reviews
+                            {googleTotal} Google yorumu
                           </span>
                         )}
 
@@ -321,14 +336,14 @@ export default async function DashboardPage() {
                         </span>
 
                         <span className="text-xs text-muted">
-                          Last successful sync: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString() : "Never"}
+                          Son başarılı eşitleme: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString("tr-TR") : "Henüz yok"}
                         </span>
                         {syncStatus === "error" && source.last_sync_error && (
                           <span className="text-xs text-red-600">{source.last_sync_error}</span>
                         )}
                         {syncStatus === "done" && syncedCount === 0 && (
                           <span className="text-xs text-amber-700">
-                            Check the listing URL or <Link href="/dashboard/help#google-maps-url" className="underline">open the URL guide</Link>.
+                            Profil bağlantısını kontrol edin veya <Link href="/dashboard/help#google-maps-url" className="underline">bağlantı kılavuzunu açın</Link>.
                           </span>
                         )}
 
@@ -349,7 +364,7 @@ export default async function DashboardPage() {
                     {/* Delete source */}
                     <DeleteSourceButton sourceId={source.id} />
 
-                    {/* Customize widget */}
+                    {/* Widget’ı özelleştirin */}
                     {widgetId && (
                       <Link
                         href={`/dashboard/widget/${widgetId}`}
@@ -358,7 +373,7 @@ export default async function DashboardPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
                         </svg>
-                        Customize
+                        Özelleştir
                       </Link>
                     )}
 
@@ -371,13 +386,30 @@ export default async function DashboardPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                         </svg>
-                        Embed code
+                        Yerleştirme kodu
                       </Link>
                     ) : (
-                      <span className="text-sm text-danger font-medium">Widget configuring...</span>
+                      <span className="text-sm text-danger font-medium">Widget hazırlanıyor...</span>
                     )}
                   </div>
                 </div>
+                <details className="mt-4 border-t border-border pt-3">
+                  <summary className="cursor-pointer text-sm font-medium text-muted hover:text-foreground">Eşitleme geçmişi</summary>
+                  <div className="mt-3 space-y-2">
+                    {(syncHistory[source.id] || []).length === 0 ? (
+                      <p className="text-xs text-muted">Henüz geçmiş kaydı yok. Migration uygulandıktan sonraki eşitlemeler burada görünür.</p>
+                    ) : (syncHistory[source.id] || []).map((entry) => (
+                      <div key={entry.started_at} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className={entry.status === "done" ? "text-green-700" : entry.status === "error" ? "text-red-700" : "text-blue-700"}>
+                          {entry.status === "done" ? "Tamamlandı" : entry.status === "error" ? "Başarısız" : "Devam ediyor"}
+                          {entry.status === "done" && <> · {entry.reviews_count} yorum</>}
+                        </span>
+                        <time dateTime={new Date(entry.started_at).toISOString()} className="text-muted">{new Date(entry.started_at).toLocaleString("tr-TR")}</time>
+                        {entry.error_message && <span className="basis-full text-red-600">{entry.error_message}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </details>
               </div>
             );
           })}
