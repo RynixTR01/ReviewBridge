@@ -119,7 +119,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             <div className="flex items-center justify-between py-2">
               <div>
                 <label className="block text-sm font-semibold text-foreground">ReviewBridge Badge</label>
-                <p className="text-xs text-muted">Show "Powered by ReviewBridge" link</p>
+                <p className="text-xs text-muted">Show &quot;Powered by ReviewBridge&quot; link</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 

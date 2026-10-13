@@ -33,7 +33,7 @@ export async function POST(request) {
             <li><strong>Embed</strong> it on your website with one line of code</li>
           </ol>
           <div style="text-align: center; margin-bottom: 32px;">
-            <a href="${process.env.NEXT_PUBLIC_SUPABASE_URL ? 'https://reviewbridge.com' : 'http://localhost:3000'}/dashboard"
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://review-bridge.vercel.app'}/dashboard"
                style="display: inline-block; padding: 14px 32px; background: #6366f1; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
               Go to Dashboard →
             </a>

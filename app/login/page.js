@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,14 +13,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleGoogleLogin() {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    });
-    if (error) setError(error.message);
+    setError("");
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: `${window.location.origin}/dashboard`,
+      });
+      if (error) setError(error.message);
+    } catch (authError) {
+      setError(authError.message || "Unable to start Google sign-in.");
+    }
   }
 
   async function handleSubmit(e) {
@@ -28,12 +30,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const supabase = createClient();
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    let signInError;
+    try {
+      const result = await authClient.signIn.email({ email, password });
+      signInError = result.error;
+    } catch (authError) {
+      signInError = authError;
+    }
 
     if (signInError) {
       setError(signInError.message);
