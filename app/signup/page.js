@@ -167,7 +167,7 @@ export default function SignupPage() {
               <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-muted">or</span>
+              <span className="px-3 bg-white text-muted">veya</span>
             </div>
           </div>
 
@@ -240,9 +240,9 @@ export default function SignupPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Already have an account?{" "}
+          Zaten hesabınız var mı?{" "}
           <Link href="/login" className="text-primary font-semibold hover:underline">
-            Log in
+            Giriş yap
           </Link>
         </p>
       </div>
