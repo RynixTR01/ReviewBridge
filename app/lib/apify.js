@@ -1,5 +1,5 @@
-import { isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
-import { normalizeReviewRating } from "@/lib/review-rating";
+import { isGoogleMapsUrl } from "./extractPlaceId.js";
+import { normalizeReviewRating } from "../../lib/review-rating.js";
 
 export const APIFY_ACTORS = {
   GOOGLE_MAPS: 'Xb8osYTtOjlsgI6k9',
@@ -59,11 +59,14 @@ export async function startApifyRun(actorId, input, sourceId) {
   };
   const encodedWebhooks = Buffer.from(JSON.stringify([webhook]), 'utf8').toString('base64');
   const url = "https://api.apify.com/v2/acts/" + encodeURIComponent(actorId) +
-    "/runs?token=" + encodeURIComponent(token) + "&webhooks=" + encodeURIComponent(encodedWebhooks);
+    "/runs?webhooks=" + encodeURIComponent(encodedWebhooks);
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     // Apify receives only the actor input here; webhook definitions belong in
     // the Base64-encoded webhooks query parameter above.
     body: JSON.stringify(input)
@@ -87,10 +90,13 @@ export async function getRunDetails(runId) {
   const token = process.env.APIFY_API_TOKEN;
   if (!token) throw new Error("APIFY_API_TOKEN is not set");
 
-  const url = `https://api.apify.com/v2/actor-runs/${runId}?token=${token}`;
+  const url = `https://api.apify.com/v2/actor-runs/${encodeURIComponent(runId)}`;
   const response = await fetch(url, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    }
   });
 
   if (!response.ok) {
@@ -118,10 +124,13 @@ export async function getDatasetItems(runId) {
      throw new Error(`No defaultDatasetId found for run ${runId}`);
   }
 
-  const url = `https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&clean=true`;
+  const url = `https://api.apify.com/v2/datasets/${encodeURIComponent(datasetId)}/items?clean=true`;
   const response = await fetch(url, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    }
   });
 
   if (!response.ok) {
