@@ -6,12 +6,12 @@ const faqItems = [
   {
     question: "How do I find my Google Maps URL?",
     answer:
-      "Go to Google Maps, search for your business, click on it, then copy the URL from your browser address bar. Paste it directly into ReviewBridge.",
+      "Search for your business in Google Maps and open its business listing. Copy the listing URL from your browser address bar; it should be a Google Maps address containing /maps/ (for example, google.com/maps/place/...). Google Search results links (google.com/search) and shortened maps.app.goo.gl links are not supported.",
   },
   {
     question: "How often are reviews synced?",
     answer:
-      "Reviews are synced when you first add a source. You can manually sync anytime by clicking the \"Sync\" button on your dashboard. Scheduled automatic syncing is not currently available.",
+      "Reviews start fetching when you connect a source. You can manually sync anytime by clicking the \"Sync\" button on your dashboard. Scheduled automatic syncing is not currently available.",
   },
   {
     question: "Will the widget work on any website?",
@@ -49,6 +49,7 @@ export default function FaqAccordion() {
         return (
           <div
             key={index}
+            id={index === 0 ? "google-maps-url" : undefined}
             className="bg-white border border-border rounded-xl overflow-hidden transition-all"
           >
             <button
