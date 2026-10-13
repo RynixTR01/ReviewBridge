@@ -67,3 +67,53 @@ test("production embed script renders in Turkish on mobile and records CTA click
   await clickMetric;
 });
 
+test("embed CTA is reachable and activatable with the keyboard", async ({ page }) => {
+  await page.route("**/", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/html; charset=utf-8",
+    body: "<!doctype html><html><head></head><body></body></html>",
+  }));
+  await page.route(`**/api/widget/${token}`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/javascript; charset=utf-8",
+    body: script,
+  }));
+  await page.route(`**/api/widget-events/${token}`, (route) => route.fulfill({ status: 204, body: "" }));
+  await page.route("https://example.com/review", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.goto("/");
+  await page.evaluate((src) => {
+    document.body.insertAdjacentHTML("beforeend", '<div id="reviewbridge-embed"></div>');
+    const embed = document.createElement("script");
+    embed.src = src;
+    document.body.appendChild(embed);
+  }, `/api/widget/${token}`);
+
+  const widget = page.getByRole("region", { name: "Customer reviews" });
+  const cta = widget.getByRole("link", { name: "Leave a review on Google" });
+  await expect(cta).toBeVisible();
+
+  // Remove the homepage's controls from this test's tab order so it can check
+  // that the embed itself exposes the CTA as the next keyboard stop.
+  await page.evaluate((id) => {
+    const widgetElement = document.getElementById(id);
+    document.querySelectorAll("a, button, input, select, textarea, [tabindex]").forEach((element) => {
+      if (!widgetElement?.contains(element)) element.setAttribute("tabindex", "-1");
+    });
+  }, widgetId);
+
+  await page.keyboard.press("Tab");
+  await expect(cta).toBeFocused();
+
+  const clickMetric = page.waitForRequest((request) =>
+    request.url().includes(`/api/widget-events/${token}`)
+    && request.method() === "POST"
+    && request.postData()?.includes("cta_click"),
+  );
+  const popupPromise = page.waitForEvent("popup");
+  await page.keyboard.press("Enter");
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL("https://example.com/review");
+  await clickMetric;
+  await popup.close();
+});
+

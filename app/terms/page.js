@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { PLAN_PRICES_USD } from "@/lib/plans";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -48,8 +49,8 @@ export default async function TermsPage() {
             <p>{t(locale, "ReviewBridge Ücretsiz, Pro ve Ajans abonelik planları sunar. Her planın fiyatlandırma sayfamızda açıklanan özellik sınırları vardır. Fiyatları 30 gün önceden bildirimde bulunarak değiştirme hakkımız saklıdır.", "ReviewBridge offers Free, Pro, and Agency subscription plans. Each plan has specific feature limits as described on our pricing page. We reserve the right to modify pricing with 30 days advance notice.")}</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>{t(locale, "Ücretsiz Plan", "Free Plan")}</strong> — {t(locale, "1 kaynak, en fazla 10 yorum gösterimi, yalnızca açık tema", "1 source, up to 10 reviews displayed, light theme only")}</li>
-              <li><strong>{t(locale, "Pro Planı (aylık 7 $)", "Pro Plan ($7/month)")}</strong> — {t(locale, "En fazla 5 kaynak, bileşen başına en fazla 20 yorum, tüm temalar, rozet kaldırma", "Up to 5 sources, up to 20 reviews shown per widget, all themes, badge removal")}</li>
-              <li><strong>{t(locale, "Ajans Planı (aylık 19 $)", "Agency Plan ($19/month)")}</strong> — {t(locale, "Sınırsız kaynak, bileşen başına en fazla 20 yorum, tüm temalar ve ReviewBridge rozetini kaldırma", "Unlimited sources, up to 20 reviews shown per widget, all themes, and badge removal")}</li>
+              <li><strong>{t(locale, `Pro Planı (aylık ${PLAN_PRICES_USD.pro} $)`, `Pro Plan ($${PLAN_PRICES_USD.pro}/month)`)}</strong> — {t(locale, "En fazla 5 kaynak, bileşen başına en fazla 20 yorum, tüm temalar, rozet kaldırma", "Up to 5 sources, up to 20 reviews shown per widget, all themes, badge removal")}</li>
+              <li><strong>{t(locale, `Ajans Planı (aylık ${PLAN_PRICES_USD.agency} $)`, `Agency Plan ($${PLAN_PRICES_USD.agency}/month)`)}</strong> — {t(locale, "Sınırsız kaynak, bileşen başına en fazla 20 yorum, tüm temalar ve ReviewBridge rozetini kaldırma", "Unlimited sources, up to 20 reviews shown per widget, all themes, and badge removal")}</li>
             </ul>
           </section>
 
