@@ -31,6 +31,23 @@ export default async function YardımPage() {
         <FaqAccordion />
       </div>
 
+      <section id="widget-installation" className="mb-10 rounded-2xl border border-border bg-white p-5 sm:p-6">
+        <h2 className="text-lg font-bold text-foreground">{t(locale, "Yorum bileşenini sitenize ekleyin", "Install the review widget")}</h2>
+        <p className="mt-2 text-sm text-muted">{t(locale, "Önce panelde bir kaynağı açıp Yerleştirme kodu bölümündeki tek satırlık kodu kopyalayın. Kodu yorumların görünmesini istediğiniz sayfa içeriğine ekleyin.", "Open a source in your dashboard and copy the one-line script from its Embed code section. Add it to the page content where you want the reviews to appear.")}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl bg-muted-bg p-4"><h3 className="font-semibold text-foreground">WordPress</h3><p className="mt-1 text-sm text-muted">{t(locale, "Sayfayı düzenleyin, Özel HTML bloğu ekleyin, kodu yapıştırıp güncelleyin.", "Edit the page, add a Custom HTML block, paste the code, and update the page.")}</p></div>
+          <div className="rounded-xl bg-muted-bg p-4"><h3 className="font-semibold text-foreground">Shopify</h3><p className="mt-1 text-sm text-muted">{t(locale, "Tema düzenleyicisinde Custom Liquid bloğu ekleyin, kodu yerleştirin ve kaydedin.", "Add a Custom Liquid block in the theme editor, paste the code, and save.")}</p></div>
+          <div className="rounded-xl bg-muted-bg p-4"><h3 className="font-semibold text-foreground">Webflow</h3><p className="mt-1 text-sm text-muted">{t(locale, "Sayfaya bir Embed öğesi ekleyip kodu yapıştırın, sonra sayfayı yayınlayın.", "Add an Embed element, paste the code, and publish the page.")}</p></div>
+          <div className="rounded-xl bg-muted-bg p-4"><h3 className="font-semibold text-foreground">{t(locale, "Diğer siteler", "Other websites")}</h3><p className="mt-1 text-sm text-muted">{t(locale, "HTML destekleyen sayfa düzenleyicisinde kodu içerik alanına ekleyin. Script'in sitenizin güvenlik politikası tarafından engellenmediğini kontrol edin.", "Paste the code into a page editor that supports HTML. Check that your site's security policy does not block the script.")}</p></div>
+        </div>
+        <ol className="mt-4 list-inside list-decimal space-y-1 text-sm text-muted">
+          <li>{t(locale, "Önce Bileşen önizlemesi bağlantısını açıp yorumların geldiğini kontrol edin.", "Open the widget preview first and confirm reviews appear.")}</li>
+          <li>{t(locale, "Kodu kaydedip sitenizi yayınlayın; sayfayı gizli pencerede açarak son görünümü doğrulayın.", "Save the code and publish your site; verify the result in a private browser window.")}</li>
+          <li>{t(locale, "Görünmüyorsa sayfa önbelleğini temizleyin, script engelleyicileri ve içerik güvenlik politikasını kontrol edin.", "If it does not appear, clear the page cache and check script blockers and the Content Security Policy.")}</li>
+        </ol>
+        <p className="mt-3 text-xs text-muted">{t(locale, "Kurulum durumu farklı bir alan adındaki sayfadan otomatik tespit edilmez; son kontrolü canlı sayfada yapın.", "Installation cannot be auto-detected on another domain; verify it on the live page.")}</p>
+      </section>
+
       {/* Kaynaklar Section */}
       <div>
         <h2 className="text-lg font-bold text-foreground mb-4">{t(locale, "Kaynaklar", "Resources")}</h2>

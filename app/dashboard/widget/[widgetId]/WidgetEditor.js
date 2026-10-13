@@ -1,17 +1,34 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateWidgetAction } from "@/app/actions/widget";
+import { setWidgetReviewPreferenceAction, updateWidgetAction } from "@/app/actions/widget";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
+import { contrastRatio } from "@/lib/plans";
 
-export default function WidgetEditor({ widget, source, reviews, planLimits }) {
+export default function WidgetEditor({ widget, source, reviews, planLimits, moderation: initialModeration }) {
   const locale = useLocale();
   const [theme, setTheme] = useState(widget.theme);
   const [maxReviews, setMaxReviews] = useState(widget.max_reviews);
   const [showBadge, setShowBadge] = useState(widget.show_badge);
   const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
   const [showReviewButton, setShowReviewButton] = useState(widget.show_review_button || false);
+  const [layout, setLayout] = useState(widget.layout || "list");
+  const [minimumRating, setMinimumRating] = useState(widget.minimum_rating || 1);
+  const [sortOrder, setSortOrder] = useState(widget.sort_order || "newest");
+  const [includeKeywords, setIncludeKeywords] = useState(widget.include_keywords || "");
+  const [excludeKeywords, setExcludeKeywords] = useState(widget.exclude_keywords || "");
+  const [dateFrom, setDateFrom] = useState(widget.date_from ? String(widget.date_from).slice(0, 10) : "");
+  const [dateTo, setDateTo] = useState(widget.date_to ? String(widget.date_to).slice(0, 10) : "");
+  const [widgetLocale, setWidgetLocale] = useState(widget.widget_locale || "auto");
+  const [widgetTitle, setWidgetTitle] = useState(widget.widget_title || "");
+  const [backgroundColor, setBackgroundColor] = useState(widget.background_color || "#ffffff");
+  const [textColor, setTextColor] = useState(widget.text_color || "#111827");
+  const [accentColor, setAccentColor] = useState(widget.accent_color || "#4f46e5");
+  const [showReviewerAvatar, setShowReviewerAvatar] = useState(widget.show_reviewer_avatar !== false);
+  const [showReviewedDate, setShowReviewedDate] = useState(widget.show_reviewed_date !== false);
+  const [allowedDomains, setAllowedDomains] = useState(Array.isArray(widget.allowed_domains) ? widget.allowed_domains.join(", ") : "");
+  const [moderation, setModeration] = useState(initialModeration || {});
   const [isPending, startTransition] = useTransition();
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -44,6 +61,21 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
       formData.append("showBadge", finalShowBadge.toString());
       formData.append("smartFilter", (planLimits.canSelectTheme ? smartFilter : false).toString());
       formData.append("showReviewButton", showReviewButton.toString());
+      formData.append("layout", layout);
+      formData.append("minimumRating", minimumRating.toString());
+      formData.append("sortOrder", sortOrder);
+      formData.append("includeKeywords", includeKeywords);
+      formData.append("excludeKeywords", excludeKeywords);
+      formData.append("dateFrom", dateFrom);
+      formData.append("dateTo", dateTo);
+      formData.append("widgetLocale", widgetLocale);
+      formData.append("widgetTitle", widgetTitle);
+      formData.append("backgroundColor", backgroundColor);
+      formData.append("textColor", textColor);
+      formData.append("accentColor", accentColor);
+      formData.append("showReviewerAvatar", showReviewerAvatar.toString());
+      formData.append("showReviewedDate", showReviewedDate.toString());
+      formData.append("allowedDomains", allowedDomains);
 
       const result = await updateWidgetAction(formData);
       if (result?.error) {
@@ -55,14 +87,49 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
     });
   };
 
+  const setReviewPreference = (reviewId, state) => {
+    startTransition(async () => {
+      const result = await setWidgetReviewPreferenceAction({ widgetId: widget.id, reviewId, state });
+      if (result?.error) {
+        setSaveMessage(result.error);
+      } else {
+        setModeration((current) => {
+          const next = { ...current };
+          if (state) next[reviewId] = state;
+          else delete next[reviewId];
+          return next;
+        });
+        setSaveMessage(t(locale, "Yorum tercihi kaydedildi.", "Review preference saved."));
+      }
+    });
+  };
+
   // Preview colors based on theme
-  const previewBg = theme === "dark" ? "#1f2937" : theme === "minimal" ? "#ffffff" : "#f3f4f6";
-  const previewText = theme === "dark" ? "#f9fafb" : "#111827";
+  const previewBg = planLimits.canCustomizeColors ? backgroundColor : theme === "dark" ? "#1f2937" : theme === "minimal" ? "#ffffff" : "#f3f4f6";
+  const previewText = planLimits.canCustomizeColors ? textColor : theme === "dark" ? "#f9fafb" : "#111827";
   const previewCardBg = theme === "dark" ? "#374151" : "#ffffff";
   const previewBorder = theme === "minimal" ? "none" : theme === "dark" ? "1px solid #4b5563" : "1px solid #e5e7eb";
+  const previewLayout = planLimits.canChooseLayout ? layout : "list";
+  const textContrastIsLow = contrastRatio(textColor, backgroundColor) < 4.5;
+  const accentContrastIsLow = contrastRatio("#ffffff", accentColor) < 4.5;
 
-  const displayedReviews = reviews
-    .filter(r => smartFilter && planLimits.canSelectTheme ? (r.body && r.body.trim() !== "") : true)
+  const includeTerms = includeKeywords.split(",").map((term) => term.trim().toLocaleLowerCase()).filter(Boolean);
+  const excludeTerms = excludeKeywords.split(",").map((term) => term.trim().toLocaleLowerCase()).filter(Boolean);
+  const displayedReviews = [...reviews]
+    .filter((review) => moderation[review.id] !== "hidden")
+    .filter((review) => Number(review.rating) >= (planLimits.canUseAdvancedFilters ? minimumRating : 1))
+    .filter((review) => !smartFilter || !planLimits.canSelectTheme || (review.body && review.body.trim() !== ""))
+    .filter((review) => !planLimits.canUseAdvancedFilters || !dateFrom || String(review.reviewed_at).slice(0, 10) >= dateFrom)
+    .filter((review) => !planLimits.canUseAdvancedFilters || !dateTo || String(review.reviewed_at).slice(0, 10) <= dateTo)
+    .filter((review) => !planLimits.canUseAdvancedFilters || !includeTerms.length || includeTerms.some((term) => (review.body || "").toLocaleLowerCase().includes(term)))
+    .filter((review) => !planLimits.canUseAdvancedFilters || !excludeTerms.some((term) => (review.body || "").toLocaleLowerCase().includes(term)))
+    .sort((a, b) => {
+      const pinned = Number(moderation[b.id] === "pinned") - Number(moderation[a.id] === "pinned");
+      if (pinned) return pinned;
+      if (planLimits.canUseAdvancedFilters && sortOrder === "highest") return b.rating - a.rating;
+      if (planLimits.canUseAdvancedFilters && sortOrder === "lowest") return a.rating - b.rating;
+      return new Date(b.reviewed_at) - new Date(a.reviewed_at);
+    })
     .slice(0, maxReviews);
 
   return (
@@ -117,6 +184,60 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                   );
                 })}
               </select>
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-border p-4">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">{t(locale, "Görünüm düzeni", "Display layout")}</label>
+                <select value={layout} onChange={(e) => setLayout(e.target.value)} disabled={!planLimits.canChooseLayout} className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-foreground disabled:opacity-60">
+                  <option value="list">{t(locale, "Liste", "List")}</option><option value="grid">{t(locale, "Izgara", "Grid")}</option><option value="carousel">{t(locale, "Yatay kaydırmalı", "Carousel")}</option>
+                </select>
+                {!planLimits.canChooseLayout && <p className="mt-1 text-xs text-amber-600">{t(locale, "Izgara ve yatay kaydırma için Pro gerekir.", "Upgrade to Pro to unlock grid and carousel layouts.")}</p>}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-foreground">{t(locale, "En düşük puan", "Minimum rating")}
+                  <select value={minimumRating} onChange={(e) => setMinimumRating(Number(e.target.value))} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60">{[1,2,3,4,5].map((rating) => <option key={rating} value={rating}>{rating}+ {t(locale, "yıldız", "stars")}</option>)}</select>
+                </label>
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Sıralama", "Sort order")}
+                  <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60"><option value="newest">{t(locale, "En yeni", "Newest")}</option><option value="highest">{t(locale, "En yüksek puan", "Highest rating")}</option><option value="lowest">{t(locale, "En düşük puan", "Lowest rating")}</option></select>
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Dahil edilecek kelimeler", "Include keywords")}
+                  <input value={includeKeywords} onChange={(e) => setIncludeKeywords(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} maxLength={200} placeholder={t(locale, "virgülle ayırın", "comma separated")} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" />
+                </label>
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Hariç tutulacak kelimeler", "Exclude keywords")}
+                  <input value={excludeKeywords} onChange={(e) => setExcludeKeywords(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} maxLength={200} placeholder={t(locale, "virgülle ayırın", "comma separated")} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" />
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Başlangıç tarihi", "Start date")}<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" /></label>
+                <label className="text-sm font-semibold text-foreground">{t(locale, "Bitiş tarihi", "End date")}<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" /></label>
+              </div>
+              {!planLimits.canUseAdvancedFilters && <p className="text-xs text-amber-600">{t(locale, "Puan, tarih ve kelime filtreleri Pro planında kullanılabilir.", "Rating, date, and keyword filters are available on Pro.")}</p>}
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-border p-4">
+              <label className="block text-sm font-semibold text-foreground">{t(locale, "Bileşen başlığı", "Widget title")}
+                <input value={widgetTitle} onChange={(e) => setWidgetTitle(e.target.value)} maxLength={80} placeholder={t(locale, "Müşterilerimiz ne diyor?", "What our customers say")} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5" />
+              </label>
+              <label className="block text-sm font-semibold text-foreground">{t(locale, "Bileşen dili", "Widget language")}
+                <select value={widgetLocale} onChange={(e) => setWidgetLocale(e.target.value)} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5"><option value="auto">{t(locale, "Ziyaretçinin dilini kullan", "Match visitor language")}</option><option value="tr">Türkçe</option><option value="en">English</option></select>
+              </label>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[[backgroundColor, setBackgroundColor, t(locale, "Arka plan", "Background")], [textColor, setTextColor, t(locale, "Yazı", "Text")], [accentColor, setAccentColor, t(locale, "Vurgu", "Accent")]].map(([value, setter, label]) => <label key={label} className="flex items-center justify-between gap-2 text-sm text-foreground">{label}<input aria-label={label} type="color" value={value} onChange={(e) => setter(e.target.value)} disabled={!planLimits.canCustomizeColors} className="h-10 w-12 disabled:opacity-60" /></label>)}
+              </div>
+              {!planLimits.canCustomizeColors && <p className="text-xs text-amber-600">{t(locale, "Özel renkler için Pro gerekir.", "Upgrade to Pro to customize colors.")}</p>}
+              {planLimits.canCustomizeColors && textContrastIsLow && <p className="text-xs text-amber-700">{t(locale, "Yazı ve arka plan kontrastı düşük; kaydederken okunabilir bir renk seçilecek.", "Text contrast is low; saving will adjust it to a readable color.")}</p>}
+              {planLimits.canCustomizeColors && accentContrastIsLow && <p className="text-xs text-amber-700">{t(locale, "Vurgu rengi düğme metni için düşük kontrastlı; kaydederken düzeltilir.", "The accent color has low contrast for button text and will be adjusted when saved.")}</p>}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showReviewerAvatar} onChange={(e) => setShowReviewerAvatar(e.target.checked)} />{t(locale, "Yorumcu simgesini göster", "Show reviewer avatar")}</label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showReviewedDate} onChange={(e) => setShowReviewedDate(e.target.checked)} />{t(locale, "Yorum tarihini göster", "Show review date")}</label>
+              </div>
+              <label className="block text-sm font-semibold text-foreground">{t(locale, "İzin verilen site alan adları", "Allowed website domains")}
+                <input value={allowedDomains} onChange={(e) => setAllowedDomains(e.target.value)} disabled={!planLimits.canCustomizeColors} maxLength={1000} placeholder="example.com, shop.example.com" className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" />
+                <span className="mt-1 block text-xs font-normal text-muted">{t(locale, "Boş bırakırsanız her sitede çalışır. Alan adlarını virgülle ayırın.", "Leave empty to allow any site. Separate domains with commas.")}</span>
+              </label>
             </div>
 
             <div className="flex items-center justify-between gap-3 py-2">
@@ -255,7 +376,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
           </div>
 
           <div className="px-3 pb-6 sm:px-6 sm:pb-8">
-            <div className="max-w-sm mx-auto space-y-4 mt-4">
+            <div className={`mx-auto mt-4 ${previewLayout === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : previewLayout === "carousel" ? "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" : "space-y-4"}`} style={{ maxWidth: previewLayout === "grid" ? 640 : 500 }}>
+              {widgetTitle && <h3 className="text-lg font-semibold sm:col-span-2" style={{ color: previewText }}>{widgetTitle}</h3>}
               
               {displayedReviews.length === 0 ? (
                  <p className="text-sm opacity-50 text-center" style={{ color: previewText }}>{t(locale, "Henüz yorum yok.", "No reviews yet.")}</p>
@@ -263,13 +385,13 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                 displayedReviews.map((r, idx) => (
                   <div 
                     key={idx} 
-                    className="p-4 rounded-xl shadow-sm transition-all"
-                    style={{ backgroundColor: previewCardBg, border: previewBorder }}
+                    className={`relative p-4 rounded-xl transition-all ${previewLayout === "carousel" ? "min-w-[85%] snap-start sm:min-w-[70%]" : ""}`}
+                    style={{ backgroundColor: previewCardBg, color: previewText, border: previewBorder, boxShadow: theme === "minimal" ? "none" : undefined }}
                   >
                     <div className="flex items-center gap-3 mb-2">
-                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                       {showReviewerAvatar && <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ backgroundColor: `${planLimits.canCustomizeColors ? accentColor : "#6366f1"}22`, color: planLimits.canCustomizeColors ? accentColor : "#6366f1" }}>
                           {r.reviewer_name?.charAt(0).toUpperCase() || "A"}
-                       </div>
+                       </div>}
                        <div>
                          <p className="font-semibold text-sm" style={{ color: previewText }}>{r.reviewer_name}</p>
                          <div className="flex gap-0.5 mt-0.5">
@@ -284,9 +406,26 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                     <p className="text-sm opacity-80 leading-relaxed" style={{ color: previewText }}>
                       &quot;{r.body}&quot;
                     </p>
+                    {showReviewedDate && <p className="mt-2 text-xs opacity-60" style={{ color: previewText }}>{r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US") : ""}</p>}
+                    {planLimits.canModerateReviews && <div className="mt-3 flex gap-2 border-t border-black/10 pt-2">
+                      <button type="button" disabled={isPending} onClick={() => setReviewPreference(r.id, moderation[r.id] === "pinned" ? null : "pinned")} className="text-xs underline" style={{ color: planLimits.canCustomizeColors ? accentColor : "#6366f1" }}>{moderation[r.id] === "pinned" ? t(locale, "Sabitlemeyi kaldır", "Unpin") : t(locale, "Sabitle", "Pin")}</button>
+                      <button type="button" disabled={isPending} onClick={() => setReviewPreference(r.id, "hidden")} className="text-xs text-red-600 underline">{t(locale, "Gizle", "Hide")}</button>
+                    </div>}
                   </div>
                 ))
               )}
+
+              {planLimits.canModerateReviews && reviews.some((review) => moderation[review.id] === "hidden") && (
+                <div className="space-y-2 rounded-xl border border-dashed border-border p-3 sm:col-span-2">
+                  <p className="text-xs font-semibold" style={{ color: previewText }}>{t(locale, "Gizlenen yorumlar", "Hidden reviews")}</p>
+                  {reviews.filter((review) => moderation[review.id] === "hidden").map((review) => <div key={review.id} className="flex items-center justify-between gap-3 text-xs" style={{ color: previewText }}><span className="truncate">{review.reviewer_name}: {(review.body || "").slice(0, 70)}</span><button type="button" onClick={() => setReviewPreference(review.id, null)} className="shrink-0 underline" style={{ color: planLimits.canCustomizeColors ? accentColor : "#6366f1" }}>{t(locale, "Geri getir", "Restore")}</button></div>)}
+                </div>
+              )}
+
+              <p className="text-center text-xs opacity-60 sm:col-span-2" style={{ color: previewText }}>
+                {source.platform === "google" ? "Google" : "Trustpilot"} {t(locale, "yorumları", "reviews")} · {source.business_name}
+                {source.last_synced_at && <> · {t(locale, "Son güncelleme", "Last updated")}: {new Date(source.last_synced_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</>}
+              </p>
 
               {/* Badge */}
               {showBadge && (

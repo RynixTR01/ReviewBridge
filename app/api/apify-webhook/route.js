@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { getDatasetItems, mapApifyReviews, APIFY_ACTORS } from "@/app/lib/apify";
 import { query, queryOne } from "@/lib/db";
 import { finishSyncHistory } from "@/lib/sync-history";
+import { createStableReviewId } from "@/lib/review-id";
 
 export async function POST(request) {
   try {
@@ -81,14 +82,14 @@ export async function POST(request) {
       if (mappedReviews.length > 0) {
         const values = [];
         const rows = mappedReviews.map((review, index) => {
-          const offset = index * 5;
-          values.push(sourceId, review.reviewer_name, review.rating, review.body, review.reviewed_at);
-          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+          const offset = index * 6;
+          values.push(sourceId, createStableReviewId(platform, review), review.reviewer_name, review.rating, review.body, review.reviewed_at);
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
         });
         await query(
-          `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
+          `INSERT INTO public.reviews (source_id, external_review_id, reviewer_name, rating, body, reviewed_at)
            VALUES ${rows.join(', ')}
-           ON CONFLICT (source_id, reviewer_name, reviewed_at) DO NOTHING`,
+           ON CONFLICT DO NOTHING`,
           values
         );
       }

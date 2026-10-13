@@ -41,12 +41,13 @@ export default async function PrivacyPage() {
               <li>{t(locale, "Yorumları yerleştirilebilir bileşenimizle web sitenizde göstermek", "Display reviews on your website via our embed widget")}</li>
               <li>{t(locale, "Hesabınızla ilgili önemli bildirimleri göndermek", "Send important account-related notifications")}</li>
               <li>{t(locale, "Hizmetimizi geliştirmek ve iyileştirmek", "Improve and optimize our service")}</li>
+              <li>{t(locale, "Gömülü bileşenin günlük görüntülenme ve bağlantı tıklama sayılarını, ziyaretçiyi tanımlayan bir profil oluşturmadan toplu olarak ölçmek", "Measure daily embed views and link clicks as aggregate counts without building visitor profiles")}</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "3. Veri Saklama ve Güvenlik", "3. Data Storage and Security")}</h2>
-            <p>{t(locale, "Hesap ve uygulama verileriniz Neon Postgres'te saklanır. Kişisel bilgilerinizi üçüncü taraflara satmayız, takas etmeyiz veya kiralamayız.", "Your account and application data are stored in Neon Postgres. We do not sell, trade, or rent your personal information to third parties.")}</p>
+            <p>{t(locale, "Hesap ve uygulama verileriniz Neon Postgres'te saklanır. Gömülü bileşen için günlük toplu ölçüm kayıtları 90 günden eski olduğunda silinir. Kişisel bilgilerinizi üçüncü taraflara satmayız, takas etmeyiz veya kiralamayız.", "Your account and application data are stored in Neon Postgres. Daily aggregate embed metrics older than 90 days are deleted. We do not sell, trade, or rent your personal information to third parties.")}</p>
           </section>
 
           <section>
@@ -62,7 +63,7 @@ export default async function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "5. Çerezler", "5. Cookies")}</h2>
-            <p>{t(locale, "Kimlik doğrulama ve oturum yönetimi için gerekli çerezleri kullanırız. Dil tercihinizi hatırlamak için de bir çerez saklarız. Takip veya reklam çerezleri kullanmayız.", "We use essential cookies for authentication and session management and a cookie to remember your language preference. We do not use tracking or advertising cookies.")}</p>
+            <p>{t(locale, "Kimlik doğrulama ve oturum yönetimi için gerekli çerezleri kullanırız. Dil tercihinizi hatırlamak için de bir çerez saklarız. Takip veya reklam çerezleri kullanmayız. Gömülü bileşen yalnızca günlük görüntülenme ve tıklama toplamlarını kaydeder; analitik için ziyaretçi kimliği, çerez veya IP adresi veritabanında saklamaz.", "We use essential cookies for authentication and session management and a cookie to remember your language preference. We do not use tracking or advertising cookies. The embed records daily aggregate view and click totals; it does not store visitor identifiers, analytics cookies, or IP addresses in the database.")}</p>
           </section>
 
           <section>

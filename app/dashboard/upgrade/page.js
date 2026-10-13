@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { PLAN_LIMITS, PLAN_PRICES_USD } from "@/lib/plans";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -56,16 +57,16 @@ export default async function UpgradePage() {
     {
       key: "free",
       name: t(locale, "Ücretsiz", "Free"),
-      price: "$0",
+      price: `$${PLAN_PRICES_USD.free}`,
       period: t(locale, "süresiz", "forever"),
       description: t(locale, "Temel özelliklerle başlayın", "Start with the basics"),
       features: [
-        { text: t(locale, "1 bağlı kaynak", "1 connected source"), included: true },
-        { text: t(locale, "10 yoruma kadar gösterim", "Show up to 10 reviews"), included: true },
+        { text: t(locale, `${PLAN_LIMITS.free.maxSources} bağlı kaynak`, `${PLAN_LIMITS.free.maxSources} connected source`), included: true },
+        { text: t(locale, `${PLAN_LIMITS.free.maxReviews} yoruma kadar gösterim`, `Show up to ${PLAN_LIMITS.free.maxReviews} reviews`), included: true },
         { text: t(locale, "Yalnızca açık tema", "Light theme only"), included: true },
         { text: t(locale, "ReviewBridge rozeti", "ReviewBridge badge"), included: true },
         { text: t(locale, "Akıllı filtre", "Smart filter"), included: false },
-        { text: t(locale, "Yıldız puanı filtresi", "Star rating filter"), included: false },
+        { text: t(locale, "Gelişmiş filtre ve düzenler", "Advanced filters and layouts"), included: false },
         { text: t(locale, "Rozeti kaldır", "Remove badge"), included: false },
       ],
       cta: currentPlan === "free" ? t(locale, "Mevcut plan", "Current plan") : t(locale, "Alt plana geç", "Downgrade"),
@@ -76,18 +77,21 @@ export default async function UpgradePage() {
     {
       key: "pro",
       name: "Pro",
-      price: "$7",
+      price: `$${PLAN_PRICES_USD.pro}`,
       period: t(locale, "/ ay", "/ month"),
       description: t(locale, "Büyüyen işletmeler için", "For growing businesses"),
       popular: true,
       features: [
-        { text: t(locale, "En fazla 5 kaynak", "Up to 5 sources"), included: true },
-        { text: t(locale, "En fazla 20 yorum gösterimi", "Show up to 20 reviews"), included: true },
+        { text: t(locale, `En fazla ${PLAN_LIMITS.pro.maxSources} kaynak`, `Up to ${PLAN_LIMITS.pro.maxSources} sources`), included: true },
+        { text: t(locale, `En fazla ${PLAN_LIMITS.pro.maxReviews} yorum gösterimi`, `Show up to ${PLAN_LIMITS.pro.maxReviews} reviews`), included: true },
         { text: t(locale, "Tüm temalar (Açık, Koyu, Minimal)", "All themes (Light, Dark, Minimal)"), included: true },
         { text: t(locale, "ReviewBridge rozetini kaldır", "Remove ReviewBridge badge"), included: true },
         { text: t(locale, "Akıllı filtre", "Smart filter"), included: true },
-        { text: t(locale, "Yıldız puanı filtresi", "Star rating filter"), included: true, comingSoon: true },
-        { text: t(locale, "Öncelikli eşitleme", "Priority sync"), included: true },
+        { text: t(locale, "Grid ve carousel düzenleri", "Grid and carousel layouts"), included: true },
+        { text: t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"), included: true },
+        { text: t(locale, "Yorum gizleme ve sabitleme", "Hide and pin reviews"), included: true },
+        { text: t(locale, "Özel widget dili ve renkleri", "Custom widget language and colors"), included: true },
+        { text: t(locale, "Daha sık eşitleme", "More frequent syncs"), included: true },
       ],
       cta: currentPlan === "pro" ? t(locale, "Mevcut plan", "Current plan") : currentPlan === "agency" ? t(locale, "Alt plana geç", "Downgrade") : t(locale, "Pro’ya yükselt", "Upgrade to Pro"),
       ctaDisabled: currentPlan === "pro" || currentPlan === "agency",
@@ -97,18 +101,20 @@ export default async function UpgradePage() {
     {
       key: "agency",
       name: t(locale, "Ajans", "Agency"),
-      price: "$19",
+      price: `$${PLAN_PRICES_USD.agency}`,
       period: t(locale, "/ ay", "/ month"),
       description: t(locale, "Ajanslar ve yoğun kullanım için", "For agencies and high-volume use"),
       features: [
-        { text: t(locale, "Sınırsız kaynak", "Unlimited sources"), included: true },
-        { text: t(locale, "Bileşen başına en fazla 20 yorum", "Up to 20 reviews per widget"), included: true },
+        { text: t(locale, PLAN_LIMITS.agency.maxSources === Infinity ? "Sınırsız kaynak" : `En fazla ${PLAN_LIMITS.agency.maxSources} kaynak`, PLAN_LIMITS.agency.maxSources === Infinity ? "Unlimited sources" : `Up to ${PLAN_LIMITS.agency.maxSources} sources`), included: true },
+        { text: t(locale, `Bileşen başına en fazla ${PLAN_LIMITS.agency.maxReviews} yorum`, `Up to ${PLAN_LIMITS.agency.maxReviews} reviews per widget`), included: true },
         { text: t(locale, "Tüm temalar", "All themes"), included: true },
         { text: t(locale, "Rozeti kaldır", "Remove badge"), included: true },
         { text: t(locale, "Akıllı filtre", "Smart filter"), included: true },
-        { text: t(locale, "Yıldız puanı filtresi", "Star rating filter"), included: true, comingSoon: true },
-        { text: t(locale, "Markasız kullanım seçeneği", "White-label option"), included: true },
-        { text: t(locale, "Öncelikli destek", "Priority support"), included: true },
+        { text: t(locale, "Grid ve carousel düzenleri", "Grid and carousel layouts"), included: true },
+        { text: t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"), included: true },
+        { text: t(locale, "Yorum gizleme ve sabitleme", "Hide and pin reviews"), included: true },
+        { text: t(locale, "Özel widget dili ve renkleri", "Custom widget language and colors"), included: true },
+        { text: t(locale, "Daha sık eşitleme", "More frequent syncs"), included: true },
       ],
       cta: currentPlan === "agency" ? t(locale, "Mevcut plan", "Current plan") : t(locale, "Ajans planına yükselt", "Upgrade to Agency"),
       ctaDisabled: currentPlan === "agency",

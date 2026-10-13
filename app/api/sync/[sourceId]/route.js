@@ -3,6 +3,7 @@ import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
+import { createStableReviewId } from "@/lib/review-id";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -15,16 +16,20 @@ export async function POST(request, { params }) {
       return Response.json({ error: "Source ID is required" }, { status: 400 });
     }
 
-    const user = await getCurrentUser();
+    const cronAuthorized = Boolean(process.env.CRON_SECRET)
+      && request.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+    const user = cronAuthorized ? null : await getCurrentUser();
 
-    if (!user) {
+    if (!user && !cronAuthorized) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Verify ownership of source
     const source = await queryOne(
-      'SELECT * FROM public.sources WHERE id = $1 AND user_id = $2',
-      [sourceId, user.id]
+      cronAuthorized
+        ? 'SELECT * FROM public.sources WHERE id = $1'
+        : 'SELECT * FROM public.sources WHERE id = $1 AND user_id = $2',
+      cronAuthorized ? [sourceId] : [sourceId, user.id]
     );
 
     if (!source) {
@@ -33,9 +38,10 @@ export async function POST(request, { params }) {
 
     // --- Sync Rate Limiting ---
     // Fetch user plan to determine cooldown
+    const userId = user?.id || source.user_id;
     const profile = await queryOne(
       'SELECT plan FROM public.users WHERE id = $1',
-      [user.id]
+      [userId]
     );
     const userPlan = profile?.plan || 'free';
 
@@ -70,6 +76,25 @@ export async function POST(request, { params }) {
     }
     // --- End Rate Limiting ---
 
+    // Atomically claim the source so concurrent clicks cannot launch parallel
+    // provider runs for the same source. Stuck claims become retryable after 15m.
+    const syncClaim = await queryOne(
+      `UPDATE public.sources
+       SET sync_status = 'pending', sync_started_at = NOW(), last_sync_error = NULL
+       WHERE id = $1 AND user_id = $2
+         AND (sync_status IS DISTINCT FROM 'pending'
+              OR sync_started_at IS NULL
+              OR sync_started_at < NOW() - INTERVAL '15 minutes')
+       RETURNING id`,
+      [source.id, userId]
+    );
+    if (!syncClaim) {
+      return Response.json(
+        { error: "Bu kaynak için bir eşitleme zaten çalışıyor. Tamamlanmasını bekleyin." },
+        { status: 409 }
+      );
+    }
+
     currentSourceId = source.id;
     historyId = await startSyncHistory(source.id);
     // Call Apify to fetch fresh reviews
@@ -96,7 +121,7 @@ export async function POST(request, { params }) {
            SET apify_run_id = $2, sync_status = 'pending',
                sync_started_at = NOW(), last_sync_error = NULL
            WHERE id = $1 AND user_id = $3`,
-          [source.id, runId, user.id]
+          [source.id, runId, userId]
         );
         await attachSyncRun(historyId, runId);
 
@@ -108,45 +133,35 @@ export async function POST(request, { params }) {
            SET sync_status = 'error', last_sync_error = $2,
                apify_run_id = NULL, sync_started_at = NULL
            WHERE id = $1 AND user_id = $3`,
-          [source.id, "Eşitleme başlatılamadı.", user.id]
+          [source.id, "Eşitleme başlatılamadı.", userId]
         );
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
         return Response.json({ error: "Eşitleme başlatılamadı." }, { status: 500 });
       }
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
       const companyDomain = extractTrustpilotDomain(source.place_id) || source.place_id;
-      
-      const tpRes = await fetch(
-        'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?token=' + 
-        process.env.APIFY_API_TOKEN + '&timeout=60',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            startUrls: ['https://www.trustpilot.com/review/' + companyDomain],
-            maxResults: 20
-          })
-        }
-      );
-      
-      if (tpRes.ok) {
-        const tpData = await tpRes.json();
-        if (Array.isArray(tpData)) {
-          fetchedReviews = tpData.map(item => ({
-            reviewer_name: item.consumer?.displayName || 'Anonymous',
-            rating: item.rating || 0,
-            body: item.text || null,
-            reviewed_at: item.dates?.publishedDate || new Date().toISOString()
-          }));
-        } else {
-          console.error("Trustpilot Apify fetch failed (array not returned)", tpData);
-          await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot yanıtı okunamadı." });
-          return Response.json({ error: "Failed to parse Trustpilot results from Apify" }, { status: 502 });
-        }
-      } else {
-        console.error("Trustpilot Apify fetch failed", await tpRes.text());
-        await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot yorumları alınamadı." });
-        return Response.json({ error: "Failed to fetch from Apify (Trustpilot)" }, { status: 502 });
+      try {
+        const runId = await startApifyRun(
+          APIFY_ACTORS.TRUSTPILOT,
+          { startUrls: [`https://www.trustpilot.com/review/${companyDomain}`], maxResults: 20 },
+          source.id,
+        );
+        await query(
+          `UPDATE public.sources SET apify_run_id = $2, sync_status = 'pending',
+             sync_started_at = NOW(), last_sync_error = NULL WHERE id = $1 AND user_id = $3`,
+          [source.id, runId, userId],
+        );
+        await attachSyncRun(historyId, runId);
+        return Response.json({ status: "pending", message: "Trustpilot sync started in the background." });
+      } catch (error) {
+        console.error("Failed to start Trustpilot sync:", error);
+        await query(
+          `UPDATE public.sources SET sync_status = 'error', last_sync_error = $2,
+             apify_run_id = NULL, sync_started_at = NULL WHERE id = $1 AND user_id = $3`,
+          [source.id, "Trustpilot eşitlemesi başlatılamadı.", userId],
+        );
+        await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot eşitlemesi başlatılamadı." });
+        return Response.json({ error: "Failed to start Trustpilot sync" }, { status: 502 });
       }
     } else {
       if (process.env.NODE_ENV === 'development') {
@@ -155,6 +170,12 @@ export async function POST(request, { params }) {
           { reviewer_name: "New User " + Math.floor(Math.random() * 100), rating: 5, body: "Fresh review added!", reviewed_at: new Date().toISOString() }
         ];
       } else {
+        await query(
+          `UPDATE public.sources SET sync_status = 'error',
+             last_sync_error = 'Apify anahtarı yapılandırılmamış.', sync_started_at = NULL
+           WHERE id = $1`,
+          [source.id]
+        );
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Apify anahtarı yapılandırılmamış." });
         return Response.json(
           { error: "Apify anahtarı yapılandırılmamış." },
@@ -166,48 +187,51 @@ export async function POST(request, { params }) {
     // Map fetched results
     const reviewsToUpsert = fetchedReviews.slice(0, 20).map((r) => ({
       source_id: source.id,
+      external_review_id: createStableReviewId(source.platform, r),
       reviewer_name: r.reviewer_name || "Anonymous",
       rating: r.rating || 5,
       body: r.body || "",
       reviewed_at: r.reviewed_at ? new Date(r.reviewed_at) : new Date().toISOString(),
-      // We don't have a unique foreign ID constraint defined in the schema to properly upsert without duplicates easily,
-      // so for this MVP, we might just insert them. Ideally we would match by an external ID or reviewer_name.
-      // We will perform an insert. 
     }));
 
     if (reviewsToUpsert.length > 0) {
       const values = [];
       const rows = reviewsToUpsert.map((review, index) => {
-        const offset = index * 5;
-        values.push(review.source_id, review.reviewer_name, review.rating, review.body, review.reviewed_at);
-        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`;
+        const offset = index * 6;
+        values.push(review.source_id, review.external_review_id, review.reviewer_name, review.rating, review.body, review.reviewed_at);
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
       });
-      try {
-        await query(
-          `INSERT INTO public.reviews (source_id, reviewer_name, rating, body, reviewed_at)
-           VALUES ${rows.join(', ')}
-           ON CONFLICT (source_id, reviewer_name, reviewed_at) DO NOTHING`,
-          values
-        );
-      } catch (insertError) {
-        console.error("Reviews insert error:", insertError);
-      }
+      await query(
+        `INSERT INTO public.reviews (source_id, external_review_id, reviewer_name, rating, body, reviewed_at)
+         VALUES ${rows.join(', ')}
+         ON CONFLICT DO NOTHING`,
+        values
+      );
     }
 
     // Update last_synced_at
-    try {
-      await query(
-        'UPDATE public.sources SET last_synced_at = NOW() WHERE id = $1 AND user_id = $2',
-        [source.id, user.id]
-      );
-    } catch (updateError) {
-      console.error("Source update error:", updateError);
-    }
+    await query(
+      `UPDATE public.sources SET last_synced_at = NOW(), sync_status = 'done',
+         last_sync_error = NULL, sync_started_at = NULL
+       WHERE id = $1 AND user_id = $2`,
+      [source.id, userId]
+    );
 
     await finishSyncHistory({ historyId, sourceId: source.id, status: "done", reviewsCount: reviewsToUpsert.length });
     return Response.json({ success: true, message: "Sync complete", updated: reviewsToUpsert.length });
   } catch (err) {
     if (currentSourceId) {
+      try {
+        await query(
+          `UPDATE public.sources SET sync_status = 'error',
+             last_sync_error = 'Yorumlar kaydedilemedi veya eşitleme tamamlanamadı.',
+             sync_started_at = NULL
+           WHERE id = $1`,
+          [currentSourceId]
+        );
+      } catch (sourceUpdateError) {
+        console.error("Could not mark source sync as failed:", sourceUpdateError);
+      }
       await finishSyncHistory({ historyId, sourceId: currentSourceId, status: "error", errorMessage: "Eşitleme sırasında hata oluştu." });
     }
     console.error("Sync error:", err);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { PLAN_LIMITS, PLAN_PRICES_USD } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -249,12 +250,12 @@ function PricingSection({ isSignedIn, locale }) {
   const plans = [
     {
       name: t(locale, "Ücretsiz", "Free"),
-      price: "$0",
+      price: `$${PLAN_PRICES_USD.free}`,
       period: t(locale, "sonsuza dek", "forever"),
       desc: t(locale, "Denemek için ideal", "Perfect for trying it out"),
       features: [
-        t(locale, "1 bağlı kaynak", "1 connected source"),
-        t(locale, "En fazla 10 yorum gösterimi", "Up to 10 reviews shown"),
+        t(locale, `${PLAN_LIMITS.free.maxSources} bağlı kaynak`, `${PLAN_LIMITS.free.maxSources} connected source`),
+        t(locale, `En fazla ${PLAN_LIMITS.free.maxReviews} yorum gösterimi`, `Up to ${PLAN_LIMITS.free.maxReviews} reviews shown`),
         t(locale, "Yalnızca açık tema", "Light theme only"),
         t(locale, "ReviewBridge rozeti görünür", "ReviewBridge badge shown"),
       ],
@@ -263,32 +264,36 @@ function PricingSection({ isSignedIn, locale }) {
     },
     {
       name: "Pro",
-      price: "$7",
+      price: `$${PLAN_PRICES_USD.pro}`,
       period: t(locale, "/ay", "/month"),
       desc: t(locale, "Büyüyen işletmeler için", "For growing businesses"),
       features: [
-        t(locale, "En fazla 5 kaynak", "Up to 5 sources"),
-        t(locale, "Bileşen başına en fazla 20 yorum", "Up to 20 reviews shown per widget"),
+        t(locale, `En fazla ${PLAN_LIMITS.pro.maxSources} kaynak`, `Up to ${PLAN_LIMITS.pro.maxSources} sources`),
+        t(locale, `Bileşen başına en fazla ${PLAN_LIMITS.pro.maxReviews} yorum`, `Up to ${PLAN_LIMITS.pro.maxReviews} reviews shown per widget`),
         t(locale, "Tüm temalar", "All themes unlocked"),
         t(locale, "ReviewBridge rozetini kaldırma", "Remove ReviewBridge badge"),
         t(locale, "Akıllı Filtre — yalnızca yazılı yorumlar", "Smart Filter — show only written reviews"),
-        t(locale, "Öncelikli eşitleme", "Priority sync"),
+        t(locale, "Izgara ve yatay kaydırmalı görünümler", "Grid and carousel layouts"),
+        t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"),
+        t(locale, "Yorumları gizleme ve sabitleme", "Hide and pin reviews"),
+        t(locale, "Widget dili ve renklerini özelleştirme", "Widget language and custom colors"),
+        t(locale, "Daha sık eşitleme", "More frequent syncs"),
       ],
       cta: t(locale, "Pro'ya geç", "Start Pro"),
       popular: true,
     },
     {
       name: t(locale, "Ajans", "Agency"),
-      price: "$19",
+      price: `$${PLAN_PRICES_USD.agency}`,
       period: t(locale, "/ay", "/month"),
       desc: t(locale, "Ajanslar ve çoklu siteler için", "For agencies & multi-site"),
       features: [
         t(locale, "Sınırsız kaynak", "Unlimited sources"),
-        t(locale, "Bileşen başına en fazla 20 yorum", "Up to 20 reviews shown per widget"),
+        t(locale, `Bileşen başına en fazla ${PLAN_LIMITS.agency.maxReviews} yorum`, `Up to ${PLAN_LIMITS.agency.maxReviews} reviews shown per widget`),
         t(locale, "Tüm temalar", "All themes unlocked"),
         t(locale, "Rozeti kaldırma", "Remove badge"),
         t(locale, "Birden fazla siteyi yönetme", "Manage multiple sites"),
-        t(locale, "Öncelikli destek", "Priority support"),
+        t(locale, "Pro'daki tüm widget özellikleri", "All Pro widget features"),
       ],
       cta: t(locale, "Ajans planına geç", "Start Agency"),
       popular: false,
@@ -363,11 +368,11 @@ function FAQSection({ locale }) {
   const faqs = [
     {
       q: t(locale, "Hangi platformlar destekleniyor?", "Which platforms are supported?"),
-      a: t(locale, "Şu anda Google Haritalar ve Trustpilot. Yakında başka platformlar da eklenecek.", "Currently Google Maps and Trustpilot. More platforms coming soon."),
+      a: t(locale, "Şu anda Google Haritalar ve Trustpilot destekleniyor.", "Google Maps and Trustpilot are currently supported."),
     },
     {
       q: t(locale, "Yorumlar ne sıklıkla güncellenir?", "How often are reviews updated?"),
-      a: t(locale, "Bir kaynak bağladığınızda yorumlar alınır. Panelden elle eşitleme başlatabilirsiniz; zamanlanmış otomatik eşitleme henüz yok.", "Reviews are fetched when you connect a source. You can start a manual sync from your dashboard; scheduled automatic syncing is not available yet.")
+      a: t(locale, "Yorumlar kaynak eklenince alınır. Panelden elle eşitleyebilir veya kaynak ayarlarından günlük otomatik eşitlemeyi açabilirsiniz. Otomatik eşitleme Apify kullanımınızı etkileyebilir.", "Reviews are fetched when you add a source. You can sync manually or enable daily automatic sync for a source in your dashboard. Scheduled sync uses your Apify account." )
     },
     {
       q: t(locale, "Her web sitesinde çalışır mı?", "Will it work on any website?"),

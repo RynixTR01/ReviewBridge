@@ -6,6 +6,8 @@ import SyncButton from "./SyncButton";
 import DeleteSourceButton from "./DeleteSourceButton";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { createWidgetForSourceAction } from "@/app/actions/widget";
+import { setSourceAutoSyncAction } from "@/app/actions/source";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -30,7 +32,7 @@ export default async function DashboardPage() {
        COALESCE(w.widgets, '[]'::json) AS widgets
      FROM public.sources AS s
      LEFT JOIN LATERAL (
-       SELECT json_agg(json_build_object('id', id, 'theme', theme)) AS widgets
+       SELECT json_agg(json_build_object('id', id, 'theme', theme, 'title', widget_title, 'created_at', created_at)) AS widgets
        FROM public.widgets WHERE source_id = s.id
      ) AS w ON true
      WHERE s.user_id = $1
@@ -53,6 +55,7 @@ export default async function DashboardPage() {
   let totalReviews = 0;
   let lastSyncDate = null;
   let syncHistory = {};
+  let widgetMetrics = {};
 
   if (sourceIds.length > 0) {
     try {
@@ -98,6 +101,24 @@ export default async function DashboardPage() {
       .map((s) => new Date(s.last_synced_at));
     if (syncDates.length > 0) {
       lastSyncDate = new Date(Math.max(...syncDates));
+    }
+  }
+
+  const widgetIds = (sources || []).flatMap((source) => (source.widgets || []).map((widget) => widget.id));
+  if (widgetIds.length > 0) {
+    try {
+      const rows = await query(
+        `SELECT widget_id, SUM(views)::int AS views,
+                SUM(review_source_clicks)::int AS source_clicks,
+                SUM(review_cta_clicks)::int AS cta_clicks
+         FROM public.widget_daily_metrics
+         WHERE widget_id = ANY($1::uuid[]) AND metric_date >= CURRENT_DATE - INTERVAL '29 days'
+         GROUP BY widget_id`,
+        [widgetIds],
+      );
+      widgetMetrics = Object.fromEntries((rows || []).map((row) => [row.widget_id, row]));
+    } catch (metricsError) {
+      console.warn("Widget metrics unavailable; apply their migration.", metricsError?.message);
     }
   }
 
@@ -174,9 +195,19 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {hasSources && <section className="mb-8 rounded-2xl border border-border bg-white p-4 sm:p-5">
+        <h2 className="font-semibold text-foreground">{t(locale, "Kuruluma devam edin", "Finish your setup")}</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="flex items-start gap-3 rounded-xl bg-muted-bg p-3"><span className="text-success" aria-label={t(locale, "Tamamlandı", "Complete")}>✓</span><div><p className="text-sm font-medium text-foreground">{t(locale, "Yorum kaynağı bağlandı", "Review source connected")}</p><p className="text-xs text-muted">{sources.length} {t(locale, "kaynak hazır", "source(s) ready")}</p></div></div>
+          <div className="flex items-start gap-3 rounded-xl bg-muted-bg p-3"><span className={totalReviews > 0 ? "text-success" : "text-amber-600"} aria-label={totalReviews > 0 ? t(locale, "Tamamlandı", "Complete") : t(locale, "Kontrol edin", "Check this")}>{totalReviews > 0 ? "✓" : "!"}</span><div><p className="text-sm font-medium text-foreground">{t(locale, "Yorumları doğrulayın", "Confirm reviews are available")}</p><p className="text-xs text-muted">{totalReviews > 0 ? `${totalReviews} ${t(locale, "yorum hazır", "reviews ready")}` : t(locale, "Eşitleme durumunu kontrol edin veya yeniden deneyin.", "Check the sync status or retry the sync.")}</p></div></div>
+          <div className="flex items-start gap-3 rounded-xl bg-muted-bg p-3"><span className="text-primary">3</span><div><p className="text-sm font-medium text-foreground">{t(locale, "Bileşeni özelleştirip kodu kopyalayın", "Customize the widget and copy its code")}</p><p className="text-xs text-muted">{t(locale, "Kaynağın yanındaki Yerleştirme kodu düğmesini kullanın.", "Use the Embed code button on a source below.")}</p></div></div>
+          <div className="flex items-start gap-3 rounded-xl bg-muted-bg p-3"><span className="text-primary">4</span><div><p className="text-sm font-medium text-foreground">{t(locale, "Sitenize ekleyip canlıda kontrol edin", "Install it and verify your live site")}</p><Link href="/dashboard/help#widget-installation" className="text-xs text-primary underline">{t(locale, "WordPress, Shopify ve Webflow kurulum rehberi", "WordPress, Shopify, and Webflow installation guide")}</Link></div></div>
+        </div>
+      </section>}
+
       {/* Plan usage indicator */}
       {hasSources && (() => {
-        const planLimits = PLAN_LIMITS[userPlan];
+        const planLimits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
         const maxSources = planLimits.maxSources;
         const used = sources.length;
         const isUnlimited = maxSources === Infinity;
@@ -270,6 +301,13 @@ export default async function DashboardPage() {
             const widgetTheme = source.widgets?.[0]?.theme || "light";
             const isGoogle = source.platform === "google";
             const stats = reviewStats[source.id];
+            const engagement = source.widgets.reduce((totals, widget) => {
+              const metric = widgetMetrics[widget.id];
+              totals.views += Number(metric?.views) || 0;
+              totals.clicks += (Number(metric?.source_clicks) || 0) + (Number(metric?.cta_clicks) || 0);
+              return totals;
+            }, { views: 0, clicks: 0 });
+            const engagementCtr = engagement.views ? ((engagement.clicks / engagement.views) * 100).toFixed(1) : "0.0";
             const syncedCount = stats?.count || 0;
             const syncStatus = source.sync_status || "done";
             const syncBadgeStyle = syncStatus === "pending"
@@ -364,6 +402,13 @@ export default async function DashboardPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Sync now button */}
                     <SyncButton sourceId={source.id} />
+                    <form action={setSourceAutoSyncAction}>
+                      <input type="hidden" name="sourceId" value={source.id} />
+                      <input type="hidden" name="enabled" value={source.auto_sync_enabled ? "false" : "true"} />
+                      <button type="submit" className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${source.auto_sync_enabled ? "border-green-200 bg-green-50 text-green-800" : "border-border text-muted hover:bg-muted-bg hover:text-foreground"}`} aria-label={source.auto_sync_enabled ? t(locale, "Günlük otomatik eşitlemeyi kapat", "Disable daily auto-sync") : t(locale, "Günlük otomatik eşitlemeyi aç", "Enable daily auto-sync")}>
+                        {source.auto_sync_enabled ? t(locale, "Günlük otomatik eşitleme açık · kapat", "Daily auto-sync on · turn off") : t(locale, "Günlük otomatik eşitleme", "Daily auto-sync")}
+                      </button>
+                    </form>
 
                     {/* Delete source */}
                     <DeleteSourceButton sourceId={source.id} />
@@ -396,6 +441,18 @@ export default async function DashboardPage() {
                       <span className="text-sm text-danger font-medium">{t(locale, "Bileşen hazırlanıyor...", "Widget is being prepared...")}</span>
                     )}
                   </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label={t(locale, "Son 30 gün widget etkileşimi", "Widget engagement, last 30 days")}>
+                  <span>{engagement.views} {t(locale, "görüntülenme", "views")}</span>
+                  <span>{engagement.clicks} {t(locale, "tıklama", "clicks")}</span>
+                  <span>{engagementCtr}% CTR</span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  {source.widgets.slice(1).map((widget, index) => <Link key={widget.id} href={`/dashboard/widget/${widget.id}`} className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:bg-muted-bg hover:text-foreground">{widget.title || `${t(locale, "Görünüm", "Widget")} ${index + 2}`}</Link>)}
+                  <form action={createWidgetForSourceAction}>
+                    <input type="hidden" name="sourceId" value={source.id} />
+                    <button type="submit" className="rounded-lg border border-dashed border-primary/50 px-3 py-2 text-xs font-medium text-primary hover:bg-primary-light">+ {t(locale, "Yeni görünüm oluştur", "Create another widget")}</button>
+                  </form>
                 </div>
                 <details className="mt-4 border-t border-border pt-3">
                   <summary className="cursor-pointer text-sm font-medium text-muted hover:text-foreground">{t(locale, "Eşitleme geçmişi", "Sync history")}</summary>
