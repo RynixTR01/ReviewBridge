@@ -5,6 +5,7 @@ import { setWidgetReviewPreferenceAction, updateWidgetAction } from "@/app/actio
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
 import { contrastRatio } from "@/lib/plans";
+import { filterWidgetPreviewReviews } from "@/lib/widget-preview";
 
 export default function WidgetEditor({ widget, source, reviews, planLimits, moderation: initialModeration }) {
   const locale = useLocale();
@@ -124,24 +125,20 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const textContrastIsLow = contrastRatio(textColor, backgroundColor) < 4.5;
   const accentContrastIsLow = contrastRatio("#ffffff", accentColor) < 4.5;
 
-  const includeTerms = includeKeywords.split(",").map((term) => term.trim().toLocaleLowerCase()).filter(Boolean);
-  const excludeTerms = excludeKeywords.split(",").map((term) => term.trim().toLocaleLowerCase()).filter(Boolean);
-  const displayedReviews = [...reviews]
-    .filter((review) => moderation[review.id] !== "hidden")
-    .filter((review) => Number(review.rating) >= (planLimits.canUseAdvancedFilters ? minimumRating : 1))
-    .filter((review) => !smartFilter || !planLimits.canSelectTheme || (review.body && review.body.trim() !== ""))
-    .filter((review) => !planLimits.canUseAdvancedFilters || !dateFrom || String(review.reviewed_at).slice(0, 10) >= dateFrom)
-    .filter((review) => !planLimits.canUseAdvancedFilters || !dateTo || String(review.reviewed_at).slice(0, 10) <= dateTo)
-    .filter((review) => !planLimits.canUseAdvancedFilters || !includeTerms.length || includeTerms.some((term) => (review.body || "").toLocaleLowerCase().includes(term)))
-    .filter((review) => !planLimits.canUseAdvancedFilters || !excludeTerms.some((term) => (review.body || "").toLocaleLowerCase().includes(term)))
-    .sort((a, b) => {
-      const pinned = Number(moderation[b.id] === "pinned") - Number(moderation[a.id] === "pinned");
-      if (pinned) return pinned;
-      if (planLimits.canUseAdvancedFilters && sortOrder === "highest") return b.rating - a.rating;
-      if (planLimits.canUseAdvancedFilters && sortOrder === "lowest") return a.rating - b.rating;
-      return new Date(b.reviewed_at) - new Date(a.reviewed_at);
-    })
-    .slice(0, maxReviews);
+  const displayedReviews = filterWidgetPreviewReviews(reviews, {
+    moderation,
+    minimumRating,
+    canFilterRating: planLimits.canFilterRating,
+    smartFilter,
+    canSelectTheme: planLimits.canSelectTheme,
+    dateFrom,
+    dateTo,
+    includeKeywords,
+    excludeKeywords,
+    canUseAdvancedFilters: planLimits.canUseAdvancedFilters,
+    sortOrder,
+    maxReviews,
+  });
   const averageRating = displayedReviews.length
     ? (displayedReviews.reduce((total, review) => total + Number(review.rating || 0), 0) / displayedReviews.length).toFixed(1)
     : "0.0";
@@ -222,7 +219,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
               <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={showRatingSummary} onChange={(e) => setShowRatingSummary(e.target.checked)} disabled={!planLimits.canChooseLayout} />{t(locale, "Ortalama puan rozetini göster", "Show average rating badge")}</label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-semibold text-foreground">{t(locale, "En düşük puan", "Minimum rating")}
-                  <select value={minimumRating} onChange={(e) => setMinimumRating(Number(e.target.value))} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60">{[1,2,3,4,5].map((rating) => <option key={rating} value={rating}>{rating}+ {t(locale, "yıldız", "stars")}</option>)}</select>
+                  <select value={minimumRating} onChange={(e) => setMinimumRating(Number(e.target.value))} disabled={!planLimits.canFilterRating} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60">{[1,2,3,4,5].map((rating) => <option key={rating} value={rating}>{rating}+ {t(locale, "yıldız", "stars")}</option>)}</select>
                 </label>
                 <label className="text-sm font-semibold text-foreground">{t(locale, "Sıralama", "Sort order")}
                   <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60"><option value="newest">{t(locale, "En yeni", "Newest")}</option><option value="highest">{t(locale, "En yüksek puan", "Highest rating")}</option><option value="lowest">{t(locale, "En düşük puan", "Lowest rating")}</option></select>
@@ -240,7 +237,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
                 <label className="text-sm font-semibold text-foreground">{t(locale, "Başlangıç tarihi", "Start date")}<input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" /></label>
                 <label className="text-sm font-semibold text-foreground">{t(locale, "Bitiş tarihi", "End date")}<input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} disabled={!planLimits.canUseAdvancedFilters} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-2.5 disabled:opacity-60" /></label>
               </div>
-              {!planLimits.canUseAdvancedFilters && <p className="text-xs text-amber-600">{t(locale, "Puan, tarih ve kelime filtreleri Pro planında kullanılabilir.", "Rating, date, and keyword filters are available on Pro.")}</p>}
+              {!planLimits.canUseAdvancedFilters && <p className="text-xs text-amber-600">{t(locale, "Tarih, kelime ve puana göre sıralama filtreleri Pro planında kullanılabilir.", "Date, keyword, and rating sort filters are available on Pro.")}</p>}
             </div>
 
             <div className="space-y-4 rounded-xl border border-border p-4">

@@ -115,6 +115,7 @@ export async function GET(_request, { params }) {
   const widgetReviews = filterWidgetReviews(fetchedReviews, { ...widget, max_reviews: reviewLimit }, {
     moderation,
     canUseAdvancedFilters: limits.canUseAdvancedFilters,
+    canFilterRating: limits.canFilterRating,
     canUseSmartFilter: limits.canSelectTheme,
   });
 

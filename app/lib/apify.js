@@ -1,4 +1,5 @@
 import { isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
+import { normalizeReviewRating } from "@/lib/review-rating";
 
 export const APIFY_ACTORS = {
   GOOGLE_MAPS: 'Xb8osYTtOjlsgI6k9',
@@ -157,12 +158,12 @@ export function mapApifyReviews(items, platform) {
         avatar_url: item.reviewerPhotoUrl || null,
         review_url: item.reviewUrl || null,
         reviewer_name: item.name || 'Anonymous',
-        rating: item.stars || item.rating || 0,
+        rating: normalizeReviewRating(item.stars) ?? normalizeReviewRating(item.rating),
         body: item.text || null,
         reviewed_at: parsedDate,
         review_date_estimated: dateEstimated,
       };
-    });
+    }).filter((review) => review.rating !== null);
   } else if (platform === 'trustpilot') {
     return items.map(item => {
       let parsedDate = new Date().toISOString();
@@ -178,12 +179,12 @@ export function mapApifyReviews(items, platform) {
         avatar_url: item.consumer?.avatarUrl || item.consumer?.avatar?.imageUrl || null,
         review_url: item.reviewUrl || item.url || null,
         reviewer_name: item.consumer?.displayName || 'Anonymous',
-        rating: item.rating || 0,
+        rating: normalizeReviewRating(item.rating),
         body: item.text || null,
         reviewed_at: parsedDate,
         review_date_estimated: dateEstimated,
       };
-    });
+    }).filter((review) => review.rating !== null);
   }
   return [];
 }

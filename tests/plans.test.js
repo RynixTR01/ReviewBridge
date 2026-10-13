@@ -8,7 +8,7 @@ test("widget review limits match the plan page", () => {
   assert.equal(PLAN_LIMITS.agency.maxReviews, 20);
 });
 
-test("free plan cannot bypass theme, review, badge, or smart-filter limits", () => {
+test("free plan keeps paid customization limits while allowing the basic rating filter", () => {
   assert.deepEqual(normalizeWidgetSettings({
     theme: "dark",
     maxReviews: "20",
@@ -45,6 +45,11 @@ test("free plan cannot bypass theme, review, badge, or smart-filter limits", () 
     showReviewedDate: true,
     allowedDomains: [],
   });
+});
+
+test("free plan persists a valid minimum rating selection", () => {
+  const settings = normalizeWidgetSettings({ minimumRating: "4" }, "free");
+  assert.equal(settings.minimumRating, 4);
 });
 
 test("paid plans allow advertised settings but cap reviews at 20", () => {

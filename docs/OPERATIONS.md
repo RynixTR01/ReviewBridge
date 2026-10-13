@@ -14,12 +14,14 @@ Set these for the Production environment and redeploy after changing them:
 - `LEMONSQUEEZY_WEBHOOK_SECRET` — required; the webhook rejects requests when it is absent.
 - `LEMONSQUEEZY_PRO_VARIANT_ID` and `LEMONSQUEEZY_AGENCY_VARIANT_ID` — exact IDs from the Lemon Squeezy variants. When either ID is configured, unknown variants are rejected instead of being inferred from a product name.
 - `NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL` and `NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL` — checkout links shown in the dashboard.
+- During the current test phase, use Lemon Squeezy **test-mode** checkout links, test variant IDs, and the matching test webhook signing secret together. A test checkout link alone does not switch webhook verification to test mode. Keep live values separate, and only replace the test configuration when the business is ready to accept real payments.
 - `RESEND_API_KEY` — optional welcome email delivery.
 
 ## Verified production state
 
 - On 13 October 2026, `CRON_SECRET` was added as a Vercel **Production** secret and the resulting production deployment reached **Ready**. Confirm the next scheduled Cron invocation in Vercel Logs before treating the scheduled cleanup/auto-sync path as live-verified. Do not manually trigger it in production: opted-in sources can start billable Apify runs.
 - The Vercel project settings showed the Neon database/auth values and Apify token/webhook configuration. `LEMONSQUEEZY_PRO_VARIANT_ID` and `LEMONSQUEEZY_AGENCY_VARIANT_ID` were not present when checked; payment plan mapping remains unverified until the exact IDs from the Lemon Squeezy dashboard are configured.
+- Lemon Squeezy test purchases can validate the purchase/webhook flow without charging customers, but the test product/variant IDs and test webhook secret still need to match the Vercel environment before plan upgrades can be verified end to end.
 - The Apify account's current billing page showed $0.02 of $5.00 included usage, with $4.98 remaining. Its two most recent Google Maps actor runs each cost $0.01 and succeeded. This account-level view does not prove that a ReviewBridge production sync delivered its webhook successfully; do not manually run the production cron because opted-in sources may start billable jobs.
 
 ## Release verification

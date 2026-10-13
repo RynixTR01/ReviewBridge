@@ -5,6 +5,7 @@ import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/li
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
+import { normalizeReviewRating } from "@/lib/review-rating";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -182,14 +183,16 @@ export async function POST(request, { params }) {
       source_id: source.id,
       external_review_id: createStableReviewId(source.platform, r),
       reviewer_name: r.reviewer_name || "Anonymous",
-      rating: r.rating || 5,
+      rating: normalizeReviewRating(r.rating),
       body: r.body || "",
       reviewed_at: r.reviewed_at ? new Date(r.reviewed_at) : new Date().toISOString(),
-    }));
+    })).filter((review) => review.rating !== null);
 
-    if (reviewsToUpsert.length > 0) {
+    const uniqueReviews = [...new Map(reviewsToUpsert.map((review) => [review.external_review_id, review])).values()];
+
+    if (uniqueReviews.length > 0) {
       const values = [];
-      const rows = reviewsToUpsert.map((review, index) => {
+      const rows = uniqueReviews.map((review, index) => {
         const offset = index * 6;
         values.push(review.source_id, review.external_review_id, review.reviewer_name, review.rating, review.body, review.reviewed_at);
         return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
@@ -197,7 +200,9 @@ export async function POST(request, { params }) {
       await query(
         `INSERT INTO public.reviews (source_id, external_review_id, reviewer_name, rating, body, reviewed_at)
          VALUES ${rows.join(', ')}
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (source_id, external_review_id) WHERE external_review_id IS NOT NULL
+         DO UPDATE SET reviewer_name = EXCLUDED.reviewer_name, rating = EXCLUDED.rating,
+           body = EXCLUDED.body, reviewed_at = EXCLUDED.reviewed_at`,
         values
       );
     }
@@ -211,8 +216,8 @@ export async function POST(request, { params }) {
       [source.id, userId]
     );
 
-    await finishSyncHistory({ historyId, sourceId: source.id, status: "done", reviewsCount: reviewsToUpsert.length });
-    return Response.json({ success: true, message: "Sync complete", updated: reviewsToUpsert.length });
+    await finishSyncHistory({ historyId, sourceId: source.id, status: "done", reviewsCount: uniqueReviews.length });
+    return Response.json({ success: true, message: "Sync complete", updated: uniqueReviews.length });
   } catch (err) {
     if (currentSourceId) {
       try {
