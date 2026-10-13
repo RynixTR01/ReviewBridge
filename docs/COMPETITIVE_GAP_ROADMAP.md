@@ -92,10 +92,10 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - [Trustpilot tüketici kullanım şartları (Ekim 2026)](https://corporate.trustpilot.com/legal/for-reviewers/terms-of-use-for-consumers/oct-2026): içerik erişimi, toplama ve scraping koşulları.
 - [Google Maps End User Additional Terms](https://www.google.com/help/terms_maps/) ve [Google Maps Platform şartları](https://cloud.google.com/maps-platform/terms): kopyalama, toplu indirme ve API içeriği kısıtları; mevcut Apify tabanlı akışın hukuki kapsamı ayrıca değerlendirilmelidir.
 - [Apify Actor Terms](https://docs.apify.com/legal/actor-terms-and-conditions): Actor kullanımı ve üçüncü taraf koşullarına uyma sorumluluğu.
-- [Google Places Place Details belgesi](https://developers.google.com/maps/documentation/places/web-service/legacy/details): Google API yorum sınırlarını kontrol etmek için; kullanılan güncel veri yolu ayrıca incelenmeli.
+- [Google Places API (New) politikası](https://developers.google.com/maps/documentation/places/web-service/policies) ve [Business Profile yorum API'si](https://developers.google.com/my-business/reference/rest/v4/accounts.locations.reviews/list): resmî yolların farklı erişim, saklama ve gösterim sınırları.
 - [Lemon Squeezy webhook rehberi](https://docs.lemonsqueezy.com/guides/developer-guide/webhooks), [tekrar denemeler](https://docs.lemonsqueezy.com/help/webhooks/webhook-requests) ve [imza doğrulama](https://docs.lemonsqueezy.com/help/webhooks/signing-requests).
 
-### Sağlayıcı erişimi ve veri kullanımı için karar kapısı
+## Sağlayıcı erişimi ve veri kullanımı için karar kapısı
 
 14 Ekim 2026 resmî kaynak kontrolü; teknik ürün kontrol listesidir, hukuki görüş veya mevcut akışa verilmiş izin değildir. ReviewBridge Google Maps ve Trustpilot yorumlarını Apify actor'larıyla alıp Neon'da saklıyor ve widget'ta gösteriyor. Actor kullanımı, kaynak platformun veri lisansını sağlamaz.
 
