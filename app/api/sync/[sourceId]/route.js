@@ -5,6 +5,8 @@ import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/li
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 
 export async function POST(request, { params }) {
+  let historyId = null;
+  let currentSourceId = null;
   try {
     const resolvedParams = await params;
     const sourceId = resolvedParams.sourceId;
@@ -68,7 +70,8 @@ export async function POST(request, { params }) {
     }
     // --- End Rate Limiting ---
 
-    const historyId = await startSyncHistory(source.id);
+    currentSourceId = source.id;
+    historyId = await startSyncHistory(source.id);
     // Call Apify to fetch fresh reviews
     let fetchedReviews = [];
 
@@ -204,6 +207,9 @@ export async function POST(request, { params }) {
     await finishSyncHistory({ historyId, sourceId: source.id, status: "done", reviewsCount: reviewsToUpsert.length });
     return Response.json({ success: true, message: "Sync complete", updated: reviewsToUpsert.length });
   } catch (err) {
+    if (currentSourceId) {
+      await finishSyncHistory({ historyId, sourceId: currentSourceId, status: "error", errorMessage: "Eşitleme sırasında hata oluştu." });
+    }
     console.error("Sync error:", err);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
