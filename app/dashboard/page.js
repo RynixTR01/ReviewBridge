@@ -397,7 +397,7 @@ export default async function DashboardPage() {
                   <summary className="cursor-pointer text-sm font-medium text-muted hover:text-foreground">Eşitleme geçmişi</summary>
                   <div className="mt-3 space-y-2">
                     {(syncHistory[source.id] || []).length === 0 ? (
-                      <p className="text-xs text-muted">Henüz geçmiş kaydı yok. Migration uygulandıktan sonraki eşitlemeler burada görünür.</p>
+                      <p className="text-xs text-muted">Henüz eşitleme geçmişi yok.</p>
                     ) : (syncHistory[source.id] || []).map((entry) => (
                       <div key={entry.started_at} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span className={entry.status === "done" ? "text-green-700" : entry.status === "error" ? "text-red-700" : "text-blue-700"}>
