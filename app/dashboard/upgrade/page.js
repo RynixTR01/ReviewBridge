@@ -96,7 +96,7 @@ export default async function UpgradePage() {
       description: "For agencies and power users",
       features: [
         { text: "Unlimited sources", included: true },
-        { text: "Unlimited reviews", included: true },
+        { text: "Up to 20 reviews shown per widget", included: true },
         { text: "All themes", included: true },
         { text: "Remove badge", included: true },
         { text: "Smart Filter", included: true },
