@@ -42,8 +42,12 @@ export async function POST(request, { params }) {
       agency:  1_800_000,  // 30 minutes
     };
 
-    // Let failed runs retry immediately; last_synced_at is set when the attempt starts.
-    if (source.last_synced_at && source.sync_status !== "error") {
+    // Only a successful sync starts the cooldown. Stuck pending runs can be retried after 15 minutes.
+    const pendingStartedAt = source.sync_started_at ? new Date(source.sync_started_at).getTime() : 0;
+    const isStalePending = source.sync_status === "pending"
+      && pendingStartedAt > 0
+      && Date.now() - pendingStartedAt > 15 * 60_000;
+    if (source.last_synced_at && source.sync_status !== "error" && !isStalePending) {
       const elapsed = Date.now() - new Date(source.last_synced_at).getTime();
       const cooldown = SYNC_COOLDOWNS_MS[userPlan] ?? SYNC_COOLDOWNS_MS.free;
       if (elapsed < cooldown) {
@@ -93,6 +97,13 @@ export async function POST(request, { params }) {
         return Response.json({ status: 'pending', message: 'Syncing in background...' });
       } catch (err) {
         console.error("Failed to start Google sync:", err);
+        await query(
+          `UPDATE public.sources
+           SET sync_status = 'error', last_sync_error = $2,
+               apify_run_id = NULL, sync_started_at = NULL
+           WHERE id = $1 AND user_id = $3`,
+          [source.id, "Failed to start sync process", user.id]
+        );
         return Response.json({ error: "Failed to start sync process" }, { status: 500 });
       }
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
