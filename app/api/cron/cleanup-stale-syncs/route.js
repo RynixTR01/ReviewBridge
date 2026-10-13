@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { finishSyncHistory } from "@/lib/sync-history";
 
 export async function GET(request) {
   try {
@@ -23,6 +24,10 @@ export async function GET(request) {
        RETURNING id`,
       [fifteenMinutesAgo]
     );
+
+    await Promise.all((data || []).map(({ id }) =>
+      finishSyncHistory({ sourceId: id, status: "error", errorMessage: "Eşitleme zaman aşımına uğradı." })
+    ));
 
     return Response.json({ 
       success: true, 
