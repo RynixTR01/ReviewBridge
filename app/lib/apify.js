@@ -58,7 +58,7 @@ export async function startApifyRun(actorId, input, sourceId) {
     headersTemplate: JSON.stringify({ 'x-webhook-secret': secret })
   };
   const encodedWebhooks = Buffer.from(JSON.stringify([webhook]), 'utf8').toString('base64');
-  const url = "https://api.apify.com/v2/acts/" + encodeURIComponent(actorId) +
+  const url = "https://api.apify.com/v2/actors/" + encodeURIComponent(actorId) +
     "/runs?webhooks=" + encodeURIComponent(encodedWebhooks);
 
   const response = await fetch(url, {
