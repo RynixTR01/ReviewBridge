@@ -74,6 +74,9 @@ export async function POST(request) {
       
       const platform = source.platform || (actId === APIFY_ACTORS.GOOGLE_MAPS ? 'google' : 'trustpilot');
       const mappedReviews = mapApifyReviews(rawItems, platform);
+      const businessTitle = platform === 'google' && Array.isArray(rawItems)
+        ? rawItems.find((item) => typeof item?.title === 'string' && item.title.trim())?.title.trim() || null
+        : null;
 
       if (mappedReviews.length > 0) {
         const values = [];
@@ -94,9 +97,14 @@ export async function POST(request) {
       await query(
         `UPDATE public.sources
          SET sync_status = 'done', apify_run_id = NULL, sync_started_at = NULL,
-             last_synced_at = NOW(), last_sync_error = NULL
+             last_synced_at = NOW(), last_sync_error = NULL,
+             business_name = CASE
+               WHEN business_name IN ('Google işletmesi (eşitleniyor...)', 'Google Business (Syncing...)', 'Google Business', 'Bilinmeyen işletme')
+                 AND $2::text IS NOT NULL THEN $2
+               ELSE business_name
+             END
          WHERE id = $1`,
-        [sourceId]
+        [sourceId, businessTitle]
       );
 
       await finishSyncHistory({ sourceId, runId, status: "done", reviewsCount: mappedReviews.length });
