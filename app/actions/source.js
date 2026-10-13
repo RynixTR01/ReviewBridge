@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -166,6 +167,11 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Failed to save the source to database." };
   }
 
+  const historyId = await startSyncHistory(newSource.id);
+  if (!startsAsyncGoogleSync) {
+    await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsList.length });
+  }
+
   // If Google, start the async Apify run now that we have the source.id
   if (startsAsyncGoogleSync) {
     try {
@@ -183,6 +189,7 @@ export async function addSourceAction(prevState, formData) {
         "UPDATE public.sources SET apify_run_id = $1 WHERE id = $2",
         [runId, newSource.id]
       );
+      await attachSyncRun(historyId, runId);
     } catch (err) {
       console.error("Failed to start initial Google sync:", err);
       await query(
@@ -192,6 +199,7 @@ export async function addSourceAction(prevState, formData) {
          WHERE id = $3`,
         ["error", "Failed to start background sync", newSource.id]
       );
+      await finishSyncHistory({ historyId, sourceId: newSource.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
     }
   }
 
