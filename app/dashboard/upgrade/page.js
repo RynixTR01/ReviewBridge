@@ -51,18 +51,18 @@ export default async function UpgradePage() {
       key: "free",
       name: "Free",
       price: "$0",
-      period: "forever",
-      description: "Get started with the basics",
+      period: "süresiz",
+      description: "Temel özelliklerle başlayın",
       features: [
-        { text: "1 connected source", included: true },
-        { text: "Up to 10 reviews shown", included: true },
-        { text: "Light theme only", included: true },
-        { text: "ReviewBridge badge", included: true },
-        { text: "Smart Filter", included: false },
-        { text: "Star rating filter", included: false },
-        { text: "Remove badge", included: false },
+        { text: "1 bağlı kaynak", included: true },
+        { text: "10 yoruma kadar gösterim", included: true },
+        { text: "Yalnızca açık tema", included: true },
+        { text: "ReviewBridge rozeti", included: true },
+        { text: "Akıllı filtre", included: false },
+        { text: "Yıldız puanı filtresi", included: false },
+        { text: "Rozeti kaldır", included: false },
       ],
-      cta: currentPlan === "free" ? "Current Plan" : "Downgrade",
+      cta: currentPlan === "free" ? "Mevcut plan" : "Alt plana geç",
       ctaDisabled: true,
       ctaHref: "#",
       highlight: false,
@@ -71,19 +71,19 @@ export default async function UpgradePage() {
       key: "pro",
       name: "Pro",
       price: "$7",
-      period: "/ month",
-      description: "Perfect for growing businesses",
+      period: "/ ay",
+      description: "Büyüyen işletmeler için",
       popular: true,
       features: [
-        { text: "Up to 5 sources", included: true },
-        { text: "Up to 20 reviews shown", included: true },
-        { text: "All themes (Light, Dark, Minimal)", included: true },
-        { text: "Remove ReviewBridge badge", included: true },
-        { text: "Smart Filter", included: true },
-        { text: "Star rating filter", included: true, comingSoon: true },
-        { text: "Priority sync", included: true },
+        { text: "5 kaynağa kadar", included: true },
+        { text: "20 yoruma kadar gösterim", included: true },
+        { text: "Tüm temalar (Açık, Koyu, Minimal)", included: true },
+        { text: "Remove ReviewBridge rozeti", included: true },
+        { text: "Akıllı filtre", included: true },
+        { text: "Yıldız puanı filtresi", included: true, comingSoon: true },
+        { text: "Öncelikli eşitleme", included: true },
       ],
-      cta: currentPlan === "pro" ? "Current Plan" : currentPlan === "agency" ? "Downgrade" : "Upgrade to Pro",
+      cta: currentPlan === "pro" ? "Mevcut plan" : currentPlan === "agency" ? "Alt plana geç" : "Pro’ya yükselt",
       ctaDisabled: currentPlan === "pro" || currentPlan === "agency",
       ctaHref: currentPlan === "free" ? proCheckoutUrl : "#",
       highlight: true,
@@ -92,19 +92,19 @@ export default async function UpgradePage() {
       key: "agency",
       name: "Agency",
       price: "$19",
-      period: "/ month",
-      description: "For agencies and power users",
+      period: "/ ay",
+      description: "Ajanslar ve yoğun kullanım için",
       features: [
-        { text: "Unlimited sources", included: true },
-        { text: "Up to 20 reviews shown per widget", included: true },
-        { text: "All themes", included: true },
-        { text: "Remove badge", included: true },
-        { text: "Smart Filter", included: true },
-        { text: "Star rating filter", included: true, comingSoon: true },
-        { text: "White-label ready", included: true },
-        { text: "Priority support", included: true },
+        { text: "Sınırsız kaynak", included: true },
+        { text: "20 yoruma kadar gösterim per widget", included: true },
+        { text: "Tüm temalar", included: true },
+        { text: "Rozeti kaldır", included: true },
+        { text: "Akıllı filtre", included: true },
+        { text: "Yıldız puanı filtresi", included: true, comingSoon: true },
+        { text: "Markasız kullanım seçeneği", included: true },
+        { text: "Öncelikli destek", included: true },
       ],
-      cta: currentPlan === "agency" ? "Current Plan" : "Upgrade to Agency",
+      cta: currentPlan === "agency" ? "Mevcut plan" : "Agency’ye yükselt",
       ctaDisabled: currentPlan === "agency",
       ctaHref: currentPlan !== "agency" ? agencyCheckoutUrl : "#",
       highlight: false,
@@ -112,9 +112,9 @@ export default async function UpgradePage() {
   ];
 
   const faqs = [
-    { q: "Can I cancel anytime?", a: "Yes, absolutely. There are no contracts or commitments — cancel whenever you like." },
-    { q: "Will I be charged immediately?", a: "Yes, billing starts as soon as you upgrade. You'll get immediate access to all features." },
-    { q: "Can I switch plans?", a: "Yes, you can upgrade or downgrade at any time. Contact support and we'll help you switch." },
+    { q: "İstediğim zaman iptal edebilir miyim?", a: "Evet. Taahhüt yoktur; istediğiniz zaman iptal edebilirsiniz." },
+    { q: "Hemen ücret alınır mı?", a: "Evet. Yükseltme sonrası faturalandırma başlar ve özelliklere hemen erişirsiniz." },
+    { q: "Planımı değiştirebilir miyim?", a: "İstediğiniz zaman plan değiştirebilirsiniz. Yardım için destek ekibiyle iletişime geçin." },
   ];
 
   return (
@@ -125,10 +125,10 @@ export default async function UpgradePage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Dashboard
+          Panele dön
         </Link>
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Choose the right plan for you</h1>
-        <p className="text-muted text-lg max-w-xl mx-auto">Unlock powerful features to grow your reputation and convert more visitors.</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">Size uygun planı seçin</h1>
+        <p className="text-muted text-lg max-w-xl mx-auto">İtibarınızı güçlendirin ve daha fazla ziyaretçiyi müşteriye dönüştürün.</p>
       </div>
 
       {/* Plan Cards */}
@@ -149,14 +149,14 @@ export default async function UpgradePage() {
               {/* Current plan badge */}
               {isCurrent && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
-                  Current Plan
+                  Mevcut plan
                 </div>
               )}
 
-              {/* Most Popular badge */}
+              {/* En popüler badge */}
               {plan.popular && !isCurrent && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full">
-                  Most Popular
+                  En popüler
                 </div>
               )}
 
@@ -177,7 +177,7 @@ export default async function UpgradePage() {
                     <span className={f.included ? "text-foreground" : "text-gray-400"}>
                       {f.text}
                       {f.comingSoon && (
-                        <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">SOON</span>
+                        <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">YAKINDA</span>
                       )}
                     </span>
                   </li>
@@ -213,7 +213,7 @@ export default async function UpgradePage() {
 
       {/* FAQ Section */}
       <div className="max-w-2xl mx-auto mb-12">
-        <h2 className="text-xl font-bold text-foreground text-center mb-8">Frequently Asked Questions</h2>
+        <h2 className="text-xl font-bold text-foreground text-center mb-8">Sık sorulan sorular</h2>
         <div className="space-y-4">
           {faqs.map((faq, i) => (
             <div key={i} className="bg-white border border-border rounded-xl p-5">
