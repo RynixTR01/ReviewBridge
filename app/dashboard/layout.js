@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }) {
   const planDisplay = plan.charAt(0).toUpperCase() + plan.slice(1);
 
   return (
-    <div className="min-h-screen bg-muted-bg flex flex-col md:flex-row">
+    <div lang="tr" className="min-h-screen bg-muted-bg flex flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-r border-border flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-border">
@@ -34,7 +34,7 @@ export default async function DashboardLayout({ children }) {
         {/* Plan Info */}
         <div className="p-4 border-t border-border bg-muted-bg/50 m-4 rounded-xl">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">Current Plan</span>
+            <span className="text-sm font-medium text-foreground">Mevcut plan</span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
               {planDisplay}
             </span>
@@ -44,7 +44,7 @@ export default async function DashboardLayout({ children }) {
               href="/dashboard/upgrade"
               className="w-full mt-3 block text-center bg-white border border-border text-foreground hover:border-primary hover:text-primary transition-colors text-sm font-semibold py-2 rounded-lg shadow-sm"
             >
-              View Plans
+              Planları gör
             </Link>
           )}
           {(plan === "pro" || plan === "agency") && (
@@ -54,7 +54,7 @@ export default async function DashboardLayout({ children }) {
               rel="noopener noreferrer"
               className="w-full mt-3 block text-center text-xs text-muted hover:text-foreground transition-colors"
             >
-              Manage subscription →
+              Aboneliği yönet →
             </a>
           )}
         </div>
