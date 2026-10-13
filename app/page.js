@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth/server";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ function CheckIcon() {
   );
 }
 
-function Navbar({ isSignedIn }) {
+function Navbar({ isSignedIn, locale }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -28,8 +30,8 @@ function Navbar({ isSignedIn }) {
           ReviewBridge
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm text-muted">
-          <a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a>
-          <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+          <a href="#how-it-works" className="hover:text-foreground transition-colors">{t(locale, "Nasıl çalışır?", "How it works")}</a>
+          <a href="#pricing" className="hover:text-foreground transition-colors">{t(locale, "Fiyatlar", "Pricing")}</a>
         </div>
         <div className="flex items-center gap-3">
           {isSignedIn ? (
@@ -37,7 +39,7 @@ function Navbar({ isSignedIn }) {
               href="/dashboard"
               className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
             >
-              Panele dön
+              {t(locale, "Panele dön", "Back to dashboard")}
             </Link>
           ) : (
             <>
@@ -45,13 +47,13 @@ function Navbar({ isSignedIn }) {
                 href="/login"
                 className="text-sm font-medium text-muted hover:text-foreground transition-colors px-4 py-2"
               >
-                Log in
+                {t(locale, "Giriş yap", "Log in")}
               </Link>
               <Link
                 href="/signup"
                 className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
               >
-                Get Started Free
+                {t(locale, "Ücretsiz başla", "Get Started Free")}
               </Link>
             </>
           )}
@@ -61,24 +63,25 @@ function Navbar({ isSignedIn }) {
   );
 }
 
-function HeroSection({ isSignedIn }) {
+function HeroSection({ isSignedIn, locale }) {
   return (
     <section className="hero-gradient pt-32 pb-20 md:pt-40 md:pb-28">
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-border text-sm text-muted mb-6 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-          Google &amp; Trustpilot reviews on your website
+          {t(locale, "Google ve Trustpilot yorumları web sitenizde", "Google & Trustpilot reviews on your website")}
         </div>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight max-w-4xl mx-auto">
-          Show your{" "}
-          <span className="gradient-text">Google reviews</span>{" "}
-          on your website
+          {t(locale, "Google yorumlarınızı", "Show your ")}{" "}
+          <span className="gradient-text">{t(locale, "web sitenizde", "Google reviews")}</span>{" "}
+          {t(locale, "gösterin", "on your website")}
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
-          Connect your Google or Trustpilot listing, customize a beautiful widget,
-          and embed it on your site with one line of code. Boost trust instantly.
+          {t(locale,
+            "Google veya Trustpilot profilinizi bağlayın, yorum bileşeninizi özelleştirin ve tek satır kodla sitenize ekleyin. Ziyaretçilerinizin güvenini kazanın.",
+            "Connect your Google or Trustpilot listing, customize a beautiful widget, and embed it on your site with one line of code. Boost trust instantly.")}
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -87,7 +90,7 @@ function HeroSection({ isSignedIn }) {
             id="hero-cta"
             className="btn-pulse inline-flex items-center gap-2 bg-primary text-white font-semibold px-8 py-4 rounded-xl text-lg hover:bg-primary-hover transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            {isSignedIn ? "Panele dön" : "Start Free — No Credit Card"}
+            {isSignedIn ? t(locale, "Panele dön", "Back to dashboard") : t(locale, "Ücretsiz başla — Kredi kartı gerekmez", "Start Free — No Credit Card")}
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
@@ -96,17 +99,17 @@ function HeroSection({ isSignedIn }) {
             href="#how-it-works"
             className="inline-flex items-center gap-2 text-muted font-medium px-6 py-4 rounded-xl hover:bg-white/60 transition-colors"
           >
-            See how it works
+            {t(locale, "Nasıl çalıştığını gör", "See how it works")}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </a>
         </div>
 
-        <p className="mt-4 text-sm text-muted/70">No credit card required · Cancel anytime · Setup in 2 minutes</p>
+        <p className="mt-4 text-sm text-muted/70">{t(locale, "Kredi kartı gerekmez · İstediğiniz zaman iptal edin · 2 dakikada kurulum", "No credit card required · Cancel anytime · Setup in 2 minutes")}</p>
 
         {/* Clearly label this static example so it is not mistaken for a real customer review. */}
-        <p className="mt-16 mb-2 text-center text-xs font-medium text-muted">Demo widget · sample business and reviews</p>
+        <p className="mt-16 mb-2 text-center text-xs font-medium text-muted">{t(locale, "Demo bileşen · örnek işletme ve yorumlar", "Demo widget · sample business and reviews")}</p>
         <div className="max-w-lg mx-auto glass-card p-6 text-left">
           <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-red-500 flex items-center justify-center text-white font-bold text-sm">BC</div>
@@ -116,7 +119,7 @@ function HeroSection({ isSignedIn }) {
                 <div className="flex gap-0.5">
                   {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
                 </div>
-                <span className="text-xs text-muted">4.8 · Google Reviews</span>
+                <span className="text-xs text-muted">4.8 · {t(locale, "Google yorumları", "Google Reviews")}</span>
               </div>
             </div>
           </div>
@@ -128,9 +131,9 @@ function HeroSection({ isSignedIn }) {
               <div className="flex gap-0.5">
                 {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
               </div>
-              <span className="ml-auto text-xs text-muted">2 gün önce</span>
+              <span className="ml-auto text-xs text-muted">{t(locale, "2 gün önce", "2 days ago")}</span>
             </div>
-            <p className="text-sm text-muted leading-relaxed">&quot;Harika bir mekan, kesinlikle tavsiye ederim!&quot;</p>
+            <p className="text-sm text-muted leading-relaxed">&quot;{t(locale, "Harika bir mekan, kesinlikle tavsiye ederim!", "A wonderful place, highly recommended!")}&quot;</p>
           </div>
 
           {/* Review 2 */}
@@ -140,9 +143,9 @@ function HeroSection({ isSignedIn }) {
               <div className="flex gap-0.5">
                 {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
               </div>
-              <span className="ml-auto text-xs text-muted">1 week ago</span>
+              <span className="ml-auto text-xs text-muted">{t(locale, "1 hafta önce", "1 week ago")}</span>
             </div>
-            <p className="text-sm text-muted leading-relaxed">&quot;Amazing coffee and great service. Will come back!&quot;</p>
+            <p className="text-sm text-muted leading-relaxed">&quot;{t(locale, "Harika kahve ve güzel hizmet. Tekrar geleceğim!", "Amazing coffee and great service. Will come back!")}&quot;</p>
           </div>
 
           {/* Review 3 */}
@@ -153,9 +156,9 @@ function HeroSection({ isSignedIn }) {
                 {[1,2,3,4].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
                 <StarIcon className="w-3.5 h-3.5 text-gray-300" />
               </div>
-              <span className="ml-auto text-xs text-muted">2 hafta önce</span>
+              <span className="ml-auto text-xs text-muted">{t(locale, "2 hafta önce", "2 weeks ago")}</span>
             </div>
-            <p className="text-sm text-muted leading-relaxed">&quot;Çok güzel atmosfer, fiyatlar makul.&quot;</p>
+            <p className="text-sm text-muted leading-relaxed">&quot;{t(locale, "Çok güzel atmosfer, fiyatlar makul.", "Lovely atmosphere and reasonable prices.")}&quot;</p>
           </div>
 
           <div className="pt-3 border-t border-border flex items-center justify-between">
@@ -166,9 +169,9 @@ function HeroSection({ isSignedIn }) {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              <span className="text-xs text-muted font-medium">Google Reviews</span>
+              <span className="text-xs text-muted font-medium">{t(locale, "Google yorumları", "Google Reviews")}</span>
             </div>
-            <span className="text-xs text-muted/60">Powered by ReviewBridge</span>
+            <span className="text-xs text-muted/60">{t(locale, "ReviewBridge tarafından desteklenir", "Powered by ReviewBridge")}</span>
           </div>
         </div>
       </div>
@@ -176,12 +179,12 @@ function HeroSection({ isSignedIn }) {
   );
 }
 
-function HowItWorksSection() {
+function HowItWorksSection({ locale }) {
   const steps = [
     {
       num: "1",
-      title: "Connect your listing",
-      desc: "Enter your Google Maps URL or Place ID, or your Trustpilot URL. Reviews start fetching after you connect the source.",
+      title: t(locale, "Profilinizi bağlayın", "Connect your listing"),
+      desc: t(locale, "Google Haritalar bağlantınızı veya Place ID'nizi ya da Trustpilot bağlantınızı girin. Kaynağı bağladıktan sonra yorumlar alınır.", "Enter your Google Maps URL or Place ID, or your Trustpilot URL. Reviews start fetching after you connect the source."),
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -190,8 +193,8 @@ function HowItWorksSection() {
     },
     {
       num: "2",
-      title: "Customize your widget",
-      desc: "Choose a theme, set max reviews, and preview exactly how it will look on your site.",
+      title: t(locale, "Bileşeninizi özelleştirin", "Customize your widget"),
+      desc: t(locale, "Tema ve gösterilecek yorum sayısını seçin; sitenizde nasıl görüneceğini önizleyin.", "Choose a theme, set max reviews, and preview exactly how it will look on your site."),
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
@@ -200,8 +203,8 @@ function HowItWorksSection() {
     },
     {
       num: "3",
-      title: "Embed & go live",
-      desc: "Copy one line of code, paste it on your website. Your reviews appear instantly.",
+      title: t(locale, "Sitenize ekleyin", "Embed & go live"),
+      desc: t(locale, "Tek satırlık kodu kopyalayıp sitenize yapıştırın. Yorumlarınız hemen görünür.", "Copy one line of code, paste it on your website. Your reviews appear instantly."),
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
@@ -214,9 +217,9 @@ function HowItWorksSection() {
     <section id="how-it-works" className="py-20 md:py-28 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">How it works</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">{t(locale, "Nasıl çalışır?", "How it works")}</p>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Live reviews in 3 simple steps
+            {t(locale, "3 adımda canlı yorumlar", "Live reviews in 3 simple steps")}
           </h2>
         </div>
 
@@ -242,52 +245,52 @@ function HowItWorksSection() {
   );
 }
 
-function PricingSection({ isSignedIn }) {
+function PricingSection({ isSignedIn, locale }) {
   const plans = [
     {
-      name: "Free",
+      name: t(locale, "Ücretsiz", "Free"),
       price: "$0",
-      period: "forever",
-      desc: "Perfect for trying it out",
+      period: t(locale, "sonsuza dek", "forever"),
+      desc: t(locale, "Denemek için ideal", "Perfect for trying it out"),
       features: [
-        "1 connected source",
-        "Up to 10 reviews shown",
-        "Light theme only",
-        "ReviewBridge badge shown",
+        t(locale, "1 bağlı kaynak", "1 connected source"),
+        t(locale, "En fazla 10 yorum gösterimi", "Up to 10 reviews shown"),
+        t(locale, "Yalnızca açık tema", "Light theme only"),
+        t(locale, "ReviewBridge rozeti görünür", "ReviewBridge badge shown"),
       ],
-      cta: "Get Started Free",
+      cta: t(locale, "Ücretsiz başla", "Get Started Free"),
       popular: false,
     },
     {
       name: "Pro",
       price: "$7",
-      period: "/month",
-      desc: "For growing businesses",
+      period: t(locale, "/ay", "/month"),
+      desc: t(locale, "Büyüyen işletmeler için", "For growing businesses"),
       features: [
-        "Up to 5 sources",
-        "Up to 20 reviews shown per widget",
-        "All themes unlocked",
-        "Remove ReviewBridge badge",
-        "Smart Filter \u2014 show only written reviews",
-        "Priority sync",
+        t(locale, "En fazla 5 kaynak", "Up to 5 sources"),
+        t(locale, "Bileşen başına en fazla 20 yorum", "Up to 20 reviews shown per widget"),
+        t(locale, "Tüm temalar", "All themes unlocked"),
+        t(locale, "ReviewBridge rozetini kaldırma", "Remove ReviewBridge badge"),
+        t(locale, "Akıllı Filtre — yalnızca yazılı yorumlar", "Smart Filter — show only written reviews"),
+        t(locale, "Öncelikli eşitleme", "Priority sync"),
       ],
-      cta: "Start Pro",
+      cta: t(locale, "Pro'ya geç", "Start Pro"),
       popular: true,
     },
     {
-      name: "Agency",
+      name: t(locale, "Ajans", "Agency"),
       price: "$19",
-      period: "/month",
-      desc: "For agencies & multi-site",
+      period: t(locale, "/ay", "/month"),
+      desc: t(locale, "Ajanslar ve çoklu siteler için", "For agencies & multi-site"),
       features: [
-        "Unlimited sources",
-        "Up to 20 reviews shown per widget",
-        "All themes unlocked",
-        "Remove badge",
-        "Manage multiple sites",
-        "Priority support",
+        t(locale, "Sınırsız kaynak", "Unlimited sources"),
+        t(locale, "Bileşen başına en fazla 20 yorum", "Up to 20 reviews shown per widget"),
+        t(locale, "Tüm temalar", "All themes unlocked"),
+        t(locale, "Rozeti kaldırma", "Remove badge"),
+        t(locale, "Birden fazla siteyi yönetme", "Manage multiple sites"),
+        t(locale, "Öncelikli destek", "Priority support"),
       ],
-      cta: "Start Agency",
+      cta: t(locale, "Ajans planına geç", "Start Agency"),
       popular: false,
     },
   ];
@@ -296,12 +299,12 @@ function PricingSection({ isSignedIn }) {
     <section id="pricing" className="py-20 md:py-28 bg-muted-bg/30">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Pricing</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">{t(locale, "Fiyatlar", "Pricing")}</p>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Simple, transparent pricing
+            {t(locale, "Açık ve anlaşılır fiyatlandırma", "Simple, transparent pricing")}
           </h2>
           <p className="mt-4 text-muted text-lg max-w-xl mx-auto">
-            Start free. Upgrade when you need more power. No hidden fees.
+            {t(locale, "Ücretsiz başlayın. Daha fazlasına ihtiyaç duyduğunuzda yükseltin. Gizli ücret yok.", "Start free. Upgrade when you need more power. No hidden fees.")}
           </p>
         </div>
 
@@ -317,7 +320,7 @@ function PricingSection({ isSignedIn }) {
             >
               {plan.popular && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-semibold px-4 py-1 rounded-full">
-                  Most Popular
+                  {t(locale, "En popüler", "Most Popular")}
                 </div>
               )}
 
@@ -337,7 +340,7 @@ function PricingSection({ isSignedIn }) {
                     : "bg-muted-bg text-foreground hover:bg-primary-light hover:text-primary"
                 }`}
               >
-                {isSignedIn ? "Planları gör" : plan.cta}
+                {isSignedIn ? t(locale, "Planları gör", "View plans") : plan.cta}
               </Link>
 
               <ul className="mt-8 space-y-3">
@@ -356,27 +359,27 @@ function PricingSection({ isSignedIn }) {
   );
 }
 
-function FAQSection() {
+function FAQSection({ locale }) {
   const faqs = [
     {
-      q: "Which platforms are supported?",
-      a: "Currently Google Maps and Trustpilot. More platforms coming soon.",
+      q: t(locale, "Hangi platformlar destekleniyor?", "Which platforms are supported?"),
+      a: t(locale, "Şu anda Google Haritalar ve Trustpilot. Yakında başka platformlar da eklenecek.", "Currently Google Maps and Trustpilot. More platforms coming soon."),
     },
     {
-      q: "How often are reviews updated?",
-      a: "Reviews are fetched when you connect a source. You can start a manual sync from your dashboard; scheduled automatic syncing is not available yet."
+      q: t(locale, "Yorumlar ne sıklıkla güncellenir?", "How often are reviews updated?"),
+      a: t(locale, "Bir kaynak bağladığınızda yorumlar alınır. Panelden elle eşitleme başlatabilirsiniz; zamanlanmış otomatik eşitleme henüz yok.", "Reviews are fetched when you connect a source. You can start a manual sync from your dashboard; scheduled automatic syncing is not available yet.")
     },
     {
-      q: "Will it work on any website?",
-      a: "Yes. Works on WordPress, Shopify, Wix, Webflow, or any custom website.",
+      q: t(locale, "Her web sitesinde çalışır mı?", "Will it work on any website?"),
+      a: t(locale, "Evet. WordPress, Shopify, Wix, Webflow ve özel geliştirilmiş sitelerde çalışır.", "Yes. Works on WordPress, Shopify, Wix, Webflow, or any custom website."),
     },
     {
-      q: "Do I need technical knowledge?",
-      a: "No. Just copy one line of code and paste it where you want reviews to appear.",
+      q: t(locale, "Teknik bilgi gerekir mi?", "Do I need technical knowledge?"),
+      a: t(locale, "Hayır. Tek satırlık kodu kopyalayıp yorumların görünmesini istediğiniz yere yapıştırın.", "No. Just copy one line of code and paste it where you want reviews to appear."),
     },
     {
-      q: "Can I cancel anytime?",
-      a: "Yes. No contracts, no commitments. Cancel anytime from your dashboard.",
+      q: t(locale, "İstediğim zaman iptal edebilir miyim?", "Can I cancel anytime?"),
+      a: t(locale, "Evet. Sözleşme veya taahhüt yok. Panelinizden istediğiniz zaman iptal edebilirsiniz.", "Yes. No contracts, no commitments. Cancel anytime from your dashboard."),
     },
   ];
 
@@ -384,9 +387,9 @@ function FAQSection() {
     <section id="faq" className="py-20 md:py-28 bg-white">
       <div className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">FAQ</p>
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">{t(locale, "SSS", "FAQ")}</p>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Frequently asked questions
+            {t(locale, "Sık sorulan sorular", "Frequently asked questions")}
           </h2>
         </div>
 
@@ -403,7 +406,7 @@ function FAQSection() {
   );
 }
 
-function Footer() {
+function Footer({ locale }) {
   return (
     <footer className="py-12 bg-foreground text-white/70">
       <div className="max-w-6xl mx-auto px-6">
@@ -413,8 +416,8 @@ function Footer() {
             ReviewBridge
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-            <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">{t(locale, "Gizlilik Politikası", "Privacy Policy")}</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">{t(locale, "Kullanım Koşulları", "Terms of Service")}</Link>
             <a href="mailto:support@reviewbridge.app" className="hover:text-white transition-colors">support@reviewbridge.app</a>
           </div>
         </div>
@@ -427,6 +430,7 @@ function Footer() {
 }
 
 export default async function LandingPage() {
+  const locale = await getLocale();
   let isSignedIn = false;
   try {
     const { data: session } = await auth.getSession();
@@ -437,14 +441,14 @@ export default async function LandingPage() {
 
   return (
     <>
-      <Navbar isSignedIn={isSignedIn} />
+      <Navbar isSignedIn={isSignedIn} locale={locale} />
       <main className="flex-1">
-        <HeroSection isSignedIn={isSignedIn} />
-        <HowItWorksSection />
-        <PricingSection isSignedIn={isSignedIn} />
-        <FAQSection />
+        <HeroSection isSignedIn={isSignedIn} locale={locale} />
+        <HowItWorksSection locale={locale} />
+        <PricingSection isSignedIn={isSignedIn} locale={locale} />
+        <FAQSection locale={locale} />
       </main>
-      <Footer />
+      <Footer locale={locale} />
     </>
   );
 }

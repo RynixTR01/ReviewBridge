@@ -4,10 +4,13 @@ import { query, queryOne } from "@/lib/db";
 import { PLAN_LIMITS } from "@/lib/plans";
 import SyncButton from "./SyncButton";
 import DeleteSourceButton from "./DeleteSourceButton";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
-export const metadata = {
-  title: "Kaynaklar — ReviewBridge",
-};
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return { title: `${t(locale, "Kaynaklar", "Sources")} — ReviewBridge` };
+}
 
 function StarIcon({ className }) {
   return (
@@ -18,6 +21,7 @@ function StarIcon({ className }) {
 }
 
 export default async function DashboardPage() {
+  const locale = await getLocale();
   const user = await getCurrentUser();
 
   // Fetch sources and their corresponding widget
@@ -104,14 +108,14 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Kaynaklarınız</h1>
-            <p className="text-muted mt-1">Bağlı yorum profillerinizi yönetin.</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t(locale, "Kaynaklarınız", "Your sources")}</h1>
+            <p className="text-muted mt-1">{t(locale, "Bağlı yorum profillerinizi yönetin.", "Manage your connected review profiles.")}</p>
           </div>
           {userPlan === "pro" && (
             <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-primary to-secondary text-white rounded-full uppercase tracking-wide">Pro</span>
           )}
           {userPlan === "agency" && (
-            <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full uppercase tracking-wide">Agency</span>
+            <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full uppercase tracking-wide">{t(locale, "Ajans", "Agency")}</span>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -123,7 +127,7 @@ export default async function DashboardPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
-              Planları gör
+              {t(locale, "Planları gör", "View plans")}
             </Link>
           )}
           {(userPlan === "pro" || userPlan === "agency") && (
@@ -133,7 +137,7 @@ export default async function DashboardPage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted border border-border px-3 py-2 rounded-lg hover:bg-muted-bg hover:text-foreground transition-colors"
             >
-              Aboneliği yönet
+              {t(locale, "Aboneliği yönet", "Manage subscription")}
             </a>
           )}
           <Link
@@ -143,7 +147,7 @@ export default async function DashboardPage() {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Yeni kaynak ekle
+            {t(locale, "Yeni kaynak ekle", "Add source")}
           </Link>
         </div>
       </div>
@@ -153,19 +157,19 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
-            <p className="text-xs text-muted mt-1">Eşitlenen yorumlar</p>
+            <p className="text-xs text-muted mt-1">{t(locale, "Eşitlenen yorumlar", "Synced reviews")}</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{sources.length}</p>
-            <p className="text-xs text-muted mt-1">Bağlı kaynak</p>
+            <p className="text-xs text-muted mt-1">{t(locale, "Bağlı kaynak", "Connected sources")}</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">
               {lastSyncDate
-                ? lastSyncDate.toLocaleDateString("tr-TR", { month: "short", day: "numeric" })
+                ? lastSyncDate.toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US", { month: "short", day: "numeric" })
                 : "—"}
             </p>
-            <p className="text-xs text-muted mt-1">Son eşitleme</p>
+            <p className="text-xs text-muted mt-1">{t(locale, "Son eşitleme", "Last sync")}</p>
           </div>
         </div>
       )}
@@ -182,9 +186,9 @@ export default async function DashboardPage() {
           <div className="bg-white border border-border rounded-xl p-4 mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                {used} / {isUnlimited ? "∞" : maxSources} kaynak kullanılıyor
+                {used} / {isUnlimited ? "∞" : maxSources} {t(locale, "kaynak kullanılıyor", "sources used")}
               </span>
-              <span className="text-xs text-muted capitalize">{userPlan} plan</span>
+              <span className="text-xs text-muted capitalize">{userPlan === "free" ? t(locale, "Ücretsiz", "Free") : userPlan === "agency" ? t(locale, "Ajans", "Agency") : "Pro"} {t(locale, "planı", "plan")}</span>
             </div>
             <div className="w-full h-2 bg-muted-bg rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
@@ -202,8 +206,8 @@ export default async function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
               </svg>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">ReviewBridge’e hoş geldiniz!</h2>
-            <p className="text-muted text-lg max-w-md mx-auto">Gerçek yorumları web sitenizde göstermek için yalnızca birkaç adım kaldı.</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">{t(locale, "ReviewBridge’e hoş geldiniz!", "Welcome to ReviewBridge!")}</h2>
+            <p className="text-muted text-lg max-w-md mx-auto">{t(locale, "Gerçek yorumları web sitenizde göstermek için yalnızca birkaç adım kaldı.", "Just a few steps left to show real reviews on your website.")}</p>
           </div>
 
           {/* 3 Steps */}
@@ -216,8 +220,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">İşletme profilinizi bağlayın</h3>
-              <p className="text-sm text-muted">Google Haritalar bağlantınızı yapıştırın</p>
+              <h3 className="font-semibold text-foreground mb-1">{t(locale, "İşletme profilinizi bağlayın", "Connect your business profile")}</h3>
+              <p className="text-sm text-muted">{t(locale, "Google Haritalar bağlantınızı yapıştırın", "Paste your Google Maps link")}</p>
             </div>
 
             {/* Step 2 */}
@@ -228,8 +232,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Widget’ı özelleştirin</h3>
-              <p className="text-sm text-muted">Tema ve görünüm seçin</p>
+              <h3 className="font-semibold text-foreground mb-1">{t(locale, "Bileşeni özelleştirin", "Customize your widget")}</h3>
+              <p className="text-sm text-muted">{t(locale, "Tema ve görünüm seçin", "Choose a theme and appearance")}</p>
             </div>
 
             {/* Step 3 */}
@@ -240,8 +244,8 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
                 </svg>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Sitenize yerleştirin</h3>
-              <p className="text-sm text-muted">Tek satır kodla tamam</p>
+              <h3 className="font-semibold text-foreground mb-1">{t(locale, "Sitenize yerleştirin", "Embed on your site")}</h3>
+              <p className="text-sm text-muted">{t(locale, "Tek satır kodla tamam", "Done with one line of code")}</p>
             </div>
           </div>
 
@@ -254,9 +258,9 @@ export default async function DashboardPage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              İlk kaynağınızı ekleyin
+              {t(locale, "İlk kaynağınızı ekleyin", "Add your first source")}
             </Link>
-            <p className="text-xs text-muted mt-3">Sonsuza dek ücretsiz · Kredi kartı gerekmez</p>
+            <p className="text-xs text-muted mt-3">{t(locale, "Sonsuza dek ücretsiz · Kredi kartı gerekmez", "Free forever · No credit card required")}</p>
           </div>
         </div>
       ) : (
@@ -276,12 +280,12 @@ export default async function DashboardPage() {
               ? "bg-amber-50 text-amber-700"
               : "bg-green-50 text-green-700";
             const syncLabel = syncStatus === "pending"
-              ? "Yorumlar alınıyor…"
+              ? t(locale, "Yorumlar alınıyor…", "Fetching reviews…")
               : syncStatus === "error"
-              ? "Eşitleme başarısız"
+              ? t(locale, "Eşitleme başarısız", "Sync failed")
               : syncedCount === 0
-              ? "Yorum bulunamadı"
-              : `${syncedCount} yorum eşitlendi`;
+              ? t(locale, "Yorum bulunamadı", "No reviews found")
+              : `${syncedCount} ${t(locale, "yorum eşitlendi", "reviews synced")}`;
             const googleScore = source.total_score;
             const googleTotal = source.total_reviews_count;
             
@@ -321,7 +325,7 @@ export default async function DashboardPage() {
                         {/* Google total reviews */}
                         {googleTotal && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-muted-bg rounded-md">
-                            {googleTotal} Google yorumu
+                            {googleTotal} {t(locale, "Google yorumu", "Google reviews")}
                           </span>
                         )}
 
@@ -336,21 +340,21 @@ export default async function DashboardPage() {
                         </span>
 
                         <span className="text-xs text-muted">
-                          Son başarılı eşitleme: {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString("tr-TR") : "Henüz yok"}
+                          {t(locale, "Son başarılı eşitleme:", "Last successful sync:")} {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US") : t(locale, "Henüz yok", "Not yet")}
                         </span>
                         {syncStatus === "error" && source.last_sync_error && (
-                          <span className="text-xs text-red-600">{source.last_sync_error}</span>
+                          <span className="text-xs text-red-600">{locale === "tr" ? source.last_sync_error : "The last sync failed. Try again or check the source link."}</span>
                         )}
                         {syncStatus === "done" && syncedCount === 0 && (
                           <span className="text-xs text-amber-700">
-                            Profil bağlantısını kontrol edin veya <Link href="/dashboard/help#google-maps-url" className="underline">bağlantı kılavuzunu açın</Link>.
+                            {t(locale, "Profil bağlantısını kontrol edin veya ", "Check the profile link or ")}<Link href="/dashboard/help#google-maps-url" className="underline">{t(locale, "bağlantı kılavuzunu açın", "open the link guide")}</Link>.
                           </span>
                         )}
 
                         {/* Theme badge */}
                         {widgetId && (
                           <span className="text-xs font-medium text-muted px-2 py-0.5 bg-muted-bg rounded-md capitalize">
-                            {widgetTheme === "dark" ? "Koyu tema" : "Açık tema"}
+                            {widgetTheme === "dark" ? t(locale, "Koyu tema", "Dark theme") : t(locale, "Açık tema", "Light theme")}
                           </span>
                         )}
                       </div>
@@ -373,7 +377,7 @@ export default async function DashboardPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
                         </svg>
-                        Özelleştir
+                        {t(locale, "Özelleştir", "Customize")}
                       </Link>
                     )}
 
@@ -386,26 +390,26 @@ export default async function DashboardPage() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                         </svg>
-                        Yerleştirme kodu
+                        {t(locale, "Yerleştirme kodu", "Embed code")}
                       </Link>
                     ) : (
-                      <span className="text-sm text-danger font-medium">Widget hazırlanıyor...</span>
+                      <span className="text-sm text-danger font-medium">{t(locale, "Bileşen hazırlanıyor...", "Widget is being prepared...")}</span>
                     )}
                   </div>
                 </div>
                 <details className="mt-4 border-t border-border pt-3">
-                  <summary className="cursor-pointer text-sm font-medium text-muted hover:text-foreground">Eşitleme geçmişi</summary>
+                  <summary className="cursor-pointer text-sm font-medium text-muted hover:text-foreground">{t(locale, "Eşitleme geçmişi", "Sync history")}</summary>
                   <div className="mt-3 space-y-2">
                     {(syncHistory[source.id] || []).length === 0 ? (
-                      <p className="text-xs text-muted">Henüz eşitleme geçmişi yok.</p>
+                      <p className="text-xs text-muted">{t(locale, "Henüz eşitleme geçmişi yok.", "No sync history yet.")}</p>
                     ) : (syncHistory[source.id] || []).map((entry) => (
                       <div key={entry.started_at} className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span className={entry.status === "done" ? "text-green-700" : entry.status === "error" ? "text-red-700" : "text-blue-700"}>
-                          {entry.status === "done" ? "Tamamlandı" : entry.status === "error" ? "Başarısız" : "Devam ediyor"}
-                          {entry.status === "done" && <> · {entry.reviews_count} yorum</>}
+                          {entry.status === "done" ? t(locale, "Tamamlandı", "Completed") : entry.status === "error" ? t(locale, "Başarısız", "Failed") : t(locale, "Devam ediyor", "In progress")}
+                          {entry.status === "done" && <> · {entry.reviews_count} {t(locale, "yorum", "reviews")}</>}
                         </span>
-                        <time dateTime={new Date(entry.started_at).toISOString()} className="text-muted">{new Date(entry.started_at).toLocaleString("tr-TR")}</time>
-                        {entry.error_message && <span className="basis-full text-red-600">{entry.error_message}</span>}
+                        <time dateTime={new Date(entry.started_at).toISOString()} className="text-muted">{new Date(entry.started_at).toLocaleString(locale === "tr" ? "tr-TR" : "en-US")}</time>
+                        {entry.error_message && <span className="basis-full text-red-600">{locale === "tr" ? entry.error_message : "Sync failed. Check the source link and retry."}</span>}
                       </div>
                     ))}
                   </div>

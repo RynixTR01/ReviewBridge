@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { updateWidgetAction } from "@/app/actions/widget";
+import { useLocale } from "@/app/LanguageProvider";
+import { t } from "@/lib/i18n";
 
 export default function WidgetEditor({ widget, source, reviews, planLimits }) {
+  const locale = useLocale();
   const [theme, setTheme] = useState(widget.theme);
   const [maxReviews, setMaxReviews] = useState(widget.max_reviews);
   const [showBadge, setShowBadge] = useState(widget.show_badge);
@@ -21,7 +24,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(embedCode);
-    setSaveMessage("Embed code copied to clipboard!");
+    setSaveMessage(t(locale, "Yerleştirme kodu kopyalandı!", "Embed code copied to clipboard!"));
     setTimeout(() => setSaveMessage(""), 3000);
   };
 
@@ -44,9 +47,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
 
       const result = await updateWidgetAction(formData);
       if (result?.error) {
-        setSaveMessage(result.error);
+        setSaveMessage(locale === "tr" ? "Bileşen ayarları kaydedilemedi." : result.error);
       } else {
-        setSaveMessage("Widget settings saved successfully!");
+        setSaveMessage(t(locale, "Bileşen ayarları kaydedildi!", "Widget settings saved successfully!"));
         setTimeout(() => setSaveMessage(""), 3000);
       }
     });
@@ -67,39 +70,39 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
       {/* Editor Column */}
       <div className="space-y-6">
         <div className="bg-white border border-border shadow-sm rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-foreground mb-6">Widget Settings</h2>
+          <h2 className="text-xl font-bold text-foreground mb-6">{t(locale, "Bileşen ayarları", "Widget settings")}</h2>
           
           <form onSubmit={handleSave} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Theme</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">{t(locale, "Tema", "Theme")}</label>
               <div className="grid grid-cols-3 gap-3">
-                {["light", "dark", "minimal"].map((t) => {
-                  const isDisabled = t !== "light" && !planLimits.canSelectTheme;
+                {["light", "dark", "minimal"].map((themeName) => {
+                  const isDisabled = themeName !== "light" && !planLimits.canSelectTheme;
                   return (
-                    <label key={t} className={`cursor-pointer ${isDisabled ? 'opacity-50' : ''}`}>
+                    <label key={themeName} className={`cursor-pointer ${isDisabled ? 'opacity-50' : ''}`}>
                       <input 
                         type="radio" 
                         name="theme" 
-                        value={t} 
-                        checked={theme === t} 
+                        value={themeName}
+                        checked={theme === themeName}
                         onChange={(e) => setTheme(e.target.value)}
                         disabled={isDisabled}
                         className="peer sr-only" 
                       />
                       <div className="rounded-xl border-2 border-border p-3 text-center hover:bg-muted-bg peer-checked:border-primary peer-checked:bg-primary-light transition-all">
-                        <span className="font-medium text-sm capitalize text-foreground">{t}</span>
+                        <span className="font-medium text-sm capitalize text-foreground">{themeName === "light" ? t(locale, "Açık", "Light") : themeName === "dark" ? t(locale, "Koyu", "Dark") : t(locale, "Minimal", "Minimal")}</span>
                       </div>
                     </label>
                   );
                 })}
               </div>
               {!planLimits.canSelectTheme && (
-                <p className="text-xs text-amber-600 mt-2">Upgrade to Pro to unlock all themes.</p>
+                <p className="text-xs text-amber-600 mt-2">{t(locale, "Tüm temaları açmak için Pro'ya geçin.", "Upgrade to Pro to unlock all themes.")}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Maximum Reviews to Show</label>
+              <label className="block text-sm font-semibold text-foreground mb-2">{t(locale, "Gösterilecek en fazla yorum", "Maximum reviews to show")}</label>
               <select 
                 value={maxReviews} 
                 onChange={(e) => setMaxReviews(Number(e.target.value))}
@@ -109,7 +112,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                   const isDisabled = n > planLimits.maxReviews;
                   return (
                     <option key={n} value={n} disabled={isDisabled}>
-                      {n} reviews {isDisabled ? '(Upgrade to unlock)' : ''}
+                      {n} {t(locale, "yorum", "reviews")} {isDisabled ? t(locale, "(Açmak için yükseltin)", "(Upgrade to unlock)") : ''}
                     </option>
                   );
                 })}
@@ -118,8 +121,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
 
             <div className="flex items-center justify-between py-2">
               <div>
-                <label className="block text-sm font-semibold text-foreground">ReviewBridge Badge</label>
-                <p className="text-xs text-muted">Show &quot;Powered by ReviewBridge&quot; link</p>
+                <label className="block text-sm font-semibold text-foreground">{t(locale, "ReviewBridge rozeti", "ReviewBridge badge")}</label>
+                <p className="text-xs text-muted">{t(locale, "ReviewBridge tarafından desteklenir bağlantısını göster", "Show the Powered by ReviewBridge link")}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -134,19 +137,19 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             </div>
             
             {!planLimits.canRemoveBadge && (
-                <p className="text-xs text-amber-600 -mt-2">Upgrade to Pro to remove the branding badge.</p>
+                <p className="text-xs text-amber-600 -mt-2">{t(locale, "Rozeti kaldırmak için Pro'ya geçin.", "Upgrade to Pro to remove the branding badge.")}</p>
             )}
 
             {/* Smart Filter */}
             <div className="flex items-center justify-between py-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <label className="block text-sm font-semibold text-foreground">Smart Filter</label>
+                  <label className="block text-sm font-semibold text-foreground">{t(locale, "Akıllı Filtre", "Smart Filter")}</label>
                   {!planLimits.canSelectTheme && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">PRO</span>
                   )}
                 </div>
-                <p className="text-xs text-muted">Hide star-only ratings. Show only reviews with written feedback.</p>
+                <p className="text-xs text-muted">{t(locale, "Yalnızca yıldız verilen yorumları gizleyin. Yazılı yorumları gösterin.", "Hide star-only ratings. Show only reviews with written feedback.")}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -160,14 +163,14 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
               </label>
             </div>
             {!planLimits.canSelectTheme && (
-              <p className="text-xs text-amber-600 -mt-2">Upgrade to Pro to use Smart Filter.</p>
+              <p className="text-xs text-amber-600 -mt-2">{t(locale, "Akıllı Filtre için Pro'ya geçin.", "Upgrade to Pro to use Smart Filter.")}</p>
             )}
 
             {/* Leave a Review Button */}
             <div className="flex items-center justify-between py-2">
               <div>
-                <label className="block text-sm font-semibold text-foreground">Leave a Review Button</label>
-                <p className="text-xs text-muted">Add a button encouraging visitors to leave a Google review</p>
+                <label className="block text-sm font-semibold text-foreground">{t(locale, "Yorum bırak düğmesi", "Leave a review button")}</label>
+                <p className="text-xs text-muted">{t(locale, "Ziyaretçileri Google yorumu bırakmaya yönlendiren bir düğme ekleyin", "Add a button encouraging visitors to leave a Google review")}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -187,7 +190,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                   disabled={isPending}
                   className="bg-foreground text-white font-medium px-6 py-2.5 rounded-xl hover:bg-neutral-800 transition-colors disabled:opacity-50"
                 >
-                  {isPending ? "Saving..." : "Save Settings"}
+                  {isPending ? t(locale, "Kaydediliyor...", "Saving...") : t(locale, "Ayarları kaydet", "Save settings")}
                 </button>
                 <a
                   /* Preview button strictly binds to the unique embed_token */
@@ -200,7 +203,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  Preview
+                  {t(locale, "Önizleme", "Preview")}
                 </a>
               </div>
               
@@ -215,8 +218,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
 
         {/* Embed Code Section */}
         <div className="bg-white border border-border shadow-sm rounded-2xl p-6">
-          <h2 className="text-xl font-bold text-foreground mb-2">Embed Code</h2>
-          <p className="text-sm text-muted mb-4">Copy this script and paste it anywhere on your website where you want the reviews to appear.</p>
+          <h2 className="text-xl font-bold text-foreground mb-2">{t(locale, "Yerleştirme kodu", "Embed code")}</h2>
+          <p className="text-sm text-muted mb-4">{t(locale, "Bu kodu kopyalayıp yorumların görünmesini istediğiniz yere yapıştırın.", "Copy this script and paste it anywhere on your website where you want the reviews to appear.")}</p>
           
           <div className="relative group">
             <pre className="p-4 bg-muted-bg rounded-xl overflow-x-auto text-sm text-foreground/80 border border-border/50 font-mono">
@@ -225,7 +228,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             <button 
               onClick={copyToClipboard}
               className="absolute top-2 right-2 p-2 bg-white border border-border rounded-lg text-muted hover:text-foreground hover:border-primary/50 shadow-sm transition-all"
-              title="Copy to clipboard"
+              title={t(locale, "Panoya kopyala", "Copy to clipboard")}
+              aria-label={t(locale, "Panoya kopyala", "Copy to clipboard")}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -237,7 +241,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
 
       {/* Live Preview Box */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Live Preview</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t(locale, "Canlı önizleme", "Live preview")}</h2>
         
         <div 
           className="rounded-2xl border-4 border-border overflow-hidden transition-colors duration-300"
@@ -254,7 +258,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             <div className="max-w-sm mx-auto space-y-4 mt-4">
               
               {displayedReviews.length === 0 ? (
-                 <p className="text-sm opacity-50 text-center" style={{ color: previewText }}>No reviews yet.</p>
+                 <p className="text-sm opacity-50 text-center" style={{ color: previewText }}>{t(locale, "Henüz yorum yok.", "No reviews yet.")}</p>
               ) : (
                 displayedReviews.map((r, idx) => (
                   <div 
@@ -288,7 +292,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
               {showBadge && (
                 <div className="text-center mt-3">
                   <a href="#" className="text-[11px] opacity-60 hover:opacity-100 transition-opacity" style={{ color: previewText }}>
-                    Powered by ReviewBridge
+                    {t(locale, "ReviewBridge tarafından desteklenir", "Powered by ReviewBridge")}
                   </a>
                 </div>
               )}

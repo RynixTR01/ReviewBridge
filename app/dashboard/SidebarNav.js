@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/app/LanguageProvider";
 
 const navItems = [
   {
-    label: "Ana sayfa",
+    label: { tr: "Ana sayfa", en: "Home" },
     href: "/",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -15,7 +16,7 @@ const navItems = [
     exact: true,
   },
   {
-    label: "Kaynaklar",
+    label: { tr: "Kaynaklar", en: "Sources" },
     href: "/dashboard",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -25,7 +26,7 @@ const navItems = [
     exact: true,
   },
   {
-    label: "Planlar",
+    label: { tr: "Planlar", en: "Plans" },
     href: "/dashboard/upgrade",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -34,7 +35,7 @@ const navItems = [
     ),
   },
   {
-    label: "Ayarlar",
+    label: { tr: "Ayarlar", en: "Settings" },
     href: "/dashboard/settings",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -44,7 +45,7 @@ const navItems = [
     ),
   },
   {
-    label: "Yardım",
+    label: { tr: "Yardım", en: "Help" },
     href: "/dashboard/help",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -56,6 +57,7 @@ const navItems = [
 
 export default function SidebarNav() {
   const pathname = usePathname();
+  const locale = useLocale();
 
   return (
     <nav className="space-y-1">
@@ -76,7 +78,7 @@ export default function SidebarNav() {
             }`}
           >
             {item.icon}
-            {item.label}
+            {item.label[locale]}
           </Link>
         );
       })}
