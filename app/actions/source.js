@@ -168,10 +168,6 @@ export async function addSourceAction(prevState, formData) {
   }
 
   const historyId = await startSyncHistory(newSource.id);
-  if (!startsAsyncGoogleSync) {
-    await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsList.length });
-  }
-
   // If Google, start the async Apify run now that we have the source.id
   if (startsAsyncGoogleSync) {
     try {
@@ -234,6 +230,10 @@ export async function addSourceAction(prevState, formData) {
     } catch (reviewsError) {
       console.error("Insert reviews error:", reviewsError);
     }
+  }
+
+  if (!startsAsyncGoogleSync) {
+    await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsToInsert.length });
   }
 
   // 4. Create default widget
