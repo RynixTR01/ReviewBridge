@@ -58,12 +58,12 @@ export async function POST(request, { params }) {
         const remainingMin = Math.ceil(remainingMs / 60_000);
         const remainingDisplay =
           remainingMin >= 120
-            ? `${Math.ceil(remainingMin / 60)} hours`
+            ? `${Math.ceil(remainingMin / 60)} saat`
             : remainingMin >= 60
-            ? `1 hour`
-            : `${remainingMin} minute${remainingMin !== 1 ? 's' : ''}`;
+            ? `1 saat`
+            : `${remainingMin} dakika`;
         return Response.json(
-          { error: `Sync is on cooldown. Available again in ${remainingDisplay}.` },
+          { error: `Eşitleme için bekleme süresi dolmadı. ${remainingDisplay} sonra yeniden deneyin.` },
           { status: 429 }
         );
       }
@@ -108,10 +108,10 @@ export async function POST(request, { params }) {
            SET sync_status = 'error', last_sync_error = $2,
                apify_run_id = NULL, sync_started_at = NULL
            WHERE id = $1 AND user_id = $3`,
-          [source.id, "Failed to start sync process", user.id]
+          [source.id, "Eşitleme başlatılamadı.", user.id]
         );
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
-        return Response.json({ error: "Failed to start sync process" }, { status: 500 });
+        return Response.json({ error: "Eşitleme başlatılamadı." }, { status: 500 });
       }
     } else if (process.env.APIFY_API_TOKEN && source.platform === "trustpilot") {
       const companyDomain = extractTrustpilotDomain(source.place_id) || source.place_id;
@@ -157,7 +157,7 @@ export async function POST(request, { params }) {
       } else {
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Apify anahtarı yapılandırılmamış." });
         return Response.json(
-          { error: "Apify token is not configured. Add APIFY_API_TOKEN to your environment variables." },
+          { error: "Apify anahtarı yapılandırılmamış." },
           { status: 500 }
         );
       }
@@ -211,6 +211,6 @@ export async function POST(request, { params }) {
       await finishSyncHistory({ historyId, sourceId: currentSourceId, status: "error", errorMessage: "Eşitleme sırasında hata oluştu." });
     }
     console.error("Sync error:", err);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return Response.json({ error: "Sunucu hatası oluştu." }, { status: 500 });
   }
 }
