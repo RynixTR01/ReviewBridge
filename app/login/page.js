@@ -21,7 +21,7 @@ export default function LoginPage() {
       });
       if (error) setError(error.message);
     } catch (authError) {
-      setError(authError.message || "Unable to start Google sign-in.");
+      setError(authError.message || "Google ile giriş başlatılamadı.");
     }
   }
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted-bg/30 px-6">
+    <div lang="tr" className="min-h-screen flex items-center justify-center bg-muted-bg/30 px-6">
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 font-bold text-xl text-foreground mb-10">
@@ -58,8 +58,8 @@ export default function LoginPage() {
         </Link>
 
         <div className="bg-white rounded-2xl border border-border shadow-lg p-8">
-          <h1 className="text-2xl font-bold text-foreground text-center mb-2">Welcome back</h1>
-          <p className="text-sm text-muted text-center mb-8">Log in to your ReviewBridge dashboard</p>
+          <h1 className="text-2xl font-bold text-foreground text-center mb-2">Tekrar hoş geldiniz</h1>
+          <p className="text-sm text-muted text-center mb-8">ReviewBridge hesabınıza giriş yapın</p>
 
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
@@ -116,7 +116,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder="Şifrenizi girin"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
               />
             </div>
