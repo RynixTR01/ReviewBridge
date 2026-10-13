@@ -108,6 +108,13 @@ test("paid widget settings allow masonry and validate typography and card stylin
   assert.equal(settings.cornerStyle, "large");
 });
 
+test("paid widget settings allow the floating review banner while free settings remain list-only", () => {
+  assert.equal(normalizeWidgetSettings({ layout: "floating" }, "pro").layout, "floating");
+  assert.equal(normalizeWidgetSettings({ layout: "floating" }, "agency").layout, "floating");
+  assert.equal(normalizeWidgetSettings({ layout: "floating" }, "free").layout, "list");
+  assert.equal(normalizeWidgetSettings({ layout: "unknown" }, "pro").layout, "list");
+});
+
 test("widget text colors preserve WCAG AA contrast against the selected background", () => {
   const settings = normalizeWidgetSettings({ backgroundColor: "#ffffff", textColor: "#ffffff" }, "pro");
   assert.equal(settings.textColor, "#111827");

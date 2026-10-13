@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { filterWidgetReviews, getWidgetColors } from "@/lib/widget-rendering";
+import FloatingPreviewShell from "./FloatingPreviewShell";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -124,7 +125,8 @@ export default async function PreviewPage({ params }) {
   const border = colors.border;
   const cardBg = colors.card;
   const shadow = colors.shadow;
-  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry"].includes(widget.layout) ? widget.layout : "list";
+  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry", "floating"].includes(widget.layout) ? widget.layout : "list";
+  const previewReviews = layout === "floating" ? reviewsList.slice(0, 1) : reviewsList;
   const previewFont = widget.font_family === "arial" ? "Arial, sans-serif" : widget.font_family === "georgia" ? "Georgia, serif" : "system-ui, sans-serif";
   const cardPadding = widget.card_density === "compact" ? 10 : 16;
   const cardRadius = { small: 6, medium: 12, large: 20 }[widget.corner_style] || 12;
@@ -162,7 +164,7 @@ export default async function PreviewPage({ params }) {
           </div>
 
           {/* Fake Website Content */}
-          <div className="p-6 md:p-8" style={{ backgroundColor: widget.theme === "dark" ? "#111827" : "#f9fafb" }}>
+          <div className="relative p-6 md:p-8" style={{ backgroundColor: widget.theme === "dark" ? "#111827" : "#f9fafb", minHeight: layout === "floating" ? 480 : undefined }}>
             <h2
               className="text-xl font-bold mb-1"
               style={{ color: widget.theme === "dark" ? "#f9fafb" : "#111827" }}
@@ -177,14 +179,15 @@ export default async function PreviewPage({ params }) {
             </p>
 
             {/* Widget Rendered Inline */}
+            <FloatingPreviewShell enabled={layout === "floating"} closeLabel={t(widgetDisplayLocale, "Yorum bandını kapat", "Dismiss review banner")} restoreLabel={t(widgetDisplayLocale, "Bandı göster", "Show banner")}>
             <div
               style={{
-                width: "100%",
-                maxWidth: layout === "grid" || layout === "masonry" ? 640 : 500,
-                margin: "0 auto",
+                width: layout === "floating" ? "100%" : "100%",
+                maxWidth: layout === "floating" ? 380 : layout === "grid" || layout === "masonry" ? 640 : 500,
+                margin: layout === "floating" ? 0 : "0 auto",
                 background: bg,
                 borderRadius: 16,
-                padding: widget.theme === "minimal" ? 0 : 20,
+                padding: layout === "floating" ? "38px 12px 12px" : widget.theme === "minimal" ? 0 : 20,
                 boxSizing: "border-box",
                 fontFamily: previewFont,
               }}
@@ -204,7 +207,7 @@ export default async function PreviewPage({ params }) {
                   {t(widgetDisplayLocale, "Yorum bulunamadı.", "No reviews found.")}
                 </p>
               ) : (
-                reviewsList.map((r, i) => (
+                previewReviews.map((r, i) => (
                   <div
                     key={i}
                     style={{
@@ -329,6 +332,7 @@ export default async function PreviewPage({ params }) {
                 {widget.last_synced_at && <> · {t(widgetDisplayLocale, "Son güncelleme", "Last updated")}: {new Date(widget.last_synced_at).toLocaleDateString(widgetDisplayLocale === "tr" ? "tr-TR" : "en-US")}</>}
               </p>
             </div>
+            </FloatingPreviewShell>
           </div>
         </div>
       </div>

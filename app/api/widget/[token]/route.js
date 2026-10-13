@@ -120,7 +120,7 @@ export async function GET(_request, { params }) {
   });
 
   const colors = getWidgetColors(widget);
-  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry"].includes(widget.layout) ? widget.layout : "list";
+  const layout = limits.canChooseLayout && ["grid", "carousel", "masonry", "floating"].includes(widget.layout) ? widget.layout : "list";
   const fontFamily = widget.font_family === "arial" ? "Arial, sans-serif" : widget.font_family === "georgia" ? "Georgia, serif" : "system-ui,sans-serif";
   const cardPadding = widget.card_density === "compact" ? 10 : 16;
   const cardRadius = { small: 6, medium: 12, large: 20 }[widget.corner_style] || 12;
@@ -154,7 +154,7 @@ export async function GET(_request, { params }) {
     const dateLine = widget.show_reviewed_date !== false && date
       ? `<time class="rb-date" datetime="${escapeHtml(date)}" style="display:block;margin-top:8px;font-size:12px;opacity:.65" data-date="${escapeHtml(date)}"></time>`
       : "";
-    return `<article role="listitem" class="rb-card" style="min-width:0;box-sizing:border-box;background:${colors.card};border:${colors.border};border-radius:${cardRadius}px;padding:${cardPadding}px;box-shadow:${colors.shadow};font-family:${fontFamily};color:${colors.text}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${avatar}<div><div style="font-size:14px;font-weight:600">${reviewer}</div><div style="font-size:15px">${stars(review.rating, colors.accent)}</div></div></div>${body ? `<p style="font-size:14px;line-height:1.55;opacity:.92;margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${body}</p>` : ""}${dateLine}</article>`;
+    return `<article role="listitem" class="rb-card" style="min-width:0;box-sizing:border-box;background:${colors.card};border:${colors.border};border-radius:${cardRadius}px;padding:${cardPadding}px;box-shadow:${colors.shadow};font-family:${fontFamily};color:${colors.text}"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">${avatar}<div><div style="font-size:14px;font-weight:600">${reviewer}</div><div style="font-size:15px">${stars(review.rating, colors.accent)}</div></div></div>${body ? `<p class="rb-review-body" style="font-size:14px;line-height:1.55;opacity:.92;margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${body}</p>` : ""}${dateLine}</article>`;
   }).join("");
 
   const buttonHref = reviewUrl ? escapeHtml(reviewUrl) : "";
@@ -179,7 +179,8 @@ export async function GET(_request, { params }) {
     const badge = widget.show_badge ? `<div style="text-align:center;margin-top:12px;font:12px system-ui,sans-serif"><a href="https://reviewbridge.com" target="_blank" rel="noopener noreferrer" style="color:${colors.text};opacity:.6;text-decoration:none">${tr ? "ReviewBridge tarafından desteklenir" : "Powered by ReviewBridge"}</a></div>` : "";
     const carouselAccess = layout === "carousel" ? ` tabindex="0" aria-label="${tr ? "Yorumları yatay kaydırın" : "Scroll reviews horizontally"}"` : "";
     const averageBadge = widget.show_rating_summary && widgetReviews.length ? `<div class="rb-rating-summary" aria-label="${tr ? "Ortalama puan" : "Average rating"}">★ ${averageRating}/5 · ${widgetReviews.length} ${tr ? "yorum" : "reviews"}</div>` : "";
-    htmlByLocale[locale] = `${heading}${averageBadge}<div class="rb-reviews rb-layout-${layout}" role="list" aria-label="${tr ? "Müşteri yorumları" : "Customer reviews"}"${carouselAccess}>${content}</div>${stale}${sourceAttribution}${cta}${badge}`;
+    const dismissButton = layout === "floating" ? `<button type="button" class="rb-floating-dismiss" data-rb-dismiss aria-label="${tr ? "Yorum bandını kapat" : "Dismiss review banner"}">×</button>` : "";
+    htmlByLocale[locale] = `${dismissButton}${heading}${averageBadge}<div class="rb-reviews rb-layout-${layout}" role="list" aria-label="${tr ? "Müşteri yorumları" : "Customer reviews"}"${carouselAccess}>${content}</div>${stale}${sourceAttribution}${cta}${badge}`;
   }
 
   const widgetId = `reviewbridge-embed-${token}`;
@@ -194,6 +195,7 @@ export async function GET(_request, { params }) {
     fontFamily,
     widgetLocale: widget.widget_locale,
     htmlByLocale,
+    layout,
   });
 
   const etag = createWidgetEtag(js);
