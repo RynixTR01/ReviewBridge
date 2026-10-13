@@ -1,7 +1,29 @@
+import { isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
+
 export const APIFY_ACTORS = {
   GOOGLE_MAPS: 'Xb8osYTtOjlsgI6k9',
   TRUSTPILOT: 'memo23~trustpilot-scraper-ppe'
 };
+
+export function buildGoogleMapsActorInput(identifier, mapsUrl) {
+  const url = typeof mapsUrl === "string" ? mapsUrl.trim() : "";
+  if (isGoogleMapsUrl(url)) {
+    return { startUrls: [{ url }] };
+  }
+
+  const value = typeof identifier === "string" ? identifier.trim() : "";
+  if (/^(?:ChIJ|GhIJ)[A-Za-z0-9_-]{23}$/.test(value)) {
+    return { placeIds: [value] };
+  }
+
+  const cidMatch = value.match(/^0x[0-9a-f]+:0x([0-9a-f]+)$/i);
+  if (cidMatch) {
+    const cid = BigInt("0x" + cidMatch[1]).toString(10);
+    return { startUrls: [{ url: "https://www.google.com/maps?cid=" + cid }] };
+  }
+
+  throw new Error("Google Maps input must be a supported Maps URL or Place ID.");
+}
 
 /**
  * Builds the webhook URL with the required sourceId and secret.
