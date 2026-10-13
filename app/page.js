@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth/server";
+
+export const dynamic = "force-dynamic";
 
 function StarIcon({ className, filled = true }) {
   return (
@@ -16,7 +19,7 @@ function CheckIcon() {
   );
 }
 
-function Navbar() {
+function Navbar({ isSignedIn }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -29,25 +32,36 @@ function Navbar() {
           <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-muted hover:text-foreground transition-colors px-4 py-2"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
-          >
-            Get Started Free
-          </Link>
+          {isSignedIn ? (
+            <Link
+              href="/dashboard"
+              className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
+            >
+              Panele dön
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-sm font-medium text-muted hover:text-foreground transition-colors px-4 py-2"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
+              >
+                Get Started Free
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
   );
 }
 
-function HeroSection() {
+function HeroSection({ isSignedIn }) {
   return (
     <section className="hero-gradient pt-32 pb-20 md:pt-40 md:pb-28">
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
@@ -69,11 +83,11 @@ function HeroSection() {
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/signup"
+            href={isSignedIn ? "/dashboard" : "/signup"}
             id="hero-cta"
             className="btn-pulse inline-flex items-center gap-2 bg-primary text-white font-semibold px-8 py-4 rounded-xl text-lg hover:bg-primary-hover transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            Start Free — No Credit Card
+            {isSignedIn ? "Panele dön" : "Start Free — No Credit Card"}
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
@@ -228,7 +242,7 @@ function HowItWorksSection() {
   );
 }
 
-function PricingSection() {
+function PricingSection({ isSignedIn }) {
   const plans = [
     {
       name: "Free",
@@ -316,14 +330,14 @@ function PricingSection() {
               </div>
 
               <Link
-                href="/signup"
+                href={isSignedIn ? "/dashboard/upgrade" : "/signup"}
                 className={`mt-8 block text-center font-semibold py-3 rounded-xl transition-all duration-200 ${
                   plan.popular
                     ? "bg-primary text-white hover:bg-primary-hover shadow-sm"
                     : "bg-muted-bg text-foreground hover:bg-primary-light hover:text-primary"
                 }`}
               >
-                {plan.cta}
+                {isSignedIn ? "Planları gör" : plan.cta}
               </Link>
 
               <ul className="mt-8 space-y-3">
@@ -412,14 +426,22 @@ function Footer() {
   );
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  let isSignedIn = false;
+  try {
+    const { data: session } = await auth.getSession();
+    isSignedIn = Boolean(session?.user?.emailVerified);
+  } catch {
+    // Keep the public landing page available if the auth service is unavailable.
+  }
+
   return (
     <>
-      <Navbar />
+      <Navbar isSignedIn={isSignedIn} />
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection isSignedIn={isSignedIn} />
         <HowItWorksSection />
-        <PricingSection />
+        <PricingSection isSignedIn={isSignedIn} />
         <FAQSection />
       </main>
       <Footer />
