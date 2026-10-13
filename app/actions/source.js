@@ -20,11 +20,15 @@ export async function addSourceAction(prevState, formData) {
   }
 
   const platform = formData.get("platform");
-  const rawInput = formData.get("identifier");
-  let identifier = extractPlaceId(rawInput);
+  const rawInput = String(formData.get("identifier") || "").trim();
+  let identifier = platform === "google" ? extractPlaceId(rawInput) : rawInput;
   
   if (!identifier) {
-    return { error: "Could not extract Place ID from the URL. Please paste a valid Google Maps URL or Place ID." };
+    return {
+      error: platform === "google"
+        ? "This is not a supported Google Maps business link. Open the business in Google Maps and paste its Maps URL or Place ID. Google Search links (google.com/search) do not work."
+        : "Please enter a valid Trustpilot URL or company domain.",
+    };
   }
 
   if (!platform || !identifier) {

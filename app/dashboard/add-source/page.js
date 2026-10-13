@@ -84,7 +84,7 @@ export default function AddSourcePage() {
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
               Place ID or URL
             </label>
-            <p className="text-xs text-muted mb-2">For Google, paste your Google Maps URL. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
+            <p className="text-xs text-muted mb-2">For Google, paste the business listing URL from Google Maps or its Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).</p>
             <input
               id="identifier"
               name="identifier"
