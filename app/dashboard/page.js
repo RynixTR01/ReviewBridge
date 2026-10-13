@@ -106,7 +106,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t(locale, "Kaynaklarınız", "Your sources")}</h1>
             <p className="text-muted mt-1">{t(locale, "Bağlı yorum profillerinizi yönetin.", "Manage your connected review profiles.")}</p>
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
             <span className="px-3 py-1 text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full uppercase tracking-wide">{t(locale, "Ajans", "Agency")}</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {userPlan === "free" && (
             <Link
               href="/dashboard/upgrade"
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
 
       {/* Stats bar */}
       {hasSources && (
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
             <p className="text-xs text-muted mt-1">{t(locale, "Eşitlenen yorumlar", "Synced reviews")}</p>
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
             <p className="text-2xl font-bold text-foreground">{sources.length}</p>
             <p className="text-xs text-muted mt-1">{t(locale, "Bağlı kaynak", "Connected sources")}</p>
           </div>
-          <div className="bg-white border border-border rounded-xl p-4 text-center">
+          <div className="col-span-2 sm:col-span-1 bg-white border border-border rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-foreground">
               {lastSyncDate
                 ? lastSyncDate.toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US", { month: "short", day: "numeric" })
@@ -198,7 +198,7 @@ export default async function DashboardPage() {
       })()}
 
       {!hasSources ? (
-        <div className="bg-white border border-border rounded-2xl p-10 md:p-14">
+        <div className="bg-white border border-border rounded-2xl p-5 sm:p-10 md:p-14">
           {/* Top Section */}
           <div className="text-center mb-10">
             <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -290,9 +290,9 @@ export default async function DashboardPage() {
             const googleTotal = source.total_reviews_count;
             
             return (
-              <div key={source.id} className="bg-white border border-border shadow-sm rounded-xl p-5 transition-all hover:shadow-md hover:border-primary/20">
+              <div key={source.id} className="min-w-0 bg-white border border-border shadow-sm rounded-xl p-4 sm:p-5 transition-all hover:shadow-md hover:border-primary/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isGoogle ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
                       {isGoogle ? (
                         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -307,8 +307,8 @@ export default async function DashboardPage() {
                         </svg>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground text-lg">{source.business_name?.replace(" (Syncing...)", "")}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words font-semibold text-foreground text-lg">{source.business_name?.replace(" (Syncing...)", "")}</h3>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-medium text-muted capitalize px-2 py-0.5 bg-muted-bg rounded-md">
                           {source.platform}
@@ -361,7 +361,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Sync now button */}
                     <SyncButton sourceId={source.id} />
 

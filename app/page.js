@@ -24,8 +24,8 @@ function CheckIcon() {
 function Navbar({ isSignedIn, locale }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-foreground">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+        <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2 font-bold text-base sm:text-xl text-foreground">
           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-bold">R</span>
           ReviewBridge
         </Link>
@@ -33,11 +33,11 @@ function Navbar({ isSignedIn, locale }) {
           <a href="#how-it-works" className="hover:text-foreground transition-colors">{t(locale, "Nasıl çalışır?", "How it works")}</a>
           <a href="#pricing" className="hover:text-foreground transition-colors">{t(locale, "Fiyatlar", "Pricing")}</a>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           {isSignedIn ? (
             <Link
               href="/dashboard"
-              className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
+              className="whitespace-nowrap text-xs sm:text-sm font-semibold bg-primary text-white px-3 sm:px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
             >
               {t(locale, "Panele dön", "Back to dashboard")}
             </Link>
@@ -45,13 +45,13 @@ function Navbar({ isSignedIn, locale }) {
             <>
               <Link
                 href="/login"
-                className="text-sm font-medium text-muted hover:text-foreground transition-colors px-4 py-2"
+                className="whitespace-nowrap text-xs sm:text-sm font-medium text-muted hover:text-foreground transition-colors px-1 sm:px-4 py-2"
               >
                 {t(locale, "Giriş yap", "Log in")}
               </Link>
               <Link
                 href="/signup"
-                className="text-sm font-semibold bg-primary text-white px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
+                className="whitespace-nowrap text-xs sm:text-sm font-semibold bg-primary text-white px-3 sm:px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-all duration-200 shadow-sm hover:shadow"
               >
                 {t(locale, "Ücretsiz başla", "Get Started Free")}
               </Link>
@@ -88,9 +88,9 @@ function HeroSection({ isSignedIn, locale }) {
           <Link
             href={isSignedIn ? "/dashboard" : "/signup"}
             id="hero-cta"
-            className="btn-pulse inline-flex items-center gap-2 bg-primary text-white font-semibold px-8 py-4 rounded-xl text-lg hover:bg-primary-hover transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="btn-pulse inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-primary text-white font-semibold px-4 sm:px-8 py-4 rounded-xl text-base sm:text-lg hover:bg-primary-hover transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            {isSignedIn ? t(locale, "Panele dön", "Back to dashboard") : t(locale, "Ücretsiz başla — Kredi kartı gerekmez", "Start Free — No Credit Card")}
+            {isSignedIn ? t(locale, "Panele dön", "Back to dashboard") : <><span className="sm:hidden">{t(locale, "Ücretsiz başla", "Start Free")}</span><span className="hidden sm:inline">{t(locale, "Ücretsiz başla — Kredi kartı gerekmez", "Start Free — No Credit Card")}</span></>}
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

@@ -66,10 +66,10 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
     .slice(0, maxReviews);
 
   return (
-    <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+    <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
       {/* Editor Column */}
-      <div className="space-y-6">
-        <div className="bg-white border border-border shadow-sm rounded-2xl p-6">
+      <div className="min-w-0 space-y-6">
+        <div className="min-w-0 bg-white border border-border shadow-sm rounded-2xl p-4 sm:p-6">
           <h2 className="text-xl font-bold text-foreground mb-6">{t(locale, "Bileşen ayarları", "Widget settings")}</h2>
           
           <form onSubmit={handleSave} className="space-y-6">
@@ -119,12 +119,12 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
               </select>
             </div>
 
-            <div className="flex items-center justify-between py-2">
-              <div>
+            <div className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
                 <label className="block text-sm font-semibold text-foreground">{t(locale, "ReviewBridge rozeti", "ReviewBridge badge")}</label>
                 <p className="text-xs text-muted">{t(locale, "ReviewBridge tarafından desteklenir bağlantısını göster", "Show the Powered by ReviewBridge link")}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex shrink-0 items-center cursor-pointer">
                 <input 
                   type="checkbox" 
                   checked={!planLimits.canRemoveBadge ? true : showBadge} 
@@ -141,8 +141,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             )}
 
             {/* Smart Filter */}
-            <div className="flex items-center justify-between py-2">
-              <div>
+            <div className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <label className="block text-sm font-semibold text-foreground">{t(locale, "Akıllı Filtre", "Smart Filter")}</label>
                   {!planLimits.canSelectTheme && (
@@ -151,7 +151,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
                 </div>
                 <p className="text-xs text-muted">{t(locale, "Yalnızca yıldız verilen yorumları gizleyin. Yazılı yorumları gösterin.", "Hide star-only ratings. Show only reviews with written feedback.")}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex shrink-0 items-center cursor-pointer">
                 <input 
                   type="checkbox" 
                   checked={planLimits.canSelectTheme ? smartFilter : false} 
@@ -167,12 +167,12 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             )}
 
             {/* Leave a Review Button */}
-            <div className="flex items-center justify-between py-2">
-              <div>
+            <div className="flex items-center justify-between gap-3 py-2">
+              <div className="min-w-0">
                 <label className="block text-sm font-semibold text-foreground">{t(locale, "Yorum bırak düğmesi", "Leave a review button")}</label>
                 <p className="text-xs text-muted">{t(locale, "Ziyaretçileri Google yorumu bırakmaya yönlendiren bir düğme ekleyin", "Add a button encouraging visitors to leave a Google review")}</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label className="relative inline-flex shrink-0 items-center cursor-pointer">
                 <input 
                   type="checkbox" 
                   checked={showReviewButton} 
@@ -183,8 +183,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
               </label>
             </div>
 
-            <div className="pt-4 border-t border-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="pt-4 border-t border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
                   disabled={isPending}
@@ -217,12 +217,12 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
         </div>
 
         {/* Embed Code Section */}
-        <div className="bg-white border border-border shadow-sm rounded-2xl p-6">
+        <div className="min-w-0 bg-white border border-border shadow-sm rounded-2xl p-4 sm:p-6">
           <h2 className="text-xl font-bold text-foreground mb-2">{t(locale, "Yerleştirme kodu", "Embed code")}</h2>
           <p className="text-sm text-muted mb-4">{t(locale, "Bu kodu kopyalayıp yorumların görünmesini istediğiniz yere yapıştırın.", "Copy this script and paste it anywhere on your website where you want the reviews to appear.")}</p>
           
           <div className="relative group">
-            <pre className="p-4 bg-muted-bg rounded-xl overflow-x-auto text-sm text-foreground/80 border border-border/50 font-mono">
+            <pre className="max-w-full p-4 pr-12 bg-muted-bg rounded-xl overflow-x-auto text-sm text-foreground/80 border border-border/50 font-mono">
               <code>{embedCode}</code>
             </pre>
             <button 
@@ -240,7 +240,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
       </div>
 
       {/* Live Preview Box */}
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <h2 className="text-lg font-semibold text-foreground">{t(locale, "Canlı önizleme", "Live preview")}</h2>
         
         <div 
@@ -254,7 +254,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits }) {
             <div className="w-2.5 h-2.5 rounded-full bg-green-400"></div>
           </div>
 
-          <div className="px-6 pb-8">
+          <div className="px-3 pb-6 sm:px-6 sm:pb-8">
             <div className="max-w-sm mx-auto space-y-4 mt-4">
               
               {displayedReviews.length === 0 ? (

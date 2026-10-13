@@ -60,7 +60,7 @@ export default function SidebarNav() {
   const locale = useLocale();
 
   return (
-    <nav className="space-y-1">
+    <nav className="grid grid-cols-5 gap-1 md:block md:space-y-1" aria-label={locale === "tr" ? "Panel menüsü" : "Dashboard navigation"}>
       {navItems.map((item) => {
         const isActive = item.exact
           ? pathname === item.href
@@ -71,14 +71,14 @@ export default function SidebarNav() {
             key={item.href}
             href={item.href}
             prefetch={true}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
+            className={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-center text-[10px] font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:px-3 md:text-left md:text-base ${
               isActive
                 ? "bg-primary-light text-primary"
                 : "text-muted hover:bg-muted-bg hover:text-foreground"
             }`}
           >
-            {item.icon}
-            {item.label[locale]}
+            <span className="shrink-0">{item.icon}</span>
+            <span className="min-w-0 leading-tight">{item.label[locale]}</span>
           </Link>
         );
       })}
