@@ -62,7 +62,7 @@ export async function submitFeedbackAction(_previousState, formData) {
     return { error: t(locale, "Lütfen ad, puan, en az 10 karakterlik yorum ve yayın iznini doldurun.", "Enter your name, a rating, a review of at least 10 characters, and consent to publish.") };
   }
   const requestHeaders = await headers();
-  if (isRateLimited({ headers: requestHeaders }, `feedback:${token}`, { limit: 5, windowMs: 60 * 60 * 1000 })) {
+  if (await isRateLimited({ headers: requestHeaders }, `feedback:${token}`, { limit: 5, windowMs: 60 * 60 * 1000 })) {
     return { error: t(locale, "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin.", "Too many submissions. Please try again later.") };
   }
   const source = await queryOne(

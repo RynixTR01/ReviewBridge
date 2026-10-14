@@ -27,7 +27,7 @@ export async function GET(_request, { params }) {
   if (!token || !/^[a-zA-Z0-9_-]{12,128}$/.test(token)) {
     return new Response("console.error('ReviewBridge: Invalid widget token');", { status: 400, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
   }
-  if (isRateLimited(_request, token)) {
+  if (await isRateLimited(_request, `widget:${token}`)) {
     return new Response("console.warn('ReviewBridge: Request limit exceeded');", {
       status: 429,
       headers: { "Content-Type": "application/javascript; charset=utf-8", "Retry-After": "60" },

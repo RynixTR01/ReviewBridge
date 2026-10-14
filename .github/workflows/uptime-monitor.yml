@@ -1,0 +1,21 @@
+name: Production uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check production app and Neon connectivity
+        env:
+          HEALTH_URL: https://review-bridge.vercel.app/api/health
+        run: |
+          response="$(curl --fail --silent --show-error --max-time 15 "$HEALTH_URL")"
+          printf '%s' "$response" | grep -q '"status":"ok"'

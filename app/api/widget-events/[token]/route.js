@@ -11,7 +11,7 @@ const EVENT_COLUMNS = {
 export async function POST(request, { params }) {
   const { token } = await params;
   if (!token || !/^[a-zA-Z0-9_-]{12,128}$/.test(token)) return new Response(null, { status: 400 });
-  if (isRateLimited(request, token, { limit: 120 })) return new Response(null, { status: 429 });
+  if (await isRateLimited(request, `widget-events:${token}`, { limit: 120 })) return new Response(null, { status: 429 });
 
   let payload;
   try {
