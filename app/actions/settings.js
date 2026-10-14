@@ -40,6 +40,16 @@ export async function updateNotificationPreferencesAction(formData) {
   if (!user) return { error: "Not authenticated." };
   const syncEnabled = formData.get("sync_failure_emails_enabled") === "on";
   const usageEnabled = formData.get("usage_limit_emails_enabled") === "on";
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim());
+  if (!emailConfigured) {
+    const current = await queryOne(
+      "SELECT sync_failure_emails_enabled, usage_limit_emails_enabled FROM public.users WHERE id = $1",
+      [user.id],
+    );
+    if ((syncEnabled && !current?.sync_failure_emails_enabled) || (usageEnabled && !current?.usage_limit_emails_enabled)) {
+      return { emailNotConfigured: true };
+    }
+  }
   await query(
     "UPDATE public.users SET sync_failure_emails_enabled = $2, usage_limit_emails_enabled = $3 WHERE id = $1",
     [user.id, syncEnabled, usageEnabled],

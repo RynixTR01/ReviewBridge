@@ -75,12 +75,13 @@ export function ProfileForm({ fullName, email, memberSince }) {
   );
 }
 
-export function NotificationPreferences({ enabled, usageLimitEnabled }) {
+export function NotificationPreferences({ enabled, usageLimitEnabled, emailConfigured }) {
   const locale = useLocale();
   const [checked, setChecked] = useState(enabled);
   const [usageChecked, setUsageChecked] = useState(usageLimitEnabled);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
+  const hasChanges = checked !== enabled || usageChecked !== usageLimitEnabled;
   return <form className="mt-6 rounded-2xl border border-border bg-white p-6" onSubmit={(event) => {
     event.preventDefault();
     const data = new FormData();
@@ -89,7 +90,9 @@ export function NotificationPreferences({ enabled, usageLimitEnabled }) {
     startTransition(async () => {
       try {
         const result = await updateNotificationPreferencesAction(data);
-        setMessage(result?.error || t(locale, "Bildirim tercihi kaydedildi.", "Notification preference saved."));
+        setMessage(result?.emailNotConfigured
+          ? t(locale, "E-posta bildirimleri henüz yapılandırılmadı.", "Email notifications are not configured yet.")
+          : result?.error || t(locale, "Bildirim tercihi kaydedildi.", "Notification preference saved."));
       } catch {
         setMessage(t(locale, "Tercih kaydedilemedi.", "Could not save preference."));
       }
@@ -97,15 +100,17 @@ export function NotificationPreferences({ enabled, usageLimitEnabled }) {
   }}>
     <h2 className="text-xl font-bold text-foreground">{t(locale, "Bildirimler", "Notifications")}</h2>
     <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
-      <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
+      <input type="checkbox" checked={checked} disabled={!emailConfigured && !checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
       <span>{t(locale, "Kaynağımın otomatik eşitlemesi denemelerden sonra başarısız kalırsa e-posta gönder.", "Email me when my source's automatic sync still fails after retries.")}</span>
     </label>
     <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
-      <input type="checkbox" checked={usageChecked} onChange={(event) => setUsageChecked(event.target.checked)} className="mt-1" />
+      <input type="checkbox" checked={usageChecked} disabled={!emailConfigured && !usageChecked} onChange={(event) => setUsageChecked(event.target.checked)} className="mt-1" />
       <span>{t(locale, "Kaynak ekleme sınırına ulaştığımda e-posta gönder (en fazla 30 günde bir).", "Email me when I reach my source limit (at most once every 30 days).")}</span>
     </label>
-    <p className="mt-2 text-xs text-muted">{t(locale, "Bildirimler isteğe bağlıdır. E-posta gönderimi için yapılandırılmış bir gönderici gerekir.", "Notifications are optional and require a configured email sender.")}</p>
-    <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{pending ? t(locale, "Kaydediliyor…", "Saving…") : t(locale, "Tercihi kaydet", "Save preference")}</button>
+    <p className="mt-2 text-xs text-muted">{emailConfigured
+      ? t(locale, "Bildirimler isteğe bağlıdır ve en fazla 30 günde bir gönderilir.", "Notifications are optional; source-limit notices are sent at most once every 30 days.")
+      : t(locale, "E-posta bildirimleri şu anda kullanılamıyor; site yöneticisinin e-posta gönderimini yapılandırması gerekiyor.", "Email notifications are currently unavailable; the site administrator must configure email delivery.")}</p>
+    <button type="submit" disabled={pending || (!emailConfigured && !hasChanges)} className="mt-4 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{pending ? t(locale, "Kaydediliyor…", "Saving…") : t(locale, "Tercihi kaydet", "Save preference")}</button>
     {message && <p role="status" className="mt-2 text-sm text-muted">{message}</p>}
   </form>;
 }

@@ -44,7 +44,11 @@ export default async function SettingsPage() {
         memberSince={memberSince}
       />
 
-      <NotificationPreferences enabled={Boolean(profile?.sync_failure_emails_enabled)} usageLimitEnabled={Boolean(profile?.usage_limit_emails_enabled)} />
+      <NotificationPreferences
+        enabled={Boolean(profile?.sync_failure_emails_enabled)}
+        usageLimitEnabled={Boolean(profile?.usage_limit_emails_enabled)}
+        emailConfigured={Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM_EMAIL?.trim())}
+      />
 
       <DangerZone />
     </div>
