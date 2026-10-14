@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   }
 
   const profile = await queryOne(
-    "SELECT full_name, email, plan, created_at, sync_failure_emails_enabled FROM public.users WHERE id = $1",
+    "SELECT full_name, email, plan, created_at, sync_failure_emails_enabled, usage_limit_emails_enabled FROM public.users WHERE id = $1",
     [user.id]
   );
 
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
         memberSince={memberSince}
       />
 
-      <NotificationPreferences enabled={Boolean(profile?.sync_failure_emails_enabled)} />
+      <NotificationPreferences enabled={Boolean(profile?.sync_failure_emails_enabled)} usageLimitEnabled={Boolean(profile?.usage_limit_emails_enabled)} />
 
       <DangerZone />
     </div>

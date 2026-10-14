@@ -1,18 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { submitSurveyAction } from "@/app/actions/surveys";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
+import { getSurveyFollowUp } from "@/lib/survey-follow-up";
 
 export default function SurveyForm({ token, type }) {
   const locale = useLocale();
   const [state, action, pending] = useActionState(submitSurveyAction, null);
+  const [selectedScore, setSelectedScore] = useState(null);
   if (state?.success) return <p role="status" className="rounded-xl bg-green-50 p-5 text-green-800">{t(locale, "Yanıtınız için teşekkürler.", "Thank you for your response.")}</p>;
   const scores = type === "nps" ? Array.from({ length: 11 }, (_, index) => index) : [1, 2, 3, 4, 5];
   const question = type === "nps"
     ? t(locale, "Bu işletmeyi bir arkadaşınıza tavsiye etme olasılığınız nedir?", "How likely are you to recommend this business to a friend?")
     : t(locale, "Bu işletmeden ne kadar memnunsunuz?", "How satisfied are you with this business?");
+  const followUp = getSurveyFollowUp(type, selectedScore);
+  const commentLabel = followUp === "improve" || followUp === "recover"
+    ? t(locale, "Deneyiminizi iyileştirmek için ne yapabiliriz? (isteğe bağlı)", "What could we do to improve your experience? (optional)")
+    : followUp === "recommend"
+      ? t(locale, "Bu işletmeyi neden tavsiye edersiniz? (isteğe bağlı)", "What would you tell someone about this business? (optional)")
+      : followUp === "positive"
+        ? t(locale, "En çok hangi kısmı beğendiniz? (isteğe bağlı)", "What did you like most? (optional)")
+        : t(locale, "Eklemek istediğiniz bir şey var mı? (isteğe bağlı)", "Anything else to add? (optional)");
   return (
     <form action={action} className="space-y-5 rounded-2xl border border-border bg-white p-5 sm:p-8">
       <input type="hidden" name="token" value={token} />
@@ -22,7 +32,7 @@ export default function SurveyForm({ token, type }) {
         <div className="flex flex-wrap gap-2">
           {scores.map((score) => (
             <label key={score} className="flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-lg border border-border px-3 has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-white">
-              <input className="sr-only" type="radio" name="score" value={score} required aria-label={`${score}`} />
+              <input className="sr-only" type="radio" name="score" value={score} required aria-label={`${score}`} checked={selectedScore === score} onChange={() => setSelectedScore(score)} />
               <span>{score}</span>
             </label>
           ))}
@@ -33,7 +43,7 @@ export default function SurveyForm({ token, type }) {
         </div>
       </fieldset>
       <div>
-        <label htmlFor="surveyComment" className="mb-1 block text-sm font-medium text-foreground">{t(locale, "Eklemek istediğiniz bir şey var mı? (isteğe bağlı)", "Anything else to add? (optional)")}</label>
+        <label htmlFor="surveyComment" className="mb-1 block text-sm font-medium text-foreground">{commentLabel}</label>
         <textarea id="surveyComment" name="comment" maxLength={2000} rows={4} className="w-full rounded-xl border border-border px-3 py-2 text-foreground" />
       </div>
       <p className="text-xs text-muted">{t(locale, "Yanıtlar işletmenin özel anket sonuçlarında kullanılır; ad veya e-posta istenmez, herkese açık yayınlanmaz. İsteğe bağlı yorumlara kişisel bilgi yazmayın.", "Responses are used in the business's private survey results; no name or email is requested, and responses are not published publicly. Do not include personal details in optional comments.")}</p>
