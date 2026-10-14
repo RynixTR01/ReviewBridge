@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -16,20 +18,21 @@ async function getAgencyOwner() {
 
 export async function createBrandAction(_previousState, formData) {
   const user = await getAgencyOwner();
-  if (!user) return { error: "Marka yönetimi Ajans planına dahildir." };
+  const locale = await getLocale();
+  if (!user) return { error: t(locale, "Marka yönetimi Ajans planına dahildir.", "Brand management is available on the Agency plan.") };
   const name = String(formData.get("name") || "").trim();
   const rawDomain = String(formData.get("domain") || "").trim();
-  if (name.length < 2 || name.length > 100) return { error: "Marka adı 2–100 karakter olmalı." };
+  if (name.length < 2 || name.length > 100) return { error: t(locale, "Marka adı 2–100 karakter olmalı.", "Brand name must be 2–100 characters.") };
   let domain = null;
   if (rawDomain) {
     try {
       const url = new URL(rawDomain.includes("://") ? rawDomain : `https://${rawDomain}`);
-      if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(url.hostname)) return { error: "Geçerli bir alan adı girin." };
+      if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/i.test(url.hostname)) return { error: t(locale, "Geçerli bir alan adı girin.", "Enter a valid website domain.") };
       domain = url.hostname.toLowerCase();
-    } catch { return { error: "Geçerli bir alan adı girin." }; }
+    } catch { return { error: t(locale, "Geçerli bir alan adı girin.", "Enter a valid website domain.") }; }
   }
   const count = await queryOne("SELECT count(*)::int AS count FROM public.agency_brands WHERE owner_user_id = $1", [user.id]);
-  if (count.count >= 100) return { error: "En fazla 100 marka oluşturabilirsiniz." };
+  if (count.count >= 100) return { error: t(locale, "En fazla 100 marka oluşturabilirsiniz.", "You can create up to 100 brands.") };
   await query("INSERT INTO public.agency_brands (owner_user_id, name, website_domain) VALUES ($1, $2, $3)", [user.id, name, domain]);
   revalidatePath("/dashboard/brands");
   revalidatePath("/dashboard");
@@ -56,19 +59,20 @@ export async function assignSourceBrandAction(formData) {
 
 export async function addBrandMemberAction(_previousState, formData) {
   const user = await getAgencyOwner();
-  if (!user) return { error: "Bu işlem Ajans planı sahibine özeldir." };
+  const locale = await getLocale();
+  if (!user) return { error: t(locale, "Bu işlem Ajans planı sahibine özeldir.", "This action is available to Agency plan owners.") };
   const brandId = String(formData.get("brandId") || "");
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const role = String(formData.get("role") || "");
   if (!UUID.test(brandId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || !["viewer", "editor"].includes(role)) {
-    return { error: "Geçerli bir e-posta ve rol seçin." };
+    return { error: t(locale, "Geçerli bir e-posta ve rol seçin.", "Choose a valid email and role.") };
   }
   const brand = await queryOne("SELECT id FROM public.agency_brands WHERE id = $1 AND owner_user_id = $2", [brandId, user.id]);
-  if (!brand) return { error: "Marka bulunamadı." };
+  if (!brand) return { error: t(locale, "Marka bulunamadı.", "Brand not found.") };
   const member = await queryOne("SELECT id FROM public.users WHERE lower(email) = $1", [email]);
-  if (!member || member.id === user.id) return { error: "Bu e-postaya ait kayıtlı bir ekip hesabı bulunamadı." };
+  if (!member || member.id === user.id) return { error: t(locale, "Bu e-postaya ait kayıtlı bir ekip hesabı bulunamadı.", "No registered team account was found for this email.") };
   const count = await queryOne("SELECT count(*)::int AS count FROM public.agency_brand_members WHERE brand_id = $1", [brandId]);
-  if (count.count >= 20) return { error: "Bu markada en fazla 20 ekip üyesi olabilir." };
+  if (count.count >= 20) return { error: t(locale, "Bu markada en fazla 20 ekip üyesi olabilir.", "A brand can have up to 20 team members.") };
   await query(
     `INSERT INTO public.agency_brand_members (brand_id, user_id, role)
      VALUES ($1, $2, $3)

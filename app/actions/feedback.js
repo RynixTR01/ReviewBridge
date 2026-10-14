@@ -8,6 +8,8 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { isRateLimited } from "@/lib/rate-limit";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^[a-f0-9]{48}$/;
@@ -15,13 +17,14 @@ const TOKEN = /^[a-f0-9]{48}$/;
 export async function createFeedbackSourceAction(_previousState, formData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const locale = await getLocale();
   const name = String(formData.get("businessName") || "").trim();
-  if (name.length < 2 || name.length > 100) return { error: "İşletme adı 2–100 karakter olmalı." };
+  if (name.length < 2 || name.length > 100) return { error: t(locale, "İşletme adı 2–100 karakter olmalı.", "Business name must be 2–100 characters.") };
 
   const profile = await queryOne("SELECT plan FROM public.users WHERE id = $1", [user.id]);
   const plan = PLAN_LIMITS[profile?.plan] ? profile.plan : "free";
   const count = await queryOne("SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1", [user.id]);
-  if (count.count >= PLAN_LIMITS[plan].maxSources) return { error: "Planınızın kaynak sınırına ulaştınız." };
+  if (count.count >= PLAN_LIMITS[plan].maxSources) return { error: t(locale, "Planınızın kaynak sınırına ulaştınız.", "You have reached your plan's source limit.") };
 
   const token = randomBytes(24).toString("hex");
   const widgetToken = randomUUID().replaceAll("-", "");
@@ -42,35 +45,36 @@ export async function createFeedbackSourceAction(_previousState, formData) {
     );
   } catch (error) {
     console.error("Feedback source creation failed:", error);
-    return { error: "Geri bildirim kaynağı oluşturulamadı." };
+    return { error: t(locale, "Geri bildirim kaynağı oluşturulamadı.", "Could not create the feedback source.") };
   }
   revalidatePath("/dashboard");
   redirect(`/dashboard/feedback?source=${widget.source_id}`);
 }
 
 export async function submitFeedbackAction(_previousState, formData) {
+  const locale = await getLocale();
   const token = String(formData.get("token") || "");
   const name = String(formData.get("name") || "").trim();
   const body = String(formData.get("body") || "").trim();
   const rating = Number(formData.get("rating"));
   if (formData.get("website")) return { success: true };
   if (!TOKEN.test(token) || name.length < 1 || name.length > 80 || body.length < 10 || body.length > 2000 || !Number.isInteger(rating) || rating < 1 || rating > 5 || formData.get("consent") !== "on") {
-    return { error: "Lütfen ad, puan, en az 10 karakterlik yorum ve yayın iznini doldurun." };
+    return { error: t(locale, "Lütfen ad, puan, en az 10 karakterlik yorum ve yayın iznini doldurun.", "Enter your name, a rating, a review of at least 10 characters, and consent to publish.") };
   }
   const requestHeaders = await headers();
   if (isRateLimited({ headers: requestHeaders }, `feedback:${token}`, { limit: 5, windowMs: 60 * 60 * 1000 })) {
-    return { error: "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin." };
+    return { error: t(locale, "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin.", "Too many submissions. Please try again later.") };
   }
   const source = await queryOne(
     "SELECT id FROM public.sources WHERE platform = 'first_party' AND place_id = $1",
     [token],
   );
-  if (!source) return { error: "Bu geri bildirim bağlantısı bulunamadı." };
+  if (!source) return { error: t(locale, "Bu geri bildirim bağlantısı bulunamadı.", "This feedback link could not be found.") };
   const today = await queryOne(
     "SELECT count(*)::int AS count FROM public.feedback_submissions WHERE source_id = $1 AND created_at > now() - interval '1 day'",
     [source.id],
   );
-  if (today.count >= 100) return { error: "Bugün için gönderim sınırına ulaşıldı." };
+  if (today.count >= 100) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
   await query(
     `INSERT INTO public.feedback_submissions
        (source_id, reviewer_name, rating, body, consented_at)
