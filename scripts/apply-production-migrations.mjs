@@ -11,6 +11,7 @@ if (url.includes("pooler")) throw new Error("Use a direct, non-pooled production
 // Apply only the pending migration. Older migrations include data changes and must not be replayed.
 const migrations = [
   "migrations/20261014_11_usage_limit_emails.sql",
+  "migrations/20261014_12_user_notifications.sql",
 ];
 const sql = neon(url);
 for (const file of migrations) {

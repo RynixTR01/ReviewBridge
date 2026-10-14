@@ -10,6 +10,7 @@ import { PLAN_LIMITS } from "@/lib/plans";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { createFeedbackNotification, createSourceLimitNotification } from "@/lib/notifications";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^[a-f0-9]{48}$/;
@@ -24,7 +25,10 @@ export async function createFeedbackSourceAction(_previousState, formData) {
   const profile = await queryOne("SELECT plan FROM public.users WHERE id = $1", [user.id]);
   const plan = PLAN_LIMITS[profile?.plan] ? profile.plan : "free";
   const count = await queryOne("SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1", [user.id]);
-  if (count.count >= PLAN_LIMITS[plan].maxSources) return { error: t(locale, "Planınızın kaynak sınırına ulaştınız.", "You have reached your plan's source limit.") };
+  if (count.count >= PLAN_LIMITS[plan].maxSources) {
+    await createSourceLimitNotification({ userId: user.id, count: count.count, limit: PLAN_LIMITS[plan].maxSources });
+    return { error: t(locale, "Planınızın kaynak sınırına ulaştınız.", "You have reached your plan's source limit.") };
+  }
 
   const token = randomBytes(24).toString("hex");
   const widgetToken = randomUUID().replaceAll("-", "");
@@ -66,7 +70,7 @@ export async function submitFeedbackAction(_previousState, formData) {
     return { error: t(locale, "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin.", "Too many submissions. Please try again later.") };
   }
   const source = await queryOne(
-    "SELECT id FROM public.sources WHERE platform = 'first_party' AND place_id = $1",
+    "SELECT id, user_id, business_name FROM public.sources WHERE platform = 'first_party' AND place_id = $1",
     [token],
   );
   if (!source) return { error: t(locale, "Bu geri bildirim bağlantısı bulunamadı.", "This feedback link could not be found.") };
@@ -86,6 +90,12 @@ export async function submitFeedbackAction(_previousState, formData) {
     [source.id, name, rating, body],
   );
   if (!submitted) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
+  await createFeedbackNotification({
+    userId: source.user_id,
+    sourceId: source.id,
+    sourceName: source.business_name,
+    submissionId: submitted.id,
+  });
   return { success: true };
 }
 

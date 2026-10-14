@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/server";
+import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 import { getLocale } from "@/lib/i18n-server";
@@ -14,6 +15,17 @@ export default async function DashboardLayout({ children }) {
 
   if (!user) {
     redirect("/login");
+  }
+
+  let unreadNotificationCount = 0;
+  try {
+    const result = await queryOne(
+      "SELECT count(*)::int AS count FROM public.user_notifications WHERE user_id = $1 AND read_at IS NULL",
+      [user.id],
+    );
+    unreadNotificationCount = Number(result?.count || 0);
+  } catch (error) {
+    console.warn("Notification badge is unavailable.", error?.message);
   }
 
   const plan = user.plan || "free";
@@ -38,7 +50,7 @@ export default async function DashboardLayout({ children }) {
         </div>
 
         <div className="p-2 md:p-4 md:flex-1">
-          <SidebarNav />
+          <SidebarNav unreadCount={unreadNotificationCount} />
         </div>
 
         {/* Plan Info */}
