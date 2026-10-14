@@ -9,6 +9,7 @@ import { isRateLimited } from "@/lib/rate-limit";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createSurveyResponseNotification } from "@/lib/notifications";
+import { isHoneypotFilled } from "@/lib/public-form-protection";
 
 const TOKEN = /^[a-f0-9]{48}$/;
 
@@ -36,6 +37,7 @@ export async function createSurveyAction(_previousState, formData) {
 
 export async function submitSurveyAction(_previousState, formData) {
   const locale = await getLocale();
+  if (isHoneypotFilled(formData)) return { success: true };
   const token = String(formData.get("token") || "");
   const scoreValue = formData.get("score");
   const score = Number(scoreValue);
