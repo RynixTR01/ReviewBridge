@@ -10,6 +10,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createSurveyResponseNotification } from "@/lib/notifications";
 import { isHoneypotFilled } from "@/lib/public-form-protection";
+import { checkBotId } from "botid/server";
 
 const TOKEN = /^[a-f0-9]{48}$/;
 
@@ -38,12 +39,15 @@ export async function createSurveyAction(_previousState, formData) {
 export async function submitSurveyAction(_previousState, formData) {
   const locale = await getLocale();
   if (isHoneypotFilled(formData)) return { success: true };
+  const botCheck = await checkBotId({ advancedOptions: { checkLevel: "basic" } });
+  if (botCheck.isBot) {
+    return { error: t(locale, "Gönderim otomatik olarak algılandı. Lütfen tarayıcıdan tekrar deneyin.", "This submission was flagged as automated. Please try again from your browser.") };
+  }
   const token = String(formData.get("token") || "");
   const scoreValue = formData.get("score");
   const score = Number(scoreValue);
   const commentValue = formData.get("comment");
   const comment = typeof commentValue === "string" ? commentValue.trim() : "";
-  if (formData.get("website")) return { success: true };
   if (!TOKEN.test(token) || typeof scoreValue !== "string" || !/^(?:0|[1-9]|10)$/.test(scoreValue) || !Number.isInteger(score) || comment.length > 2000) {
     return { error: t(locale, "Yanıt bilgilerini kontrol edin.", "Check your response.") };
   }
