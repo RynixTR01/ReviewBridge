@@ -51,7 +51,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 18. **A/B testi ve hedef ölçümü yoktu.** CTA metin A/B deneyi ve toplu CTR ölçümü eklendi. Sonuçların anlamlılığı için trafik gerekir; kalıcı ziyaretçi ataması ve daha kapsamlı hedefler yok.
 19. **Ajans/çoklu marka yönetimi eksikti.** Marka/site alanları, ekip üyesi ve görüntüleyici/düzenleyici rolleri, marka başına kaynak ve widget erişimi eklendi. Faturalı müşteri portalı ve ajans alt hesapları ayrıca yok.
 20. **Onboarding checklist eksik.** Dashboard'da kaynak → yorum doğrulama → widget kodu → canlı site kontrolü akışı ve yardım rehberi var. Son kurulum adımı kullanıcı tarafından doğrulanır.
-21. **Operasyonel bildirimler sınırlı.** Eşitleme hatası, kaynak sınırı, yeni müşteri geri bildirimi ve anket puanı için Türkçe/İngilizce uygulama içi bildirim merkezi eklendi; okunma durumu ve 180 günlük saklama süresi var. İsteğe bağlı e-posta tercihleri de mevcut, ancak Vercel'de Resend ayarları bulunmadığından gönderim henüz etkin değil ve arayüz yeni e-posta tercihi açılmasını engelliyor. Bütçe e-postaları ve tam bildirim geçmişi dışa aktarımı yok.
+21. **Operasyonel bildirimler sınırlı.** Eşitleme hatası, kaynak sınırı, yeni müşteri geri bildirimi ve anket puanı için Türkçe/İngilizce uygulama içi bildirim merkezi eklendi; okunma durumu ve 180 günlük saklama süresi var. Kullanıcı bildirim geçmişinin tamamını CSV olarak dışa aktarabilir. İsteğe bağlı e-posta tercihleri de mevcut, ancak Vercel'de Resend ayarları bulunmadığından gönderim henüz etkin değil ve arayüz yeni e-posta tercihi açılmasını engelliyor. Bütçe e-postaları yok.
 
 **Kabul ölçütü:** Ajans verileri birbirinden izole; kullanıcı ilk widget'ını yardım almadan kurabiliyor; yeni connector'lar ortak doğrulanmış sözleşmeye uyuyor.
 
@@ -139,7 +139,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - [x] Yorum eğilimleri: yıldız dağılımı, düşük puanlar ve 30 günlük dönem karşılaştırması. Yapay zekâ özeti değildir.
 - [x] İsteğe bağlı eşitleme hata e-postası tercihi ve gönderim kuyruğu eklendi. Çalışması doğrulanmış `RESEND_FROM_EMAIL` ve API anahtarı gerektirir.
 - [x] Herkese açık durum sayfası Neon erişimini anlık gösterir ve GitHub Actions'ın son 24 saatlik başarılı/başarısız kontrollerini listeler; bu örnekleme SLA garantisi değildir.
-- [x] Uygulama içi bildirim merkezi eşitleme hatası, kaynak sınırı, müşteri geri bildirimi ve anket yanıtlarını Türkçe/İngilizce gösterir; okunmamış rozeti, tekil/tümünü okundu işaretleme ve 180 günlük saklama içerir. E-posta gönderiminden bağımsızdır.
+- [x] Uygulama içi bildirim merkezi eşitleme hatası, kaynak sınırı, müşteri geri bildirimi ve anket yanıtlarını Türkçe/İngilizce gösterir; okunmamış rozeti, tekil/tümünü okundu işaretleme, 180 günlük saklama ve kullanıcıya özel CSV geçmiş dışa aktarımı içerir. E-posta gönderiminden bağımsızdır.
 - [ ] Google/Trustpilot veri hakkı kararı, başka sağlayıcı connector'ları ve mevcut sağlayıcıların silme/yenileme sözleşmeleri dış lisans ve uzman incelemesi bekliyor. Belgesiz yeni scraping adapter'ı eklenmedi.
 - [ ] Gerçek WordPress/Shopify/Webflow site testleri, üretimde Apify uçtan uca smoke, harici hata alarmı ve saha performans ölçümü canlı hesap/site erişimi gerektiriyor. Harici bot/abuse koruması ve günlük cron ötesi kuyruk kapasitesi ayrıca değerlendirilmeli.
 - [ ] Lemon Squeezy canlı ödeme, satış metni ve test modundan çıkış kullanıcının isteğiyle en sona bırakıldı.
