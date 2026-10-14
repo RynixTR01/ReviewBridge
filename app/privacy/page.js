@@ -40,6 +40,7 @@ export default async function PrivacyPage() {
               <li>{t(locale, "ReviewBridge hizmetini sunmak ve sürdürmek", "Provide and maintain the ReviewBridge service")}</li>
               <li>{t(locale, "Yorumları yerleştirilebilir bileşenimizle web sitenizde göstermek", "Display reviews on your website via our embed widget")}</li>
               <li>{t(locale, "Hesabınızla ilgili önemli bildirimleri göndermek", "Send important account-related notifications")}</li>
+              <li>{t(locale, "Ayarlar'dan açarsanız, kaynak sınırına ulaştığınızda en fazla 30 günde bir kullanım bildirimi e-postası göndermek", "If enabled in Settings, send an email when you reach your source limit, at most once every 30 days")}</li>
               <li>{t(locale, "Hizmetimizi geliştirmek ve iyileştirmek", "Improve and optimize our service")}</li>
               <li>{t(locale, "Gömülü bileşenin günlük görüntülenme ve bağlantı tıklama sayılarını, ziyaretçiyi tanımlayan bir profil oluşturmadan toplu olarak ölçmek", "Measure daily embed views and link clicks as aggregate counts without building visitor profiles")}</li>
             </ul>
@@ -58,6 +59,7 @@ export default async function PrivacyPage() {
               <li><strong>Neon</strong> — {t(locale, "Veritabanı ve kimlik doğrulama", "Database and authentication")}</li>
               <li><strong>Vercel</strong> — {t(locale, "Barındırma ve yayınlama", "Hosting and deployment")}</li>
               <li><strong>Apify</strong> — {t(locale, "Profil bağlantılarını işleme ve herkese açık yorum verilerini alma", "Processing listing URLs and retrieving publicly available review data")}</li>
+              <li><strong>Resend</strong> — {t(locale, "Açık bildirim tercihiniz varsa hizmet e-postalarını iletmek", "Deliver service emails when you opt in to notifications")}</li>
               <li><strong>LemonSqueezy</strong> — {t(locale, "Ödeme işlemleri", "Payment processing")}</li>
             </ul>
           </section>

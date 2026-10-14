@@ -8,16 +8,9 @@ if (process.env.NEON_TARGET_BRANCH !== "production" || !url || new URL(url).host
 }
 if (url.includes("pooler")) throw new Error("Use a direct, non-pooled production connection.");
 
+// Apply only the pending migration. Older migrations include data changes and must not be replayed.
 const migrations = [
-  "migrations/20261014_02_first_party_feedback.sql",
-  "migrations/20261014_03_agency_brands.sql",
-  "migrations/20261014_04_widget_installations.sql",
-  "migrations/20261014_05_agency_members.sql",
-  "migrations/20261014_06_widget_experiments.sql",
-  "migrations/20261014_07_sync_alerts.sql",
-  "migrations/20261014_08_feedback_rate_limits.sql",
-  "migrations/20261014_09_distributed_rate_limits.sql",
-  "migrations/20261014_10_customer_surveys.sql",
+  "migrations/20261014_11_usage_limit_emails.sql",
 ];
 const sql = neon(url);
 for (const file of migrations) {

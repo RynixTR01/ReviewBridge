@@ -16,7 +16,8 @@ Set these for the Production environment and redeploy after changing them:
 - `NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL` and `NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL` — checkout links shown in the dashboard.
 - During the current test phase, use Lemon Squeezy **test-mode** checkout links, test variant IDs, and the matching test webhook signing secret together. A test checkout link alone does not switch webhook verification to test mode. Keep live values separate, and only replace the test configuration when the business is ready to accept real payments.
 - `RESEND_API_KEY` — optional welcome email delivery and opt-in sync failure alerts.
-- `RESEND_FROM_EMAIL` — verified sender address for opt-in sync failure alerts. If unset, alerts are skipped; dashboard failure states remain available.
+- `RESEND_FROM_EMAIL` — verified sender address for opt-in sync failure and source-limit alerts. If unset, emails are skipped; dashboard states remain available.
+- Source-limit email notices are opt-in in Settings and sent at most once per account every 30 days. They require the same verified Resend sender configuration.
 
 ## Verified production state
 
@@ -40,7 +41,7 @@ Set these for the Production environment and redeploy after changing them:
 6. Complete the [provider access gate](COMPETITIVE_GAP_ROADMAP.md#sağlayıcı-erişimi-ve-veri-kullanımı-için-karar-kapısı) before adding a connector or claiming compliance: record each provider's written permission or API agreement, eligible businesses, permitted storage/display, refresh/deletion deadlines, attribution/branding, and privacy wording; have the account owner and qualified counsel review the actual Apify-to-Neon-to-widget flow. Do not treat an Apify actor or public review page as a license. Google Business Profile and Places APIs, and Trustpilot Data Solutions, each have separate access and content rules; switching endpoints alone does not close this gate.
 7. Configure an external uptime monitor to request `/api/health`; it returns only `{ "status": "ok" }` when Neon is reachable and HTTP 503 otherwise. This endpoint does not send alerts itself.
 8. For direct feedback, submit a disposable response and check pending → approved → unpublished. Do not publish test customer data. For agency access, verify one brand's viewer cannot edit and an editor cannot see another brand. For A/B experiments, compare only after meaningful traffic and confirm event counts on both variants.
-9. For opt-in sync email alerts, set `RESEND_FROM_EMAIL` to a verified sending address. Enable the preference on a disposable account and test a final retry failure in a non-production environment. Historical failures are marked as handled by the migration and do not trigger a backlog of email.
+9. For opt-in email alerts, set `RESEND_FROM_EMAIL` to a verified sending address. Test sync failure alerts and source-limit notices with a disposable account in a non-production environment. Historical sync failures are marked as handled by the migration and do not trigger a backlog of email.
 
 ## Current release constraints
 
@@ -48,9 +49,9 @@ Set these for the Production environment and redeploy after changing them:
 - Scheduled refresh is daily because the project currently has one daily cron invocation; manual sync remains available subject to plan cooldowns.
 - Failed provider runs, timeouts, and processing errors receive at most three scheduled retries with increasing delays (15 minutes, 1 hour, then 6 hours). The daily Vercel Cron cadence means actual retry dispatch can be later than those minimum delays. Configuration errors and invalid source URLs still need correction.
 - ReviewBridge has a database-backed `/api/health` check. An external monitor must be configured in Vercel/monitoring separately to deliver uptime alerts.
-- The lightweight rate limiter is per serverless process. It helps with bursts but is not a distributed DDoS defense.
+- Public endpoint limits use shared Neon counters with HMACed client identity; if Neon is temporarily unavailable, the app falls back to per-instance memory. This helps limit abuse but is not a distributed DDoS defense.
 - Daily widget counts are approximate public-embed metrics and should not be treated as billing or unique-visitor analytics.
 - New external source platforms still require a documented provider license and content lifecycle design. The first-party feedback form is a separate, consent-based source and does not grant rights to display Google/Trustpilot content.
-- A/B events and installation hosts are approximate observations, not verified users or proof of domain ownership. The public `/status` page reflects the current health check only, not a historical uptime SLA.
+- A/B events and installation hosts are approximate observations, not verified users or proof of domain ownership. The public `/status` page shows the current health check and the last 24 hours of scheduled GitHub checks; it is not a historical uptime SLA.
 - Lemon Squeezy remains in test mode; live checkout and sale-related work is intentionally deferred.
 

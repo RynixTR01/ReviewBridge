@@ -75,15 +75,17 @@ export function ProfileForm({ fullName, email, memberSince }) {
   );
 }
 
-export function NotificationPreferences({ enabled }) {
+export function NotificationPreferences({ enabled, usageLimitEnabled }) {
   const locale = useLocale();
   const [checked, setChecked] = useState(enabled);
+  const [usageChecked, setUsageChecked] = useState(usageLimitEnabled);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   return <form className="mt-6 rounded-2xl border border-border bg-white p-6" onSubmit={(event) => {
     event.preventDefault();
     const data = new FormData();
     if (checked) data.set("sync_failure_emails_enabled", "on");
+    if (usageChecked) data.set("usage_limit_emails_enabled", "on");
     startTransition(async () => {
       try {
         const result = await updateNotificationPreferencesAction(data);
@@ -98,7 +100,11 @@ export function NotificationPreferences({ enabled }) {
       <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
       <span>{t(locale, "Kaynağımın otomatik eşitlemesi denemelerden sonra başarısız kalırsa e-posta gönder.", "Email me when my source's automatic sync still fails after retries.")}</span>
     </label>
-    <p className="mt-2 text-xs text-muted">{t(locale, "Bildirimler isteğe bağlıdır. E-posta gönderimi etkinleştirildiyse ve gönderici alan adı yapılandırıldıysa çalışır.", "Notifications are optional and require a configured email sender.")}</p>
+    <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
+      <input type="checkbox" checked={usageChecked} onChange={(event) => setUsageChecked(event.target.checked)} className="mt-1" />
+      <span>{t(locale, "Kaynak ekleme sınırına ulaştığımda e-posta gönder (en fazla 30 günde bir).", "Email me when I reach my source limit (at most once every 30 days).")}</span>
+    </label>
+    <p className="mt-2 text-xs text-muted">{t(locale, "Bildirimler isteğe bağlıdır. E-posta gönderimi için yapılandırılmış bir gönderici gerekir.", "Notifications are optional and require a configured email sender.")}</p>
     <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{pending ? t(locale, "Kaydediliyor…", "Saving…") : t(locale, "Tercihi kaydet", "Save preference")}</button>
     {message && <p role="status" className="mt-2 text-sm text-muted">{message}</p>}
   </form>;

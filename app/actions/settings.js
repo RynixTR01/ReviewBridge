@@ -38,10 +38,11 @@ export async function updateProfileAction(formData) {
 export async function updateNotificationPreferencesAction(formData) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated." };
-  const enabled = formData.get("sync_failure_emails_enabled") === "on";
+  const syncEnabled = formData.get("sync_failure_emails_enabled") === "on";
+  const usageEnabled = formData.get("usage_limit_emails_enabled") === "on";
   await query(
-    "UPDATE public.users SET sync_failure_emails_enabled = $2 WHERE id = $1",
-    [user.id, enabled],
+    "UPDATE public.users SET sync_failure_emails_enabled = $2, usage_limit_emails_enabled = $3 WHERE id = $1",
+    [user.id, syncEnabled, usageEnabled],
   );
   revalidatePath("/dashboard/settings");
   return { success: true };
