@@ -37,6 +37,8 @@ export async function GET(request) {
     await query("DELETE FROM public.widget_daily_metrics WHERE metric_date < CURRENT_DATE - INTERVAL '90 days'");
     await query("DELETE FROM public.widget_experiment_daily WHERE metric_date < CURRENT_DATE - INTERVAL '90 days'");
     await query("DELETE FROM public.request_rate_limits WHERE expires_at < NOW()");
+    await query("DELETE FROM public.customer_survey_daily_limits WHERE response_day < CURRENT_DATE - INTERVAL '2 days'");
+    await query("DELETE FROM public.customer_survey_responses WHERE created_at < NOW() - INTERVAL '365 days'");
 
     let autoSyncStarted = 0;
     let autoSyncFailed = 0;

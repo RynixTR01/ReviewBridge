@@ -35,6 +35,15 @@ const navItems = [
     ),
   },
   {
+    label: { tr: "Anketler", en: "Surveys" },
+    href: "/dashboard/surveys",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+      </svg>
+    ),
+  },
+  {
     label: { tr: "Markalar", en: "Brands" },
     href: "/dashboard/brands",
     icon: (

@@ -17,6 +17,7 @@ const migrations = [
   "migrations/20261014_07_sync_alerts.sql",
   "migrations/20261014_08_feedback_rate_limits.sql",
   "migrations/20261014_09_distributed_rate_limits.sql",
+  "migrations/20261014_10_customer_surveys.sql",
 ];
 const sql = neon(url);
 for (const file of migrations) {
