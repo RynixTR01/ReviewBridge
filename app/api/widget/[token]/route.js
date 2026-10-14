@@ -27,7 +27,7 @@ export async function GET(_request, { params }) {
   if (!token || !/^[a-zA-Z0-9_-]{12,128}$/.test(token)) {
     return new Response("console.error('ReviewBridge: Invalid widget token');", { status: 400, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
   }
-  if (isRateLimited(_request, token)) {
+  if (await isRateLimited(_request, `widget:${token}`)) {
     return new Response("console.warn('ReviewBridge: Request limit exceeded');", {
       status: 429,
       headers: { "Content-Type": "application/javascript; charset=utf-8", "Retry-After": "60" },
@@ -129,18 +129,20 @@ export async function GET(_request, { params }) {
     : "0.0";
   const title = escapeHtml(widget.widget_title || "");
   const business = escapeHtml(widget.business_name || "");
-  const platform = widget.source_platform === "google" ? "Google" : widget.source_platform === "trustpilot" ? "Trustpilot" : "Review source";
+  const platform = widget.source_platform === "google" ? "Google" : widget.source_platform === "trustpilot" ? "Trustpilot" : "Direct feedback";
   const platformSafe = escapeHtml(platform);
   const sourceUrl = safeExternalUrl(widget.source_maps_url);
   const lastSyncDate = widget.last_synced_at ? new Date(widget.last_synced_at) : null;
   const lastSyncIso = lastSyncDate && !Number.isNaN(lastSyncDate.getTime()) ? lastSyncDate.toISOString() : "";
-  const isStale = !lastSyncIso || Date.now() - new Date(lastSyncIso).getTime() > 7 * 24 * 60 * 60 * 1000;
+  const isStale = widget.source_platform !== "first_party" && (!lastSyncIso || Date.now() - new Date(lastSyncIso).getTime() > 7 * 24 * 60 * 60 * 1000);
   let reviewUrl = null;
   if (widget.show_review_button && widget.source_platform === "google") {
     const placeId = extractPlaceId(widget.source_place_id);
     if (placeId && /^[A-Za-z0-9_-]+$/.test(placeId)) reviewUrl = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
   } else if (widget.show_review_button && widget.source_platform === "trustpilot" && /^[a-zA-Z0-9.-]+$/.test(widget.source_place_id || "")) {
     reviewUrl = `https://www.trustpilot.com/review/${encodeURIComponent(widget.source_place_id)}#writeareview`;
+  } else if (widget.show_review_button && widget.source_platform === "first_party" && /^[a-f0-9]{48}$/.test(widget.source_place_id || "")) {
+    reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://review-bridge.vercel.app"}/collect/${widget.source_place_id}`;
   }
 
   const cardHtml = widgetReviews.map((review) => {
@@ -165,15 +167,19 @@ export async function GET(_request, { params }) {
     const emptyText = tr ? "Henüz gösterilecek yorum yok." : "No reviews to display yet.";
     const reviewLabel = widget.source_platform === "google"
       ? (tr ? "Google'da yorum bırak" : "Leave a review on Google")
-      : (tr ? "Trustpilot'ta yorum bırak" : "Leave a review on Trustpilot");
-    const attribution = tr ? `${platformSafe} yorumları` : `${platformSafe} reviews`;
+      : widget.source_platform === "trustpilot"
+      ? (tr ? "Trustpilot'ta yorum bırak" : "Leave a review on Trustpilot")
+      : (tr ? "Geri bildirim bırak" : "Leave feedback");
+    const attribution = widget.source_platform === "first_party"
+      ? (tr ? "Doğrudan müşteri geri bildirimi" : "Direct customer feedback")
+      : tr ? `${platformSafe} yorumları` : `${platformSafe} reviews`;
     const stale = widget.sync_status === "error" || isStale
       ? `<p style="font:12px system-ui,sans-serif;color:#b45309;text-align:center;margin:10px 0">${widget.sync_status === "error" ? (tr ? "Yorum kaynağı son eşitlemede güncellenemedi." : "The review source could not be refreshed during the last sync.") : (tr ? "Yorum verileri 7 günden eski olabilir." : "Review data may be more than 7 days old.")}</p>`
       : "";
     const content = widgetReviews.length ? cardHtml : `<p style="text-align:center;opacity:.65;font:14px system-ui,sans-serif">${emptyText}</p>`;
     const heading = title ? `<h2 style="font:600 18px/1.35 system-ui,sans-serif;color:${colors.text};margin:0 0 14px">${title}</h2>` : "";
     const syncLabel = tr ? "Son güncelleme" : "Last updated";
-    const syncedAt = lastSyncIso ? ` · ${syncLabel}: <time class="rb-date" datetime="${escapeHtml(lastSyncIso)}" data-date="${escapeHtml(lastSyncIso)}"></time>` : "";
+    const syncedAt = widget.source_platform !== "first_party" && lastSyncIso ? ` · ${syncLabel}: <time class="rb-date" datetime="${escapeHtml(lastSyncIso)}" data-date="${escapeHtml(lastSyncIso)}"></time>` : "";
     const sourceAttribution = `<div style="font:12px system-ui,sans-serif;text-align:center;opacity:.65;margin-top:12px;color:${colors.text}">${sourceHref ? `<a data-rb-event="source_click" href="${sourceHref}" target="_blank" rel="noopener noreferrer" style="color:inherit">${attribution}${business ? ` · ${business}` : ""}</a>` : `${attribution}${business ? ` · ${business}` : ""}`}${syncedAt}</div>`;
     const cta = buttonHref ? `<div style="text-align:center;margin-top:16px"><a data-rb-event="cta_click" href="${buttonHref}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 18px;background:${colors.accent};color:#fff;border-radius:8px;text-decoration:none;font:500 14px system-ui,sans-serif">⭐ ${reviewLabel}</a></div>` : "";
     const badge = widget.show_badge ? `<div style="text-align:center;margin-top:12px;font:12px system-ui,sans-serif"><a href="https://reviewbridge.com" target="_blank" rel="noopener noreferrer" style="color:${colors.text};opacity:.6;text-decoration:none">${tr ? "ReviewBridge tarafından desteklenir" : "Powered by ReviewBridge"}</a></div>` : "";
@@ -196,6 +202,11 @@ export async function GET(_request, { params }) {
     widgetLocale: widget.widget_locale,
     htmlByLocale,
     layout,
+    experimentEnabled: widget.experiment_enabled && widget.show_review_button && plan !== "free" && Boolean(reviewUrl),
+    alternativeLabel: {
+      tr: String(widget.experiment_label_tr || "Deneyimini paylaş").slice(0, 60),
+      en: String(widget.experiment_label_en || "Share your experience").slice(0, 60),
+    },
   });
 
   const etag = createWidgetEtag(js);

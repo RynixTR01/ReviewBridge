@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { queryOne } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { ProfileForm, DangerZone } from "./SettingsClient";
+import { ProfileForm, NotificationPreferences, DangerZone } from "./SettingsClient";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   }
 
   const profile = await queryOne(
-    "SELECT full_name, email, plan, created_at FROM public.users WHERE id = $1",
+    "SELECT full_name, email, plan, created_at, sync_failure_emails_enabled FROM public.users WHERE id = $1",
     [user.id]
   );
 
@@ -43,6 +43,8 @@ export default async function SettingsPage() {
         email={profile?.email || user.email}
         memberSince={memberSince}
       />
+
+      <NotificationPreferences enabled={Boolean(profile?.sync_failure_emails_enabled)} />
 
       <DangerZone />
     </div>

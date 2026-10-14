@@ -35,6 +35,18 @@ export async function updateProfileAction(formData) {
   return { success: true };
 }
 
+export async function updateNotificationPreferencesAction(formData) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated." };
+  const enabled = formData.get("sync_failure_emails_enabled") === "on";
+  await query(
+    "UPDATE public.users SET sync_failure_emails_enabled = $2 WHERE id = $1",
+    [user.id, enabled],
+  );
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
 export async function deleteAccountAction(formData) {
   const confirmation = formData.get("confirmation")?.toString().trim();
 

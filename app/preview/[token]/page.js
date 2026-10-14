@@ -87,7 +87,7 @@ export default async function PreviewPage({ params }) {
   let reviewUrl = null;
   let buttonLabel = '';
 
-  if (widget.show_review_button && widget.source_platform && widget.source_maps_url) {
+  if (widget.show_review_button && widget.source_platform && (widget.source_maps_url || widget.source_platform === "first_party")) {
     if (widget.source_platform === 'google') {
       const placeId = extractPlaceId(widget.source_place_id);
       reviewUrl = placeId 
@@ -100,6 +100,9 @@ export default async function PreviewPage({ params }) {
         ? 'https://www.trustpilot.com/review/' + domain + '#writeareview'
         : null;
       buttonLabel = t(widgetDisplayLocale, "⭐ Trustpilot'ta yorum bırak", "⭐ Leave a review on Trustpilot");
+    } else if (widget.source_platform === "first_party" && /^[a-f0-9]{48}$/.test(widget.source_place_id || "")) {
+      reviewUrl = `/collect/${widget.source_place_id}`;
+      buttonLabel = t(widgetDisplayLocale, "Geri bildirim bırak", "Leave feedback");
     }
   }
 
@@ -326,10 +329,10 @@ export default async function PreviewPage({ params }) {
                   </span>
                 </div>
               )}
-              {(widget.sync_status === "error" || !widget.last_synced_at) && <p style={{ color: "#b45309", fontSize: 12, textAlign: "center", marginTop: 10 }}>{widget.sync_status === "error" ? t(widgetDisplayLocale, "Son eşitleme başarısız oldu.", "The latest sync failed.") : t(widgetDisplayLocale, "Henüz başarılı bir eşitleme yok.", "No successful sync yet.")}</p>}
+              {widget.current_source_platform !== "first_party" && (widget.sync_status === "error" || !widget.last_synced_at) && <p style={{ color: "#b45309", fontSize: 12, textAlign: "center", marginTop: 10 }}>{widget.sync_status === "error" ? t(widgetDisplayLocale, "Son eşitleme başarısız oldu.", "The latest sync failed.") : t(widgetDisplayLocale, "Henüz başarılı bir eşitleme yok.", "No successful sync yet.")}</p>}
               <p style={{ color: text, opacity: 0.6, fontSize: 12, textAlign: "center", marginTop: 10 }}>
-                {widget.current_source_platform === "google" ? "Google" : "Trustpilot"} {t(widgetDisplayLocale, "yorumları", "reviews")} · {widget.business_name}
-                {widget.last_synced_at && <> · {t(widgetDisplayLocale, "Son güncelleme", "Last updated")}: {new Date(widget.last_synced_at).toLocaleDateString(widgetDisplayLocale === "tr" ? "tr-TR" : "en-US")}</>}
+                {widget.current_source_platform === "google" ? "Google" : widget.current_source_platform === "trustpilot" ? "Trustpilot" : t(widgetDisplayLocale, "Doğrudan geri bildirim", "Direct feedback")} · {widget.business_name}
+                {widget.current_source_platform !== "first_party" && widget.last_synced_at && <> · {t(widgetDisplayLocale, "Son güncelleme", "Last updated")}: {new Date(widget.last_synced_at).toLocaleDateString(widgetDisplayLocale === "tr" ? "tr-TR" : "en-US")}</>}
               </p>
             </div>
             </FloatingPreviewShell>

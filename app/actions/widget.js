@@ -6,28 +6,24 @@ import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
+import { getEditableSource, getEditableWidget } from "@/lib/agency-access";
 
 export async function createWidgetForSourceAction(formData) {
   const sourceId = formData.get("sourceId");
   const user = await getCurrentUser();
   if (!user || !sourceId) redirect("/login");
-  const profile = await queryOne("SELECT plan FROM public.users WHERE id = $1", [user.id]);
-  const source = await queryOne(
-    `SELECT s.id, s.place_id, s.platform,
-            (SELECT source_maps_url FROM public.widgets WHERE source_id = s.id ORDER BY created_at LIMIT 1) AS source_maps_url
-     FROM public.sources s WHERE s.id = $1 AND s.user_id = $2`,
-    [sourceId, user.id],
-  );
+  const source = await getEditableSource(sourceId, user.id);
   if (!source) redirect("/dashboard");
 
-  const plan = profile?.plan || "free";
+  const plan = source.owner_plan || "free";
+  const existingWidget = await queryOne("SELECT source_maps_url FROM public.widgets WHERE source_id = $1 ORDER BY created_at LIMIT 1", [source.id]);
   const widget = await queryOne(
     `INSERT INTO public.widgets
        (user_id, source_id, theme, max_reviews, show_badge, embed_token,
         user_plan, source_place_id, source_platform, source_maps_url)
      VALUES ($1, $2, 'light', 5, true, $3, $4, $5, $6, $7)
      RETURNING id`,
-    [user.id, source.id, randomUUID().replace(/-/g, ""), plan, source.place_id, source.platform, source.source_maps_url],
+    [source.user_id, source.id, randomUUID().replace(/-/g, ""), plan, source.place_id, source.platform, existingWidget?.source_maps_url || null],
   );
   if (!widget) redirect("/dashboard");
   revalidatePath("/dashboard");
@@ -54,11 +50,20 @@ export async function updateWidgetAction(formData) {
     return { error: "Not authenticated" };
   }
 
-  const profile = await queryOne(
-    "SELECT plan FROM public.users WHERE id = $1",
-    [user.id]
+  const access = await getEditableWidget(widgetId, user.id);
+  if (!access) return { error: "Widget not found or access denied." };
+  const userPlan = access.owner_plan || "free";
+  const previousExperiment = await queryOne(
+    "SELECT experiment_enabled, experiment_label_tr, experiment_label_en, experiment_id FROM public.widgets WHERE id = $1",
+    [widgetId],
   );
-  const userPlan = profile?.plan || "free";
+  const experimentEnabled = userPlan !== "free" && formData.get("experimentEnabled") === "true" && showReviewButton;
+  const experimentLabelTr = String(formData.get("experimentLabelTr") || "").trim().slice(0, 60) || "Deneyimini paylaş";
+  const experimentLabelEn = String(formData.get("experimentLabelEn") || "").trim().slice(0, 60) || "Share your experience";
+  const experimentId = previousExperiment?.experiment_enabled === experimentEnabled
+    && previousExperiment.experiment_label_tr === experimentLabelTr
+    && previousExperiment.experiment_label_en === experimentLabelEn
+    ? previousExperiment.experiment_id : randomUUID();
 
   const settings = normalizeWidgetSettings({
     theme,
@@ -98,8 +103,10 @@ export async function updateWidgetAction(formData) {
            widget_locale = $13, widget_title = $14, background_color = $15,
            text_color = $16, accent_color = $17, show_reviewer_avatar = $18,
            show_reviewed_date = $19, allowed_domains = $20,
-           show_rating_summary = $21, font_family = $22, card_density = $23, corner_style = $24
-       WHERE id = $25 AND user_id = $26`,
+           show_rating_summary = $21, font_family = $22, card_density = $23, corner_style = $24,
+           experiment_enabled = $25, experiment_label_tr = $26, experiment_label_en = $27,
+           experiment_id = $28
+       WHERE id = $29 AND user_id = $30`,
       [
         settings.theme,
         settings.maxReviews,
@@ -125,8 +132,12 @@ export async function updateWidgetAction(formData) {
         settings.fontFamily,
         settings.cardDensity,
         settings.cornerStyle,
+        experimentEnabled,
+        experimentLabelTr,
+        experimentLabelEn,
+        experimentId,
         widgetId,
-        user.id,
+        access.user_id,
       ]
     );
   } catch (error) {
@@ -142,8 +153,9 @@ export async function setWidgetReviewPreferenceAction({ widgetId, reviewId, stat
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const profile = await queryOne("SELECT plan FROM public.users WHERE id = $1", [user.id]);
-  const plan = profile?.plan || "free";
+  const access = await getEditableWidget(widgetId, user.id);
+  if (!access) return { error: "Widget not found or access denied." };
+  const plan = access.owner_plan || "free";
   if (!PLAN_LIMITS[plan]?.canModerateReviews) {
     return { error: "Review moderation requires a paid plan." };
   }
@@ -160,7 +172,7 @@ export async function setWidgetReviewPreferenceAction({ widgetId, reviewId, stat
          WHERE preference.widget_id = widget.id
            AND widget.id = $1 AND widget.user_id = $2
            AND preference.review_id = $3`,
-        [widgetId, user.id, reviewId]
+        [widgetId, access.user_id, reviewId]
       );
     } else {
       const saved = await queryOne(
@@ -171,7 +183,7 @@ export async function setWidgetReviewPreferenceAction({ widgetId, reviewId, stat
          WHERE widget.id = $1 AND widget.user_id = $2 AND review.id = $3
          ON CONFLICT (widget_id, review_id) DO UPDATE SET state = EXCLUDED.state
          RETURNING widget_id`,
-        [widgetId, user.id, reviewId, state]
+        [widgetId, access.user_id, reviewId, state]
       );
       if (!saved) return { error: "Review not found for this widget." };
     }

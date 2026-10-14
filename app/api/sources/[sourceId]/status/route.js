@@ -12,10 +12,13 @@ export async function GET(request, { params }) {
 
     const { sourceId } = await params;
 
-    // Scope by owner in SQL so the Neon connection cannot bypass the old RLS policy.
+    // Editors can inspect sync status only for brands explicitly shared with them.
     const source = await queryOne(
-      `SELECT sync_status, sync_started_at, last_synced_at, last_sync_error
-       FROM public.sources WHERE id = $1 AND user_id = $2`,
+      `SELECT s.user_id, s.sync_status, s.sync_started_at, s.last_synced_at, s.last_sync_error
+       FROM public.sources s
+       LEFT JOIN public.agency_brand_members m ON m.brand_id = s.brand_id AND m.user_id = $2
+       JOIN public.users owner_profile ON owner_profile.id = s.user_id
+       WHERE s.id = $1 AND (s.user_id = $2 OR (m.role = 'editor' AND owner_profile.plan = 'agency'))`,
       [sourceId, user.id]
     );
 
@@ -31,7 +34,7 @@ export async function GET(request, { params }) {
              apify_run_id = NULL, sync_started_at = NULL
          WHERE id = $1 AND user_id = $2 AND sync_status = 'pending'
            AND sync_started_at < NOW() - INTERVAL '15 minutes'`,
-        [sourceId, user.id, "Sync timed out. Please try again."]
+        [sourceId, source.user_id, "Sync timed out. Please try again."]
       );
       await finishSyncHistory({ sourceId, status: "error", errorMessage: "Eşitleme zaman aşımına uğradı." });
     }
@@ -39,7 +42,7 @@ export async function GET(request, { params }) {
     const currentSource = await queryOne(
       `SELECT sync_status, last_synced_at, last_sync_error
        FROM public.sources WHERE id = $1 AND user_id = $2`,
-      [sourceId, user.id]
+      [sourceId, source.user_id]
     );
 
     return Response.json({

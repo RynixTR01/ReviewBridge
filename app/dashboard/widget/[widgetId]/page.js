@@ -28,8 +28,10 @@ export default async function WidgetPage({ params }) {
   const widget = await queryOne(
     `SELECT w.*, row_to_json(s) AS sources
      FROM public.widgets AS w
-     JOIN public.sources AS s ON s.id = w.source_id
-     WHERE w.id = $1 AND w.user_id = $2`,
+     JOIN public.sources AS s ON s.id = w.source_id AND s.user_id = w.user_id
+     JOIN public.users owner_profile ON owner_profile.id = w.user_id
+     LEFT JOIN public.agency_brand_members m ON m.brand_id = s.brand_id AND m.user_id = $2
+     WHERE w.id = $1 AND (w.user_id = $2 OR (owner_profile.plan = 'agency' AND m.role = 'editor'))`,
     [widgetId, user.id]
   );
 
@@ -49,7 +51,7 @@ export default async function WidgetPage({ params }) {
   // Get user plan
   const profile = await queryOne(
     "SELECT plan FROM public.users WHERE id = $1",
-    [user.id]
+    [widget.user_id]
   );
 
   const plan = profile?.plan || "free";

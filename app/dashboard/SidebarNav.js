@@ -26,6 +26,60 @@ const navItems = [
     exact: true,
   },
   {
+    label: { tr: "Geri bildirim", en: "Feedback" },
+    href: "/dashboard/feedback",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h5m-9 7 3.5-3H19a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 001 2z" />
+      </svg>
+    ),
+  },
+  {
+    label: { tr: "Anketler", en: "Surveys" },
+    href: "/dashboard/surveys",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+      </svg>
+    ),
+  },
+  {
+    label: { tr: "Markalar", en: "Brands" },
+    href: "/dashboard/brands",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 21V7a2 2 0 012-2h6v16M11 9h8a2 2 0 012 2v10M7 9h.01M7 13h.01M7 17h.01M15 13h.01M15 17h.01M3 21h18" />
+      </svg>
+    ),
+  },
+  {
+    label: { tr: "Kurulum", en: "Installation" },
+    href: "/dashboard/installations",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z" />
+      </svg>
+    ),
+  },
+  {
+    label: { tr: "Deneyler", en: "Experiments" },
+    href: "/dashboard/experiments",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16M4 12h10M4 19h16m-4-10 3 3-3 3" />
+      </svg>
+    ),
+  },
+  {
+    label: { tr: "Eğilimler", en: "Insights" },
+    href: "/dashboard/insights",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6" />
+      </svg>
+    ),
+  },
+  {
     label: { tr: "Planlar", en: "Plans" },
     href: "/dashboard/upgrade",
     icon: (
@@ -60,7 +114,7 @@ export default function SidebarNav() {
   const locale = useLocale();
 
   return (
-    <nav className="grid grid-cols-5 gap-1 md:block md:space-y-1" aria-label={locale === "tr" ? "Panel menüsü" : "Dashboard navigation"}>
+    <nav className="flex gap-1 overflow-x-auto md:block md:space-y-1 md:overflow-visible" aria-label={locale === "tr" ? "Panel menüsü" : "Dashboard navigation"}>
       {navItems.map((item) => {
         const isActive = item.exact
           ? pathname === item.href
@@ -71,7 +125,7 @@ export default function SidebarNav() {
             key={item.href}
             href={item.href}
             prefetch={true}
-            className={`min-w-0 flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-center text-[10px] font-medium transition-colors md:flex-row md:justify-start md:gap-3 md:px-3 md:text-left md:text-base ${
+            className={`min-w-[76px] shrink-0 flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-center text-[10px] font-medium transition-colors md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-3 md:text-left md:text-base ${
               isActive
                 ? "bg-primary-light text-primary"
                 : "text-muted hover:bg-muted-bg hover:text-foreground"
