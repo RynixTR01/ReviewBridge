@@ -8,6 +8,7 @@ import { queryOne } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { createSurveyResponseNotification } from "@/lib/notifications";
 
 const TOKEN = /^[a-f0-9]{48}$/;
 
@@ -50,7 +51,7 @@ export async function submitSurveyAction(_previousState, formData) {
     return { error: t(locale, "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin.", "Too many submissions. Please try again later.") };
   }
 
-  const survey = await queryOne("SELECT id, survey_type FROM public.customer_surveys WHERE public_token = $1", [token]);
+  const survey = await queryOne("SELECT id, user_id, title, survey_type FROM public.customer_surveys WHERE public_token = $1", [token]);
   if (!survey) return { error: t(locale, "Bu anket bağlantısı bulunamadı.", "This survey link could not be found.") };
   const validScore = survey.survey_type === "nps" ? score >= 0 && score <= 10 : score >= 1 && score <= 5;
   if (!validScore) return { error: t(locale, "Puan seçin.", "Choose a score.") };
@@ -70,6 +71,13 @@ export async function submitSurveyAction(_previousState, formData) {
     [survey.id, score, comment],
   );
   if (!submitted) return { error: t(locale, "Bu anket bugün yanıt sınırına ulaştı.", "This survey has reached today's response limit.") };
+  await createSurveyResponseNotification({
+    userId: survey.user_id,
+    surveyTitle: survey.title,
+    surveyType: survey.survey_type,
+    responseId: submitted.id,
+    score,
+  });
   return { success: true };
 }
 

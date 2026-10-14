@@ -335,7 +335,7 @@ export default async function DashboardPage() {
             const googleTotal = source.total_reviews_count;
             
             return (
-              <div key={source.id} className="min-w-0 bg-white border border-border shadow-sm rounded-xl p-4 sm:p-5 transition-all hover:shadow-md hover:border-primary/20">
+              <div id={`source-${source.id}`} key={source.id} className="min-w-0 bg-white border border-border shadow-sm rounded-xl p-4 sm:p-5 transition-all hover:shadow-md hover:border-primary/20">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${isGoogle ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>

@@ -44,6 +44,15 @@ const navItems = [
     ),
   },
   {
+    label: { tr: "Bildirimler", en: "Notifications" },
+    href: "/dashboard/notifications",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 00-4.5-5.9V4a1.5 1.5 0 00-3 0v1.1A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v.5a3 3 0 01-6 0V17m6 0H9" />
+      </svg>
+    ),
+  },
+  {
     label: { tr: "Markalar", en: "Brands" },
     href: "/dashboard/brands",
     icon: (
@@ -109,7 +118,7 @@ const navItems = [
   },
 ];
 
-export default function SidebarNav() {
+export default function SidebarNav({ unreadCount = 0 }) {
   const pathname = usePathname();
   const locale = useLocale();
 
@@ -132,7 +141,14 @@ export default function SidebarNav() {
             }`}
           >
             <span className="shrink-0">{item.icon}</span>
-            <span className="min-w-0 leading-tight">{item.label[locale]}</span>
+            <span className="inline-flex min-w-0 items-center gap-1.5 leading-tight">
+              {item.label[locale]}
+              {item.href === "/dashboard/notifications" && unreadCount > 0 && (
+                <span aria-label={locale === "tr" ? `${unreadCount} okunmamış` : `${unreadCount} unread`} className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] leading-none text-white md:ml-auto">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </span>
           </Link>
         );
       })}

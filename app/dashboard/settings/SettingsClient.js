@@ -98,7 +98,7 @@ export function NotificationPreferences({ enabled, usageLimitEnabled, emailConfi
       }
     });
   }}>
-    <h2 className="text-xl font-bold text-foreground">{t(locale, "Bildirimler", "Notifications")}</h2>
+    <h2 className="text-xl font-bold text-foreground">{t(locale, "E-posta bildirimleri", "Email notifications")}</h2>
     <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
       <input type="checkbox" checked={checked} disabled={!emailConfigured && !checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
       <span>{t(locale, "Kaynağımın otomatik eşitlemesi denemelerden sonra başarısız kalırsa e-posta gönder.", "Email me when my source's automatic sync still fails after retries.")}</span>

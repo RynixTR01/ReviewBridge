@@ -13,6 +13,7 @@ import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-h
 import { createStableReviewId } from "@/lib/review-id";
 import { normalizeReviewRating } from "@/lib/review-rating";
 import { sendUsageLimitAlert } from "@/lib/usage-limit-alerts";
+import { createSourceLimitNotification } from "@/lib/notifications";
 import { getLocale } from "@/lib/i18n-server";
 
 export async function addSourceAction(prevState, formData) {
@@ -83,6 +84,7 @@ export async function addSourceAction(prevState, formData) {
 
 
   if (count >= limits.maxSources) {
+    await createSourceLimitNotification({ userId: user.id, count, limit: limits.maxSources });
     await sendUsageLimitAlert({ userId: user.id, count, limit: limits.maxSources, locale: await getLocale() });
     return { error: `${plan} planında en fazla ${limits.maxSources} kaynak ekleyebilirsiniz. Daha fazla kaynak için planınızı yükseltin.` };
   }
