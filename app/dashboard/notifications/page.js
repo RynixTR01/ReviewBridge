@@ -38,11 +38,19 @@ export default async function NotificationsPage() {
           <h1 className="text-2xl font-bold text-foreground">{t(locale, "Bildirimler", "Notifications")}</h1>
           <p className="mt-1 text-sm text-muted">{t(locale, "Eşitleme, yeni geri bildirim ve anket yanıtlarını buradan takip edin.", "Track sync issues, new feedback, and survey responses here.")}</p>
         </div>
-        {unreadCount > 0 && <form action={markAllNotificationsReadAction}>
-          <button className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted-bg">
-            {t(locale, "Tümünü okundu işaretle", "Mark all as read")}
-          </button>
-        </form>}
+        <div className="flex flex-wrap gap-2">
+          {available && notifications.length > 0 && <a
+            href="/api/notifications/export.csv"
+            className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted-bg"
+          >
+            {t(locale, "Geçmişi CSV olarak indir", "Download history as CSV")}
+          </a>}
+          {unreadCount > 0 && <form action={markAllNotificationsReadAction}>
+            <button className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted-bg">
+              {t(locale, "Tümünü okundu işaretle", "Mark all as read")}
+            </button>
+          </form>}
+        </div>
       </header>
 
       {!available ? (
