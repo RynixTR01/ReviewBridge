@@ -70,17 +70,22 @@ export async function submitFeedbackAction(_previousState, formData) {
     [token],
   );
   if (!source) return { error: t(locale, "Bu geri bildirim bağlantısı bulunamadı.", "This feedback link could not be found.") };
-  const today = await queryOne(
-    "SELECT count(*)::int AS count FROM public.feedback_submissions WHERE source_id = $1 AND created_at > now() - interval '1 day'",
-    [source.id],
-  );
-  if (today.count >= 100) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
-  await query(
-    `INSERT INTO public.feedback_submissions
+  const submitted = await queryOne(
+    `WITH quota AS (
+       INSERT INTO public.feedback_daily_limits (source_id, quota_day, submission_count)
+       VALUES ($1, CURRENT_DATE, 1)
+       ON CONFLICT (source_id, quota_day) DO UPDATE
+       SET submission_count = public.feedback_daily_limits.submission_count + 1
+       WHERE public.feedback_daily_limits.submission_count < 100
+       RETURNING source_id
+     )
+     INSERT INTO public.feedback_submissions
        (source_id, reviewer_name, rating, body, consented_at)
-     VALUES ($1, $2, $3, $4, now())`,
+     SELECT $1, $2, $3, $4, now() FROM quota
+     RETURNING id`,
     [source.id, name, rating, body],
   );
+  if (!submitted) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
   return { success: true };
 }
 

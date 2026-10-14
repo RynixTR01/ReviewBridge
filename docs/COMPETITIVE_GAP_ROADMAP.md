@@ -143,7 +143,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - [ ] Gerçek WordPress/Shopify/Webflow site testleri, üretimde Apify uçtan uca smoke, harici hata alarmı ve saha performans ölçümü canlı hesap/site erişimi gerektiriyor. Dağıtık hız sınırı ve günlük cron ötesi kuyruk kapasitesi de ayrı altyapı işi.
 - [ ] Lemon Squeezy canlı ödeme, satış metni ve test modundan çıkış kullanıcının isteğiyle en sona bırakıldı.
 
-Bu paket için Neon şema dosyaları `20261014_02`–`20261014_07` sıralıdır. İzole dalda sınandı; production'a uygulanıp kod yayınlanmadan önce canlı özellikler etkin sayılmaz.
+Bu paket için Neon şema dosyaları `20261014_02`–`20261014_08` sıralıdır. İzole dalda sınandı; production'a uygulanıp kod yayınlanmadan önce canlı özellikler etkin sayılmaz. Doğrudan formun günlük 100 gönderim sınırı, eşzamanlı gönderimlerde aşılmaması için veritabanında atomik uygulanır.
 
 - [x] Kapsamlı gap envanteri oluşturuldu; bu dosya artık tamamlananları ve gerçek dış bağımlılıkları aynı listede izliyor.
 - [x] Aşama 0'ın kod ve Neon işleri: fail-closed/idempotent Lemon webhook, mevcut abonelik guard alanı, review ID, sync hataları, hoş geldin e-posta guard'ı, server-side plan limitleri. Üretimde Lemon gerçek variant ID'lerinin ayarlanması işletme hesabında yapılmalı.

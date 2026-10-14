@@ -26,6 +26,6 @@ export default async function StatusPage() {
       <strong className={databaseReachable ? "text-green-800" : "text-red-800"}>{databaseReachable ? t(locale, "Veritabanı erişilebilir", "Database reachable") : t(locale, "Veritabanına erişilemiyor", "Database unavailable")}</strong>
       <p className="mt-1 text-xs text-muted">{t(locale, "Kontrol zamanı", "Checked at")}: {new Date().toLocaleString(locale === "tr" ? "tr-TR" : "en-US", { timeZone: "Europe/Istanbul" })}</p>
     </div>
-    <p className="mt-6 text-sm text-muted">{t(locale, "Bir sorun yaşıyorsanız", "If you are having trouble,")} <a href="mailto:support@reviewbridge.app" className="text-primary underline">{t(locale, "destekle iletişime geçin", "contact support")}</a>.</p>
+    <p className="mt-6 text-sm text-muted">{t(locale, "Bir sorun yaşıyorsanız birkaç dakika sonra yeniden deneyin.", "If you are having trouble, please try again in a few minutes.")}</p>
   </main>;
 }
