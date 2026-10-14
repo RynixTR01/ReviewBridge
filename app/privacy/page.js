@@ -30,7 +30,7 @@ export default async function PrivacyPage() {
         <div className="prose-custom space-y-8 text-muted leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "1. Topladığımız Bilgiler", "1. Information We Collect")}</h2>
-            <p>{t(locale, "Hesap oluşturduğunuzda e-posta adresinizi, adınızı ve kimlik doğrulama bilgilerinizi toplarız. Bir Google Haritalar veya Trustpilot profili bağladığınızda, bu platformlardaki yorum verilerini sizin adınıza alırız. Doğrudan geri bildirim formu kullanıldığında müşterinin adı, puanı, yorumu ve yayın izni zamanı kaydedilir; e-posta adresi istenmez.", "When you create an account, we collect your email address, name, and authentication details. When you connect a Google Maps or Trustpilot listing, we fetch review data on your behalf. A direct-feedback form stores the customer's name, rating, feedback, and consent time; it does not ask for an email address.")}</p>
+            <p>{t(locale, "Hesap oluşturduğunuzda e-posta adresinizi, adınızı ve kimlik doğrulama bilgilerinizi toplarız. Bir Google Haritalar veya Trustpilot profili bağladığınızda, bu platformlardaki yorum verilerini sizin adınıza alırız. Doğrudan geri bildirim formu kullanıldığında müşterinin adı, puanı, yorumu ve yayın izni zamanı kaydedilir; e-posta adresi istenmez. Herkese açık geri bildirim ve anket gönderimlerinde otomatik istekleri belirlemek için tarayıcı ve ağ sinyalleri de işlenebilir.", "When you create an account, we collect your email address, name, and authentication details. When you connect a Google Maps or Trustpilot listing, we fetch review data on your behalf. A direct-feedback form stores the customer's name, rating, feedback, and consent time; it does not ask for an email address. Browser and network signals may also be processed to identify automated submissions to public feedback and survey forms.")}</p>
           </section>
 
           <section>
@@ -43,6 +43,7 @@ export default async function PrivacyPage() {
               <li>{t(locale, "Ayarlar'dan açarsanız, kaynak sınırına ulaştığınızda en fazla 30 günde bir kullanım bildirimi e-postası göndermek", "If enabled in Settings, send an email when you reach your source limit, at most once every 30 days")}</li>
               <li>{t(locale, "Hizmetimizi geliştirmek ve iyileştirmek", "Improve and optimize our service")}</li>
               <li>{t(locale, "Gömülü bileşenin günlük görüntülenme ve bağlantı tıklama sayılarını, ziyaretçiyi tanımlayan bir profil oluşturmadan toplu olarak ölçmek", "Measure daily embed views and link clicks as aggregate counts without building visitor profiles")}</li>
+              <li>{t(locale, "Herkese açık geri bildirim ve anket formlarındaki otomatik gönderimleri belirlemek", "Detect automated submissions to public feedback and survey forms")}</li>
             </ul>
           </section>
 
@@ -57,7 +58,7 @@ export default async function PrivacyPage() {
             <p>{t(locale, "Aşağıdaki üçüncü taraf hizmetleri kullanırız:", "We use the following third-party services:")}</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li><strong>Neon</strong> — {t(locale, "Veritabanı ve kimlik doğrulama", "Database and authentication")}</li>
-              <li><strong>Vercel</strong> — {t(locale, "Barındırma ve yayınlama", "Hosting and deployment")}</li>
+              <li><strong>Vercel</strong> — {t(locale, "Barındırma, yayınlama ve herkese açık geri bildirim/anket formları için BotID Basic bot koruması", "Hosting, deployment, and BotID Basic bot protection for public feedback and survey forms")}</li>
               <li><strong>Apify</strong> — {t(locale, "Profil bağlantılarını işleme ve herkese açık yorum verilerini alma", "Processing listing URLs and retrieving publicly available review data")}</li>
               <li><strong>Resend</strong> — {t(locale, "Açık bildirim tercihiniz varsa hizmet e-postalarını iletmek", "Deliver service emails when you opt in to notifications")}</li>
               <li><strong>LemonSqueezy</strong> — {t(locale, "Ödeme işlemleri", "Payment processing")}</li>

@@ -12,6 +12,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createFeedbackNotification, createSourceLimitNotification } from "@/lib/notifications";
 import { isHoneypotFilled } from "@/lib/public-form-protection";
+import { checkBotId } from "botid/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^[a-f0-9]{48}$/;
@@ -63,6 +64,10 @@ export async function submitFeedbackAction(_previousState, formData) {
   const body = String(formData.get("body") || "").trim();
   const rating = Number(formData.get("rating"));
   if (isHoneypotFilled(formData)) return { success: true };
+  const botCheck = await checkBotId({ advancedOptions: { checkLevel: "basic" } });
+  if (botCheck.isBot) {
+    return { error: t(locale, "Gönderim otomatik olarak algılandı. Lütfen tarayıcıdan tekrar deneyin.", "This submission was flagged as automated. Please try again from your browser.") };
+  }
   if (!TOKEN.test(token) || name.length < 1 || name.length > 80 || body.length < 10 || body.length > 2000 || !Number.isInteger(rating) || rating < 1 || rating > 5 || formData.get("consent") !== "on") {
     return { error: t(locale, "Lütfen ad, puan, en az 10 karakterlik yorum ve yayın iznini doldurun.", "Enter your name, a rating, a review of at least 10 characters, and consent to publish.") };
   }
