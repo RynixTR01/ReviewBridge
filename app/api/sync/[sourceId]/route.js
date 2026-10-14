@@ -30,17 +30,23 @@ export async function POST(request, { params }) {
     const source = await queryOne(
       cronAuthorized
         ? 'SELECT * FROM public.sources WHERE id = $1'
-        : 'SELECT * FROM public.sources WHERE id = $1 AND user_id = $2',
+        : `SELECT s.* FROM public.sources s
+           LEFT JOIN public.agency_brand_members m ON m.brand_id = s.brand_id AND m.user_id = $2
+           JOIN public.users owner_profile ON owner_profile.id = s.user_id
+           WHERE s.id = $1 AND (s.user_id = $2 OR (m.role = 'editor' AND owner_profile.plan = 'agency'))`,
       cronAuthorized ? [sourceId] : [sourceId, user.id]
     );
 
     if (!source) {
       return Response.json({ error: "Source not found or access denied" }, { status: 404 });
     }
+    if (source.platform === "first_party") {
+      return Response.json({ error: "Direct feedback does not use provider sync." }, { status: 400 });
+    }
 
     // --- Sync Rate Limiting ---
     // Fetch user plan to determine cooldown
-    const userId = user?.id || source.user_id;
+    const userId = source.user_id;
     const profile = await queryOne(
       'SELECT plan FROM public.users WHERE id = $1',
       [userId]

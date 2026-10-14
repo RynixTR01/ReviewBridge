@@ -30,7 +30,7 @@ export default async function PrivacyPage() {
         <div className="prose-custom space-y-8 text-muted leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "1. Topladığımız Bilgiler", "1. Information We Collect")}</h2>
-            <p>{t(locale, "Hesap oluşturduğunuzda e-posta adresinizi, adınızı ve kimlik doğrulama bilgilerinizi toplarız. Bir Google Haritalar veya Trustpilot profili bağladığınızda, bu platformlardaki herkese açık yorum verilerini sizin adınıza alırız.", "When you create an account, we collect your email address, name, and authentication details. When you connect a Google Maps or Trustpilot listing, we fetch publicly available review data from those platforms on your behalf.")}</p>
+            <p>{t(locale, "Hesap oluşturduğunuzda e-posta adresinizi, adınızı ve kimlik doğrulama bilgilerinizi toplarız. Bir Google Haritalar veya Trustpilot profili bağladığınızda, bu platformlardaki yorum verilerini sizin adınıza alırız. Doğrudan geri bildirim formu kullanıldığında müşterinin adı, puanı, yorumu ve yayın izni zamanı kaydedilir; e-posta adresi istenmez.", "When you create an account, we collect your email address, name, and authentication details. When you connect a Google Maps or Trustpilot listing, we fetch review data on your behalf. A direct-feedback form stores the customer's name, rating, feedback, and consent time; it does not ask for an email address.")}</p>
           </section>
 
           <section>
@@ -48,6 +48,7 @@ export default async function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "3. Veri Saklama ve Güvenlik", "3. Data Storage and Security")}</h2>
             <p>{t(locale, "Hesap ve uygulama verileriniz Neon Postgres'te saklanır. Gömülü bileşen için günlük toplu ölçüm kayıtları 90 günden eski olduğunda silinir. Kişisel bilgilerinizi üçüncü taraflara satmayız, takas etmeyiz veya kiralamayız.", "Your account and application data are stored in Neon Postgres. Daily aggregate embed metrics older than 90 days are deleted. We do not sell, trade, or rent your personal information to third parties.")}</p>
+            <p>{t(locale, "Doğrudan gönderilen geri bildirimler işletme tarafından incelenene kadar özel kalır; onaylanan ad, puan ve yorum widget'ta yayınlanır. İşletme yayından kaldırabilir veya kaynağı silebilir. Widget'ın yüklendiği alan adı ve son görülme zamanı kurulum kontrolü için tutulur; A/B deneyi yalnızca toplu sayılar kullanır ve ziyaretçi çerezi oluşturmaz.", "Direct feedback stays private until the business reviews it; approved names, ratings, and comments appear in the widget. The business can unpublish them or delete the source. We store the domain and last-seen time of widget loads for installation checks; A/B experiments use aggregate counts and create no visitor cookie.")}</p>
           </section>
 
           <section>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateProfileAction, deleteAccountAction } from "@/app/actions/settings";
+import { updateProfileAction, updateNotificationPreferencesAction, deleteAccountAction } from "@/app/actions/settings";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
 
@@ -73,6 +73,35 @@ export function ProfileForm({ fullName, email, memberSince }) {
       </form>
     </div>
   );
+}
+
+export function NotificationPreferences({ enabled }) {
+  const locale = useLocale();
+  const [checked, setChecked] = useState(enabled);
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState("");
+  return <form className="mt-6 rounded-2xl border border-border bg-white p-6" onSubmit={(event) => {
+    event.preventDefault();
+    const data = new FormData();
+    if (checked) data.set("sync_failure_emails_enabled", "on");
+    startTransition(async () => {
+      try {
+        const result = await updateNotificationPreferencesAction(data);
+        setMessage(result?.error || t(locale, "Bildirim tercihi kaydedildi.", "Notification preference saved."));
+      } catch {
+        setMessage(t(locale, "Tercih kaydedilemedi.", "Could not save preference."));
+      }
+    });
+  }}>
+    <h2 className="text-xl font-bold text-foreground">{t(locale, "Bildirimler", "Notifications")}</h2>
+    <label className="mt-4 flex items-start gap-3 text-sm text-foreground">
+      <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
+      <span>{t(locale, "Kaynağımın otomatik eşitlemesi denemelerden sonra başarısız kalırsa e-posta gönder.", "Email me when my source's automatic sync still fails after retries.")}</span>
+    </label>
+    <p className="mt-2 text-xs text-muted">{t(locale, "Bildirimler isteğe bağlıdır. E-posta gönderimi etkinleştirildiyse ve gönderici alan adı yapılandırıldıysa çalışır.", "Notifications are optional and require a configured email sender.")}</p>
+    <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{pending ? t(locale, "Kaydediliyor…", "Saving…") : t(locale, "Tercihi kaydet", "Save preference")}</button>
+    {message && <p role="status" className="mt-2 text-sm text-muted">{message}</p>}
+  </form>;
 }
 
 export function DangerZone() {

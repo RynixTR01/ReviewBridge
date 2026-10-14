@@ -15,7 +15,8 @@ Set these for the Production environment and redeploy after changing them:
 - `LEMONSQUEEZY_PRO_VARIANT_ID` and `LEMONSQUEEZY_AGENCY_VARIANT_ID` — exact IDs from the Lemon Squeezy variants. When either ID is configured, unknown variants are rejected instead of being inferred from a product name.
 - `NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL` and `NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL` — checkout links shown in the dashboard.
 - During the current test phase, use Lemon Squeezy **test-mode** checkout links, test variant IDs, and the matching test webhook signing secret together. A test checkout link alone does not switch webhook verification to test mode. Keep live values separate, and only replace the test configuration when the business is ready to accept real payments.
-- `RESEND_API_KEY` — optional welcome email delivery.
+- `RESEND_API_KEY` — optional welcome email delivery and opt-in sync failure alerts.
+- `RESEND_FROM_EMAIL` — verified sender address for opt-in sync failure alerts. If unset, alerts are skipped; dashboard failure states remain available.
 
 ## Verified production state
 
@@ -25,18 +26,20 @@ Set these for the Production environment and redeploy after changing them:
 - PR #19 and PR #20 passed GitHub Actions and Vercel preview checks. PR #19 moved Apify credentials to the recommended bearer header; PR #20 switched to Apify's canonical actor endpoint and added callback-flow tests. The PR #20 production deployment reached **Ready** on 14 October 2026. These mocked tests verify request and callback handling, not a live Apify-to-Neon production sync.
 - PR #21 added mocked Lemon Squeezy webhook flow coverage for missing/invalid signatures, exact variant mapping, duplicate delivery, and stale/cancellation events. Its GitHub Actions and Vercel preview passed; the production deployment for commit `7f325d7` reached **Ready** on 14 October 2026. No real purchase or webhook replay was performed.
 - PR #22 added the Pro/Agency floating review banner. GitHub Actions and the Vercel preview passed; its Neon migration was tested on a temporary branch derived from production and applied to production before merge. The production deployment for commit `317eb42` reached **Ready** on 14 October 2026.
-- Vercel currently flags `APIFY_API_TOKEN` as a Config variable that looks like a secret and recommends saving it as a Secret. Its value was not revealed or changed during this check. Resolve this before considering production secret handling fully hardened.
+- The Apify token was rotated by the account owner on 14 October 2026 and entered as a Vercel Secret. The token value was not shared in chat. Verify the currently active Apify token in the dashboard before future rotations.
 - The Apify account page checked on 13 October showed $0.02 of $5.00 included usage; its two latest Google Maps actor runs each cost $0.01 and succeeded. This account-level view does not prove that a ReviewBridge production sync delivered its webhook successfully.
 
 ## Release verification
 
 1. Review the GitHub Actions checks and Vercel preview before merging.
-2. Confirm production migrations are present: webhook event ledger, stable review IDs, welcome-email guard, widget controls/preferences, daily widget metrics, source auto-sync preference, Lemon subscription guard, widget allowed domains, widget style/sync retry fields, and `20261014_01_widget_floating_layout.sql` (tested on an isolated Neon branch and applied to production before PR #22 merged on 14 October 2026).
+2. Confirm production migrations are present: webhook event ledger, stable review IDs, welcome-email guard, widget controls/preferences, daily widget metrics, source auto-sync preference, Lemon subscription guard, widget allowed domains, widget style/sync retry fields, and `20261014_01_widget_floating_layout.sql`. Before deploying the subsequent feature batch, apply `20261014_02_first_party_feedback.sql` through `20261014_07_sync_alerts.sql` in order. These were first tested on an isolated branch derived from production.
 3. In the live dashboard, test sign-in, widget preview, embed rendering, domain allowlist behavior, and account deletion on a disposable test account. Run a manual Google/Trustpilot sync only after the provider access gate in step 6 is satisfied for that source.
 4. Enable automatic sync per source only after the provider access gate is satisfied, the Apify account is configured, and its usage is understood. The Vercel cron runs daily; scheduled sync is opt-in and limited by the plan cooldown.
 5. Confirm widget metrics move after an embed view and CTA click. They contain daily aggregate counts only and are deleted after 90 days.
 6. Complete the [provider access gate](COMPETITIVE_GAP_ROADMAP.md#sağlayıcı-erişimi-ve-veri-kullanımı-için-karar-kapısı) before adding a connector or claiming compliance: record each provider's written permission or API agreement, eligible businesses, permitted storage/display, refresh/deletion deadlines, attribution/branding, and privacy wording; have the account owner and qualified counsel review the actual Apify-to-Neon-to-widget flow. Do not treat an Apify actor or public review page as a license. Google Business Profile and Places APIs, and Trustpilot Data Solutions, each have separate access and content rules; switching endpoints alone does not close this gate.
 7. Configure an external uptime monitor to request `/api/health`; it returns only `{ "status": "ok" }` when Neon is reachable and HTTP 503 otherwise. This endpoint does not send alerts itself.
+8. For direct feedback, submit a disposable response and check pending → approved → unpublished. Do not publish test customer data. For agency access, verify one brand's viewer cannot edit and an editor cannot see another brand. For A/B experiments, compare only after meaningful traffic and confirm event counts on both variants.
+9. For opt-in sync email alerts, set `RESEND_FROM_EMAIL` to a verified sending address. Enable the preference on a disposable account and test a final retry failure in a non-production environment. Historical failures are marked as handled by the migration and do not trigger a backlog of email.
 
 ## Current release constraints
 
@@ -46,5 +49,7 @@ Set these for the Production environment and redeploy after changing them:
 - ReviewBridge has a database-backed `/api/health` check. An external monitor must be configured in Vercel/monitoring separately to deliver uptime alerts.
 - The lightweight rate limiter is per serverless process. It helps with bursts but is not a distributed DDoS defense.
 - Daily widget counts are approximate public-embed metrics and should not be treated as billing or unique-visitor analytics.
-- Adding source platforms, A/B experiments, or team workspaces requires separate provider/legal, traffic, and access-control decisions.
+- New external source platforms still require a documented provider license and content lifecycle design. The first-party feedback form is a separate, consent-based source and does not grant rights to display Google/Trustpilot content.
+- A/B events and installation hosts are approximate observations, not verified users or proof of domain ownership. The public `/status` page reflects the current health check only, not a historical uptime SLA.
+- Lemon Squeezy remains in test mode; live checkout and sale-related work is intentionally deferred.
 

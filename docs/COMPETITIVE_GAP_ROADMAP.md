@@ -47,11 +47,11 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 ### P2 — Ürün genişletme ve büyüme
 
 16. **Kaynak kataloğu dar.** Facebook/Yelp/Tripadvisor/Capterra/G2 gibi platformlar istenebilir; her biri yalnızca veri erişim şartı, maliyet, silme ve attribution incelendikten sonra adapter olarak eklenmeli. Her kaynağı eklemek zorunlu değil.
-17. **Yorum toplama ve anket akışı yok.** Trustmary gibi geri bildirim anketi, müşteri memnuniyeti ve dış platforma yönlendirme ayrı bir ürün koludur. İlk sürüm değil; ancak talep doğrulanırsa opt-in toplama ve moderasyon modeli tasarlanmalı.
-18. **A/B testi ve hedef ölçümü yok.** Önce temel widget analytics; yeterli kullanım hacmi oluşunca tasarım varyantı/CTA deneyleri eklenmeli.
-19. **Ajans/çoklu marka yönetimi eksik.** Marka/site alanları, müşteri çalışma alanı, ekip üyesi ve roller, her müşteri için kaynak/widget gruplanması ve alan adı allowlist'i tasarlanmalı.
+17. **Yorum toplama ve anket akışı sınırlı.** İzin kutusu, özel toplama bağlantısı ve yorum moderasyonu eklendi. NPS/CSAT anketleri, dallanan sorular, zamanlanmış davetler ve dış platforma yönlendirme kampanyaları hâlâ yok.
+18. **A/B testi ve hedef ölçümü yoktu.** CTA metin A/B deneyi ve toplu CTR ölçümü eklendi. Sonuçların anlamlılığı için trafik gerekir; kalıcı ziyaretçi ataması ve daha kapsamlı hedefler yok.
+19. **Ajans/çoklu marka yönetimi eksikti.** Marka/site alanları, ekip üyesi ve görüntüleyici/düzenleyici rolleri, marka başına kaynak ve widget erişimi eklendi. Faturalı müşteri portalı ve ajans alt hesapları ayrıca yok.
 20. **Onboarding checklist eksik.** Dashboard'da kaynak → yorum doğrulama → widget kodu → canlı site kontrolü akışı ve yardım rehberi var. Son kurulum adımı kullanıcı tarafından doğrulanır.
-21. **Operasyonel bildirimler sınırlı.** Sync hatası dashboard ve geçmişte görünür. E-posta/usage-limit bildirim tercihleri henüz yok.
+21. **Operasyonel bildirimler sınırlı.** Otomatik eşitleme son denemelerden sonra başarısız kalırsa isteğe bağlı e-posta tercihi eklendi. Kullanım limiti/bütçe e-postaları, bildirim geçmişi ve uygulama içi bildirim merkezi yok.
 
 **Kabul ölçütü:** Ajans verileri birbirinden izole; kullanıcı ilk widget'ını yardım almadan kurabiliyor; yeni connector'lar ortak doğrulanmış sözleşmeye uyuyor.
 
@@ -77,10 +77,10 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 | Filtreleme | Yazısız yorum filtresi, yıldız/tarih/kelime/sıralama | Yıldız, anahtar kelime ve kötü yorumları hariç tutma seçenekleri | P1; temel fark kapandı |
 | Moderasyon | Widget başına gizle/sabitle | Görünür yorumları seçme, gizleme ve sabitleme | P1; kapandı |
 | Tasarım | Açık/koyu/minimal, renk, başlık, avatar/tarih, locale, alan adı, font, kart aralığı ve köşeler | Boşluk ve yazı tipi kontrolü de var | Temel fark kapandı |
-| Analitik | Günlük görüntülenme, kaynak/CTA tıklaması ve CTR | Daha ayrıntılı entegrasyon olayları ve A/B testleri | P1/P2; anonim temel sayaç kapandı, varyant deneyi trafik bekliyor |
-| Yorum toplama | Harici kaynaklardan gösterim | Anket, memnuniyet toplama ve AI özetleme/analiz | P2; ayrı ürün kolu, widget iyileştirmelerinden sonra |
-| Ajans kullanımı | Tek kullanıcı planında sınırsız kaynak vaadi | Çoklu marka/site, müşteri alanları ve ekip/roller | P2; tenant izolasyonu olmadan ajans çalışma alanı sunulmamalı |
-| Kurulum | Kopyalanabilir script | Platforma özel kılavuzlar ve daha fazla embed senaryosu | P1/P2; kurulum doğrulaması ve platform rehberleri |
+| Analitik | Günlük görüntülenme, kaynak/CTA tıklaması, CTR ve metin A/B ölçümü | Daha ayrıntılı entegrasyon olayları ve deney analizi | P1/P2; temel ölçüm var, kalıcı ziyaretçi ataması ve anlamlı örneklem gerekir |
+| Yorum toplama | Harici kaynak gösterimi ve izinli doğrudan geri bildirim formu | NPS/CSAT, davet otomasyonu, AI özetleme/analiz | P2; temel toplama/moderasyon var, gelişmiş anket ve AI analizi açık |
+| Ajans kullanımı | Marka başına kaynak/widget ve viewer/editor üyeleri | Çoklu marka/site, müşteri alanları ve ekip/roller | Temel çalışma alanı kapandı; faturalama/alt hesaplar yok |
+| Kurulum | Kopyalanabilir script, kurulum gözlemi, WordPress shortcode plugin, platform kılavuzları | Daha fazla platforma özel uygulama ve kurulum doğrulaması | Temel yol kapandı; WordPress gerçek sitede smoke test ve diğer uygulamalar açık |
 | Operasyon | Elle sync, kilit, sınırlı otomatik yenileme ve hata geçmişi | Otomatik veri yenileme ve destek akışları | Kaynak bazlı retry/backoff eklendi; cron günlük olduğu için gerçek retry gecikebilir, sık cron/kuyruk ayrıca planlanmalı |
 
 ### Araştırma kaynakları
@@ -130,6 +130,21 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 
 ## Durum
 
+### 14 Ekim 2026 sonraki ürün paketi
+
+- [x] Doğrudan müşteri geri bildirimi: ayrı `first_party` kaynak, rıza alanı, özel bekleyen kuyruk, onay ve yayından kaldırma. Bu kaynak harici platform yorumu veya lisansının yerine geçmez.
+- [x] Ajans marka/ekip modeli: marka bazlı kaynak eşleme, kayıtlı üyeye görüntüleyici/düzenleyici erişimi ve sorgu düzeyinde tenant izolasyonu. Üretimde gerçek ajans hesaplarıyla kullanım testi ayrıca gerekir.
+- [x] Widget kurulum gözlemi: dış site alan adı, ilk/son görülme ve yüklenme sayısı; alan adı sahipliği doğrulaması değildir. WordPress için yüklenebilir kısa kod eklentisi kaynak kodu eklendi, gerçek WordPress sitesinde test edilmeli.
+- [x] CTA metni için isteğe bağlı A/B deneyi: anonim A/B görüntülenme ve tıklama sayıları, 90 günlük saklama; düşük trafikte sonuç istatistiksel kanıt değildir.
+- [x] Yorum eğilimleri: yıldız dağılımı, düşük puanlar ve 30 günlük dönem karşılaştırması. Yapay zekâ özeti değildir.
+- [x] İsteğe bağlı eşitleme hata e-postası tercihi ve gönderim kuyruğu eklendi. Çalışması doğrulanmış `RESEND_FROM_EMAIL` ve API anahtarı gerektirir.
+- [x] Herkese açık anlık durum sayfası eklendi; geçmiş uptime ölçümü veya SLA sunmaz.
+- [ ] Google/Trustpilot veri hakkı kararı, başka sağlayıcı connector'ları ve mevcut sağlayıcıların silme/yenileme sözleşmeleri dış lisans ve uzman incelemesi bekliyor. Belgesiz yeni scraping adapter'ı eklenmedi.
+- [ ] Gerçek WordPress/Shopify/Webflow site testleri, üretimde Apify uçtan uca smoke, harici hata alarmı ve saha performans ölçümü canlı hesap/site erişimi gerektiriyor. Dağıtık hız sınırı ve günlük cron ötesi kuyruk kapasitesi de ayrı altyapı işi.
+- [ ] Lemon Squeezy canlı ödeme, satış metni ve test modundan çıkış kullanıcının isteğiyle en sona bırakıldı.
+
+Bu paket için Neon şema dosyaları `20261014_02`–`20261014_07` sıralıdır. İzole dalda sınandı; production'a uygulanıp kod yayınlanmadan önce canlı özellikler etkin sayılmaz.
+
 - [x] Kapsamlı gap envanteri oluşturuldu; bu dosya artık tamamlananları ve gerçek dış bağımlılıkları aynı listede izliyor.
 - [x] Aşama 0'ın kod ve Neon işleri: fail-closed/idempotent Lemon webhook, mevcut abonelik guard alanı, review ID, sync hataları, hoş geldin e-posta guard'ı, server-side plan limitleri. Üretimde Lemon gerçek variant ID'lerinin ayarlanması işletme hesabında yapılmalı.
 - [x] Aşama 1'in uygulanabilir altyapısı: stable provider ID, atomik sync lock, arka plan Apify işleri, durum callback'leri, opt-in daily sync, attribution ve freshness.
@@ -142,6 +157,6 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 - [x] **Widget paritesi:** ortalama puan rozeti, masonry, font, kart boşluğu ve köşe ayarları preview ve embed'e eklendi. Klavye CTA E2E testi PR #17'de CI'dan geçti.
 - [x] **Floating widget:** Pro/Agency düzen seçeneği, tek güncel yorumlu ve kapatılabilir embed, dar ekranda güvenli boşluk ve iki önizleme PR #22 ile production'a alındı. `20261014_01_widget_floating_layout.sql` geçici Neon dalında sınandı, production'a uygulandı ve mevcut kayıtların geçerli kaldığı doğrulandı; Vercel deployment 14 Ekim 2026'da Ready oldu.
 - [~] **Test ve operasyon:** health endpoint'i, retry ve kaynak URL birim testleri, Apify API sözleşme ve callback akış testleri, Lemon Squeezy webhook akış testleri, herkese açık akışlar için Playwright E2E ve Google Maps/Trustpilot kurulum/sorun giderme kılavuzları eklendi. PR #17'de GitHub Actions unit test, lint, build ve Playwright adımlarının tümü geçti; production deploy Ready oldu. Vercel Cron etkin; ilk üretim çalışması log geçmişi kısıtı nedeniyle henüz doğrulanmadı. Gerçek Neon/Apify production smoke testi, harici hata/uptime alarmı ve test hesaplı ödeme smoke testi hâlâ gerekli. Vercel Production'da `APIFY_API_TOKEN` Secret türünde değil; bu ayar ayrıca düzeltilmeli.
-- [ ] **İleri ürün işleri:** agency çalışma alanı ve ekip rolleri, e-posta bildirim tercihleri, anket/yorum toplama ve AI analizi, A/B deneyleri, ek platform connector'ları, herkese açık durum sayfası/SLA. Anket/AI ve yeni kaynaklar ürün/sağlayıcı kararı; A/B gerçek trafik; workspace rol modeli ayrı tasarım ister.
+- [~] **İleri ürün işleri:** marka/ekip rolleri, temel geri bildirim toplama, CTA A/B ölçümü, kurulum gözlemi, WordPress shortcode plugin kaynağı, e-posta tercihi ve anlık durum sayfası eklendi. Gelişmiş NPS/CSAT ve AI analizi, ek connector lisansları, gerçek WordPress testi, tarihsel SLA, dağıtık bot koruması, kullanım limit e-postaları ve harici uptime alarmı açık.
 - [~] **Plan/faturalama eşlemesi:** Uygulama, upgrade ve kullanım koşulları fiyatları ortak kod sabitinden geliyor; Lemon Squeezy test ürünleri Pro $7/ay ve Agency $19/ay olarak eşleşiyor ve test variant ID'leri Production ortamında kayıtlı. Mevcut checkout URL'lerinin test modu ve test satın alımından webhook'a plan yükseltme akışı henüz doğrulanmadı. Canlı ödeme başlamadan önce canlı mod ürün/variant eşleşmesi ayrıca kontrol edilmeli.
 

@@ -34,7 +34,8 @@ export default function AddSourcePage() {
 
       <div className="bg-white border border-border shadow-sm rounded-2xl p-6 sm:p-8">
         <h1 className="text-2xl font-bold text-foreground mb-2">{t(locale, "Yeni kaynak ekle", "Add a new source")}</h1>
-        <p className="text-muted mb-8">{t(locale, "Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.", "Connect your Google or Trustpilot profile to start fetching reviews.")}</p>
+        <p className="text-muted mb-3">{t(locale, "Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.", "Connect your Google or Trustpilot profile to start fetching reviews.")}</p>
+        <Link href="/dashboard/feedback" className="mb-8 inline-block text-sm font-medium text-primary underline">{t(locale, "Müşterilerinizden doğrudan geri bildirim mi toplamak istiyorsunuz?", "Want to collect feedback directly from your customers?")}</Link>
 
         {state?.error && (
           <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-3">

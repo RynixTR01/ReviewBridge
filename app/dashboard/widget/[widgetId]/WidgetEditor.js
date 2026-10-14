@@ -14,6 +14,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const [showBadge, setShowBadge] = useState(widget.show_badge);
   const [smartFilter, setSmartFilter] = useState(widget.smart_filter || false);
   const [showReviewButton, setShowReviewButton] = useState(widget.show_review_button || false);
+  const [experimentEnabled, setExperimentEnabled] = useState(widget.experiment_enabled === true);
+  const [experimentLabelTr, setExperimentLabelTr] = useState(widget.experiment_label_tr || "Deneyimini paylaş");
+  const [experimentLabelEn, setExperimentLabelEn] = useState(widget.experiment_label_en || "Share your experience");
   const [layout, setLayout] = useState(widget.layout || "list");
   const [floatingPreviewVisible, setFloatingPreviewVisible] = useState(true);
   const [showRatingSummary, setShowRatingSummary] = useState(widget.show_rating_summary === true);
@@ -67,6 +70,9 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
       formData.append("showBadge", finalShowBadge.toString());
       formData.append("smartFilter", (planLimits.canSelectTheme ? smartFilter : false).toString());
       formData.append("showReviewButton", showReviewButton.toString());
+      formData.append("experimentEnabled", experimentEnabled.toString());
+      formData.append("experimentLabelTr", experimentLabelTr);
+      formData.append("experimentLabelEn", experimentLabelEn);
       formData.append("layout", layout);
       formData.append("showRatingSummary", (planLimits.canChooseLayout && showRatingSummary).toString());
       formData.append("fontFamily", fontFamily);
@@ -316,7 +322,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
             <div className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <label className="block text-sm font-semibold text-foreground">{t(locale, "Yorum bırak düğmesi", "Leave a review button")}</label>
-                <p className="text-xs text-muted">{t(locale, "Ziyaretçileri Google yorumu bırakmaya yönlendiren bir düğme ekleyin", "Add a button encouraging visitors to leave a Google review")}</p>
+                <p className="text-xs text-muted">{t(locale, "Ziyaretçileri bu kaynakta geri bildirim bırakmaya yönlendiren bir düğme ekleyin.", "Add a button inviting visitors to leave feedback for this source.")}</p>
               </div>
               <label className="relative inline-flex shrink-0 items-center cursor-pointer">
                 <input 
@@ -327,6 +333,15 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
                 />
                 <div className="w-11 h-6 bg-muted-bg peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary opacity-90"></div>
               </label>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted-bg p-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-foreground"><input type="checkbox" checked={experimentEnabled} onChange={(event) => setExperimentEnabled(event.target.checked)} disabled={!planLimits.canChooseLayout || !showReviewButton} />{t(locale, "Düğme metni A/B deneyi", "Button text A/B experiment")}</label>
+              <p className="text-xs text-muted">{t(locale, "Ziyaretçilere iki farklı düğme metni rastgele gösterilir. Kişi takibi veya çerez kullanılmaz; sonuçlar yaklaşık görüntülenme ve tıklamadır.", "Two button labels are shown at random. No visitor tracking or cookies are used; results are approximate views and clicks.")}</p>
+              {experimentEnabled && <div className="grid gap-2 sm:grid-cols-2">
+                <label className="text-xs text-foreground">{t(locale, "Alternatif Türkçe metin", "Alternative Turkish label")}<input value={experimentLabelTr} onChange={(event) => setExperimentLabelTr(event.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-border px-2 py-1.5 text-sm" /></label>
+                <label className="text-xs text-foreground">{t(locale, "Alternatif İngilizce metin", "Alternative English label")}<input value={experimentLabelEn} onChange={(event) => setExperimentLabelEn(event.target.value)} maxLength={60} className="mt-1 w-full rounded-lg border border-border px-2 py-1.5 text-sm" /></label>
+              </div>}
             </div>
 
             <div className="pt-4 border-t border-border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -451,8 +466,8 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
               )}
 
               <p className="text-center text-xs opacity-60 sm:col-span-2" style={{ color: previewText }}>
-                {source.platform === "google" ? "Google" : "Trustpilot"} {t(locale, "yorumları", "reviews")} · {source.business_name}
-                {source.last_synced_at && <> · {t(locale, "Son güncelleme", "Last updated")}: {new Date(source.last_synced_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</>}
+                {source.platform === "google" ? "Google" : source.platform === "trustpilot" ? "Trustpilot" : t(locale, "Doğrudan geri bildirim", "Direct feedback")} · {source.business_name}
+                {source.platform !== "first_party" && source.last_synced_at && <> · {t(locale, "Son güncelleme", "Last updated")}: {new Date(source.last_synced_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</>}
               </p>
 
               {/* Badge */}
