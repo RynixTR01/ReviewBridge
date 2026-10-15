@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
+import { safeAuthNextPath } from "@/lib/auth/redirect";
 
 export default function LoginPage() {
   const locale = useLocale();
@@ -15,12 +16,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function nextPath() {
+    return safeAuthNextPath(new URLSearchParams(window.location.search).get("next"));
+  }
+
   async function handleGoogleLogin() {
     setError("");
     try {
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}/dashboard`,
+        callbackURL: `${window.location.origin}${nextPath()}`,
       });
       if (error) setError(error.message);
     } catch (authError) {
@@ -47,7 +52,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(nextPath());
     router.refresh();
   }
 

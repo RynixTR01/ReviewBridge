@@ -114,7 +114,8 @@ export default async function DashboardPage() {
       const rows = await query(
         `SELECT widget_id, SUM(views)::int AS views,
                 SUM(review_source_clicks)::int AS source_clicks,
-                SUM(review_cta_clicks)::int AS cta_clicks
+                SUM(review_cta_clicks)::int AS cta_clicks,
+                SUM(goal_completions)::int AS goal_completions
          FROM public.widget_daily_metrics
          WHERE widget_id = ANY($1::uuid[]) AND metric_date >= CURRENT_DATE - INTERVAL '29 days'
          GROUP BY widget_id`,
@@ -312,8 +313,9 @@ export default async function DashboardPage() {
               const metric = widgetMetrics[widget.id];
               totals.views += Number(metric?.views) || 0;
               totals.clicks += (Number(metric?.source_clicks) || 0) + (Number(metric?.cta_clicks) || 0);
+              totals.goals += Number(metric?.goal_completions) || 0;
               return totals;
-            }, { views: 0, clicks: 0 });
+            }, { views: 0, clicks: 0, goals: 0 });
             const engagementCtr = engagement.views ? ((engagement.clicks / engagement.views) * 100).toFixed(1) : "0.0";
             const syncedCount = stats?.count || 0;
             const syncStatus = source.sync_status || "done";
@@ -355,7 +357,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <h3 className="break-words font-semibold text-foreground text-lg">{source.business_name?.replace(" (Syncing...)", "")}</h3>
                       {source.brand_name && <p className="text-xs font-medium text-primary">{source.brand_name}</p>}
-                      {!isOwner && <p className="text-xs text-muted">{source.access_role === "editor" ? t(locale, "Paylaşılan · düzenleyici", "Shared · editor") : t(locale, "Paylaşılan · görüntüleyici", "Shared · viewer")}</p>}
+                      {!isOwner && <p className="text-xs text-muted">{source.access_role === "editor" ? t(locale, "Paylaşılan · düzenleyici", "Shared · editor") : source.access_role === "client" ? t(locale, "Paylaşılan · müşteri", "Shared · client") : t(locale, "Paylaşılan · görüntüleyici", "Shared · viewer")}</p>}
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-medium text-muted capitalize px-2 py-0.5 bg-muted-bg rounded-md">
                           {isFirstParty ? t(locale, "Doğrudan geri bildirim", "Direct feedback") : source.platform}
@@ -457,6 +459,7 @@ export default async function DashboardPage() {
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label={t(locale, "Son 30 gün widget etkileşimi", "Widget engagement, last 30 days")}>
                   <span>{engagement.views} {t(locale, "görüntülenme", "views")}</span>
                   <span>{engagement.clicks} {t(locale, "tıklama", "clicks")}</span>
+                  <span>{engagement.goals} {t(locale, "hedef dönüşümü", "goal completions")}</span>
                   <span>{engagementCtr}% CTR</span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">

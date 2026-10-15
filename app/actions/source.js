@@ -15,6 +15,7 @@ import { normalizeReviewRating } from "@/lib/review-rating";
 import { sendUsageLimitAlert } from "@/lib/usage-limit-alerts";
 import { createSourceLimitNotification } from "@/lib/notifications";
 import { getLocale } from "@/lib/i18n-server";
+import { isConnectedReviewSource } from "@/lib/review-source-catalog";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -27,7 +28,7 @@ export async function addSourceAction(prevState, formData) {
 
   const platform = formData.get("platform");
   const rawInput = String(formData.get("identifier") || "").trim();
-  if (platform !== "google" && platform !== "trustpilot") {
+  if (!isConnectedReviewSource(platform)) {
     return { error: "Desteklenmeyen platform." };
   }
   let identifier = platform === "google"

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { addSourceAction } from "@/app/actions/source";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
+import { PENDING_REVIEW_SOURCES } from "@/lib/review-source-catalog";
 
 export default function AddSourcePage() {
   const locale = useLocale();
@@ -36,6 +37,12 @@ export default function AddSourcePage() {
         <h1 className="text-2xl font-bold text-foreground mb-2">{t(locale, "Yeni kaynak ekle", "Add a new source")}</h1>
         <p className="text-muted mb-3">{t(locale, "Yorumları almaya başlamak için Google veya Trustpilot profilinizi bağlayın.", "Connect your Google or Trustpilot profile to start fetching reviews.")}</p>
         <Link href="/dashboard/feedback" className="mb-8 inline-block text-sm font-medium text-primary underline">{t(locale, "Müşterilerinizden doğrudan geri bildirim mi toplamak istiyorsunuz?", "Want to collect feedback directly from your customers?")}</Link>
+
+        <div className="mb-6 rounded-xl border border-border bg-muted-bg p-4">
+          <h2 className="text-sm font-semibold text-foreground">{t(locale, "Diğer platformlar", "Other platforms")}</h2>
+          <p className="mt-1 text-xs text-muted">{t(locale, "Bu kaynaklar henüz bağlanamıyor. Her platform için veri erişim ve yeniden gösterim izni doğrulanmadan yorum aktarmıyoruz.", "These sources cannot be connected yet. We will not import reviews until access and display rights are verified for each platform.")}</p>
+          <div className="mt-3 flex flex-wrap gap-2">{PENDING_REVIEW_SOURCES.map((source) => <span key={source.id} className="rounded-full border border-border bg-white px-3 py-1 text-xs text-muted" aria-disabled="true">{source.name} · {t(locale, "izin doğrulaması gerekli", "permission check required")}</span>)}</div>
+        </div>
 
         {state?.error && (
           <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm flex items-start gap-3">

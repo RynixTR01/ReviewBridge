@@ -203,6 +203,7 @@ export async function GET(_request, { params }) {
     htmlByLocale,
     layout,
     experimentEnabled: widget.experiment_enabled && widget.show_review_button && plan !== "free" && Boolean(reviewUrl),
+    experimentId: widget.experiment_id,
     alternativeLabel: {
       tr: String(widget.experiment_label_tr || "Deneyimini paylaş").slice(0, 60),
       en: String(widget.experiment_label_en || "Share your experience").slice(0, 60),
