@@ -95,7 +95,7 @@ export default function AddSourcePage() {
             <label htmlFor="identifier" className="block text-sm font-semibold text-foreground mb-1.5">
               {t(locale, "Place ID veya bağlantı", "Place ID or URL")}
             </label>
-            <p className="text-xs text-muted mb-2">{t(locale, "Google için Google Haritalar işletme bağlantısını veya Place ID'yi girin. Google Arama bağlantıları (google.com/search) çalışmaz. Trustpilot için Trustpilot bağlantınızı veya şirket alan adınızı (ör. apple.com) girin.", "For Google, paste the Google Maps business listing URL or Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your Trustpilot URL or company domain (e.g. apple.com).")}</p>
+            <p className="text-xs text-muted mb-2">{t(locale, "Google için işletme bağlantısını (Paylaş menüsündeki kısa bağlantı dahil) veya Place ID'yi girin. Google Arama bağlantıları (google.com/search) çalışmaz. Trustpilot için bağlantınızı veya şirket alan adınızı (ör. apple.com) girin.", "For Google, paste the business listing URL (including the short link from Share) or Place ID. Google Search links (google.com/search) do not work. For Trustpilot, paste your URL or company domain (e.g. apple.com).")}</p>
             <Link href="/dashboard/help#google-maps-url" className="text-xs font-medium text-primary hover:underline">{t(locale, "Google Haritalar işletme bağlantınızı bulmak için yardıma mı ihtiyacınız var?", "Need help finding your Google Maps business link?")}</Link>
             <input
               id="identifier"
