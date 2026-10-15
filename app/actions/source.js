@@ -16,6 +16,7 @@ import { sendUsageLimitAlert } from "@/lib/usage-limit-alerts";
 import { createSourceLimitNotification } from "@/lib/notifications";
 import { getLocale } from "@/lib/i18n-server";
 import { isConnectedReviewSource } from "@/lib/review-source-catalog";
+import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -28,17 +29,19 @@ export async function addSourceAction(prevState, formData) {
 
   const platform = formData.get("platform");
   const rawInput = String(formData.get("identifier") || "").trim();
+  let mapsUrl = rawInput;
   if (!isConnectedReviewSource(platform)) {
     return { error: "Desteklenmeyen platform." };
   }
   let identifier = platform === "google"
     ? extractPlaceId(rawInput)
     : extractTrustpilotDomain(rawInput)?.toLowerCase() || null;
-  if (platform === "google" && !identifier && isGoogleMapsUrl(rawInput)) {
+  const isGoogleShortLink = platform === "google" && isGoogleMapsShortUrl(rawInput);
+  if (platform === "google" && !identifier && !isGoogleShortLink && isGoogleMapsUrl(rawInput)) {
     identifier = rawInput;
   }
   
-  if (!identifier) {
+  if (!identifier && !isGoogleShortLink) {
     return {
       error: platform === "google"
         ? "Bu Google Haritalar işletme bağlantısı desteklenmiyor. İşletmeyi Google Haritalar’da açıp Maps bağlantısını veya Place ID’yi yapıştırın. Google arama bağlantıları (google.com/search) çalışmaz."
@@ -46,7 +49,7 @@ export async function addSourceAction(prevState, formData) {
     };
   }
 
-  if (!platform || !identifier) {
+  if (!platform || (!identifier && !isGoogleShortLink)) {
     return { error: "Platform ve bağlantı bilgisi gereklidir." };
   }
 
@@ -54,6 +57,18 @@ export async function addSourceAction(prevState, formData) {
 
   if (!user) {
     return { error: "Oturum açmanız gerekiyor." };
+  }
+
+  if (isGoogleShortLink) {
+    try {
+      mapsUrl = await resolveGoogleMapsShortUrl(rawInput);
+      identifier = extractPlaceId(mapsUrl) || mapsUrl;
+    } catch (error) {
+      console.warn("Could not resolve Google Maps share link:", error);
+      return {
+        error: "Google Haritalar paylaşım bağlantısı açılamadı. Bağlantının herkese açık olduğundan emin olun veya Maps profil bağlantısını kullanın.",
+      };
+    }
   }
 
   const existingSource = await queryOne(
@@ -202,7 +217,7 @@ export async function addSourceAction(prevState, formData) {
       const runId = await startApifyRun(
         APIFY_ACTORS.GOOGLE_MAPS,
         {
-          ...buildGoogleMapsActorInput(identifier, rawInput),
+          ...buildGoogleMapsActorInput(identifier, mapsUrl),
           maxReviews: reviewsToFetch,
           reviewsSort: 'newest'
         },
@@ -295,7 +310,7 @@ export async function addSourceAction(prevState, formData) {
         plan,
         identifier,
         platform,
-        rawInput,
+        mapsUrl,
       ]
     );
   } catch (widgetError) {

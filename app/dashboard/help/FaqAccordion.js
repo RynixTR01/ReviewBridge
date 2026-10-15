@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 function getFaqItems(locale) { return [
   {
     question: t(locale, "Google Haritalar bağlantımı nasıl bulurum?", "How do I find my Google Maps link?"),
-    answer: t(locale, "İşletmenizi Google Haritalar’da aratıp profilini açın. Tarayıcının adres çubuğundaki bağlantıyı kopyalayın; bağlantıda /maps/ bulunmalıdır (ör. google.com/maps/place/...). Google arama sonuçları (google.com/search) ve kısaltılmış maps.app.goo.gl bağlantıları desteklenmez.", "Search for your business in Google Maps and open its profile. Copy the URL from your browser; it should contain /maps/ (for example, google.com/maps/place/...). Google Search results (google.com/search) and shortened maps.app.goo.gl links are not supported."),
+    answer: t(locale, "İşletmenizi Google Haritalar’da aratıp profilini açın. Profilde Paylaş > Bağlantıyı kopyala ile alınan maps.app.goo.gl bağlantısını veya adres çubuğundaki google.com/maps/place/... bağlantısını yapıştırabilirsiniz. Google arama sonuçları (google.com/search) desteklenmez.", "Find your business in Google Maps and open its profile. You can paste the maps.app.goo.gl link from Share > Copy link or the google.com/maps/place/... URL from your browser. Google Search results (google.com/search) are not supported."),
   },
   {
     question: t(locale, "Yorumlar ne sıklıkla eşitlenir?", "How often are reviews synced?"),
