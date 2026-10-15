@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
+import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
@@ -116,10 +117,14 @@ export async function POST(request, { params }) {
           "SELECT source_maps_url FROM public.widgets WHERE source_id = $1 LIMIT 1",
           [source.id]
         );
+        const storedMapsUrl = widget?.source_maps_url || source.place_id;
+        const mapsUrl = isGoogleMapsShortUrl(storedMapsUrl)
+          ? await resolveGoogleMapsShortUrl(storedMapsUrl)
+          : widget?.source_maps_url;
         const runId = await startApifyRun(
           APIFY_ACTORS.GOOGLE_MAPS,
           {
-            ...buildGoogleMapsActorInput(source.place_id, widget?.source_maps_url),
+            ...buildGoogleMapsActorInput(source.place_id, mapsUrl),
             maxReviews: 20,
             reviewsSort: 'newest'
           },
