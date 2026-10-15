@@ -45,19 +45,24 @@ export default async function BrandClientSpacePage({ params }) {
      ORDER BY s.business_name`,
     [brand.id],
   );
+  const canCustomizeWidgets = brand.access_role === "owner" || brand.access_role === "editor";
   return <main className="mx-auto max-w-4xl space-y-6">
     <header className="rounded-2xl border border-border bg-white p-5 sm:p-7">
       <Link href="/dashboard/brands" className="text-sm text-primary underline">{t(locale, "Markalara dön", "Back to brands")}</Link>
       <h1 className="mt-3 text-2xl font-bold text-foreground">{brand.name}</h1>
       <p className="mt-1 text-sm text-muted">{brand.website_domain || "—"} · {t(locale, "Müşteri alanı", "Client space")} · {brand.access_role === "owner" ? t(locale, "Sahip", "Owner") : brand.access_role === "client" ? t(locale, "Müşteri", "Client") : brand.access_role === "editor" ? t(locale, "Düzenleyici", "Editor") : t(locale, "Görüntüleyici", "Viewer")}</p>
-      {brand.access_role !== "owner" && <p className="mt-3 text-xs text-muted">{t(locale, "Bu alan yalnızca bu markanın kaynak ve widget bilgilerini gösterir. Erişim salt okunurdur.", "This space shows only this brand's sources and widgets. Access is read-only.")}</p>}
+      {brand.access_role === "editor" && <p className="mt-3 text-xs text-muted">{t(locale, "Bu markanın widget ayarlarını düzenleyebilirsiniz. Diğer markalara erişemezsiniz.", "You can edit this brand's widget settings. You cannot access other brands.")}</p>}
+      {(brand.access_role === "client" || brand.access_role === "viewer") && <p className="mt-3 text-xs text-muted">{t(locale, "Bu alan yalnızca bu markanın kaynak ve widget bilgilerini gösterir. Erişim salt okunurdur.", "This space shows only this brand's sources and widgets. Access is read-only.")}</p>}
     </header>
     <section className="space-y-3">
       {sources.length === 0 && <p className="rounded-xl border border-border bg-white p-4 text-sm text-muted">{t(locale, "Bu markaya henüz kaynak eklenmemiş.", "No sources have been added to this brand yet.")}</p>}
       {sources.map((source) => <article key={source.id} className="rounded-xl border border-border bg-white p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-foreground">{source.business_name}</h2><p className="text-xs text-muted">{source.platform === "first_party" ? t(locale, "Doğrudan geri bildirim", "Direct feedback") : source.platform} · {source.sync_status}</p></div><p className="text-sm font-semibold text-primary">{source.average_rating || "—"} ★ · {source.review_count} {t(locale, "yorum", "reviews")}</p></div>
         {source.last_synced_at && <p className="mt-2 text-xs text-muted">{t(locale, "Son eşitleme", "Last sync")}: {new Date(source.last_synced_at).toLocaleString(locale === "tr" ? "tr-TR" : "en-US")}</p>}
-        <div className="mt-3 flex flex-wrap gap-2">{source.widgets.map((widget) => <Link key={widget.id} href={`/preview/${widget.token}`} className="rounded-lg border border-border px-3 py-2 text-xs text-primary underline">{widget.title || t(locale, "Widget önizlemesi", "Widget preview")}</Link>)}</div>
+        <div className="mt-3 flex flex-wrap gap-2">{source.widgets.map((widget) => <div key={widget.id} className="flex flex-wrap gap-2">
+          <Link href={`/preview/${widget.token}`} className="rounded-lg border border-border px-3 py-2 text-xs text-primary underline">{widget.title || t(locale, "Widget önizlemesi", "Widget preview")}</Link>
+          {canCustomizeWidgets && <Link href={`/dashboard/widget/${widget.id}`} className="rounded-lg border border-border px-3 py-2 text-xs text-primary underline">{t(locale, "Widget'ı düzenle", "Edit widget")}</Link>}
+        </div>)}</div>
       </article>)}
     </section>
   </main>;

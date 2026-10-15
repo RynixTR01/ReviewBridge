@@ -1,6 +1,6 @@
 # ReviewBridge: Rakip Özellik Açıkları ve Uygulama Yol Haritası
 
-Denetim tarihi: 14 Ekim 2026
+Denetim tarihi: 15 Ekim 2026
 
 Kapsam: Proje kodu ve ürün akışı; doğrudan rakip olarak Trustmary, Elfsight ve EmbedSocial; TrustMRR ise pazar/ürün keşfi örneği olarak incelendi.
 
@@ -10,7 +10,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 
 - Neon Postgres ve Neon Auth üzerinde Next.js/Vercel uygulaması.
 - Google Maps ve Trustpilot kaynakları; Apify tabanlı veri alma akışı.
-- Kaynak ekleme, yinelenen kaynak kontrolü, elle eşitleme, eşitleme geçmişi, retry ve takılmış işleri temizleme.
+- Kaynak ekleme, yinelenen kaynak kontrolü, elle eşitleme, eşitleme geçmişi, retry ve takılmış işleri temizleme. Google Maps `Paylaş > Bağlantıyı kopyala` kısa bağlantıları PR #41 ile çözümleniyor; Google Search URL'leri hâlâ desteklenmiyor.
 - List, grid, carousel, masonry ve floating yorum düzenleri; floating banner Pro/Agency planlarında PR #22 ile production'a alındı (14 Ekim 2026). Light/dark/minimal temalar; ortalama puan rozeti; font, kart aralığı ve köşe ayarları; yorum kaynağına gitme düğmesi; ReviewBridge rozeti.
 - Türkçe/İngilizce arayüz, mobil düzen, e-posta/parola ve Google ile giriş, profil/hesap silme, Lemon Squeezy aboneliği.
 - Dashboard'da kaynak ve yorum sayıları, puan özeti ve eşitleme durumu.
@@ -49,7 +49,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 16. **Kaynak kataloğu dar.** Facebook/Yelp/Tripadvisor/Capterra/G2 gibi platformlar istenebilir; her biri yalnızca veri erişim şartı, maliyet, silme ve attribution incelendikten sonra adapter olarak eklenmeli. Her kaynağı eklemek zorunlu değil.
 17. **Yorum toplama ve anket akışı sınırlı.** İzin kutusu, özel toplama bağlantısı ve yorum moderasyonu eklendi. NPS/CSAT ve puana göre takip soruları çalışır. Zamanlanmış davet kodu mevcut; canlı teslim için Resend sender/key ile migration bekleniyor ve mevcut günlük cron nedeniyle teslimat 24 saate kadar gecikebilir.
 18. **A/B testi ve hedef ölçümü.** CTA metni A/B, tarayıcıda kalıcı varyant ataması ve anonim hedef sayımı eklendi. Production migration uygulanmalı, ölçüm kodu site sahibince başarı sayfasına eklenmeli ve yeterli trafik beklenmeli.
-19. **Ajans/çoklu marka yönetimi.** Marka/site alanı, marka başına roller, tek kullanımlık müşteri daveti, salt okunur alan ve bekleyen davetleri iptal etme kodu eklendi. Production migration PR #39 ile uygulandı; gerçek iki hesapla canlı rol testi hâlâ bekliyor.
+19. **Ajans/çoklu marka yönetimi.** Marka/site alanı, marka başına roller, tek kullanımlık müşteri daveti, salt okunur alan ve bekleyen davetleri iptal etme kodu eklendi. Production migration PR #39 ile uygulandı. Editörler için marka alanından widget düzenleyicisine doğrudan bağlantı eklendi; gerçek iki hesapla canlı rol testi hâlâ bekliyor.
 20. **Onboarding checklist eksik.** Dashboard'da kaynak → yorum doğrulama → widget kodu → canlı site kontrolü akışı ve yardım rehberi var. Son kurulum adımı kullanıcı tarafından doğrulanır.
 21. **Operasyonel bildirimler sınırlı.** Eşitleme hatası, kaynak sınırı, yeni müşteri geri bildirimi ve anket puanı için Türkçe/İngilizce uygulama içi bildirim merkezi eklendi; okunma durumu ve 180 günlük saklama süresi var. Kullanıcı bildirim geçmişinin tamamını CSV olarak dışa aktarabilir. İsteğe bağlı e-posta tercihleri de mevcut, ancak Vercel'de Resend ayarları bulunmadığından gönderim henüz etkin değil ve arayüz yeni e-posta tercihi açılmasını engelliyor. Bütçe e-postaları yok.
 
@@ -143,10 +143,11 @@ Resmî dokümanlardaki teknik erişim sınırları da kaynak bazında farklıdı
 - [~] Davetli NPS/CSAT kampanyaları için izin onayı, zamanlama, e-posta tekilleştirme, vazgeçme listesi ve gönderilmemiş davetleri iptal etme kodu eklendi. Production migration PR #39 ile uygulandı. Resend anahtarı ve doğrulanmış gönderici Vercel'de eksik olduğundan canlı e-posta teslimi kapalıdır. Günlük cron, gönderimi seçilen günden yaklaşık 24 saate kadar geciktirebilir; canlı teslim ve zamanlama SLA'sı tamamlanmadı.
 - [~] Yorum metinlerinden isteğe bağlı AI tema özeti için kullanıcı oturumu/kaynak erişimi, son 12 ayın en fazla 60 yorumu ve kişisel bilgi maskesi eklendi; özet veritabanına yazılmıyor. Neon AI Gateway için production kapsamlı anahtar ve dal adresi Vercel'de ayarlandı, PR #39 yayınlandı. Gerçek model isteği henüz yapılmadı; bu nedenle oturum açmış kullanıcıyla çalışma testi bekliyor ve her istek Neon model kullanımı ücreti doğurabilir.
 - [~] A/B varyantı aynı tarayıcıda widget/deney bazında sabitlenir ve hedef dönüşümler anonim ölçülür; her widget için dönüşüm kodu gösterilir. Production migration PR #39 ile uygulandı; gerçek sipariş/kayıt sayfalarına kodu site sahibi eklemelidir.
-- [~] Ajans daveti yedi günlük, tek kullanımlık bağlantı ve salt okunur müşteri alanı içerir. Production migration PR #39 ile uygulandı. Otomatik davet e-postası Resend ayarları olmadan çalışmaz; gerçek ajans hesabıyla canlı rol testi bekliyor.
+- [~] Ajans daveti yedi günlük, tek kullanımlık bağlantı içerir. Müşteri/görüntüleyici salt okunur; editör kendi markasındaki widget ayarlarını marka alanındaki doğrudan bağlantıdan değiştirebilir. Production migration PR #39 ile uygulandı. Otomatik davet e-postası Resend ayarları olmadan çalışmaz; gerçek ajans hesabıyla canlı rol testi bekliyor.
 - [~] Shopify Custom Liquid, Webflow Embed ve indirilebilir WordPress eklenti paketi eklendi. Bunlar resmi uygulama mağazalarında yayımlanmış OAuth uygulamaları değildir; gerçek mağaza/site testi için hesap sahibi erişimi gerekir.
 - [ ] Yeni Yelp/Tripadvisor/G2/Capterra connector'ları eklenmedi. Platform başına yazılı erişim/lisans, veri saklama/gösterim/silme şartları ve API erişimi olmadan bunları canlıya almak mümkün değil; scraping bu izin kapısını karşılamaz. Google ve Trustpilot mevcut sağlayıcılardır.
 - [~] Operasyon kodu cron temizliği, e-posta kuyruğu, günlük eşitleme ve 15 dakikalık GitHub sağlık kontrollerini içeriyor. Neon AI Gateway Vercel Production'da yapılandırıldı. Resend ayarı eksik olduğu için ilk davet e-postası cron teslimi yapılamıyor; bağımsız uptime hesabı ve gerçek CMS site erişimiyle canlı doğrulama tamamlanmadı.
+- [x] PR #41 Google Maps paylaşım bağlantısı desteğini canlıya taşıdı; dashboard ve yardım metinleri kısa paylaşım bağlantılarının çalıştığını, arama sonuç URL'lerinin desteklenmediğini açıklar.
 - [x] Herkese açık durum sayfası Neon erişimini anlık gösterir ve GitHub Actions'ın son 7 günlük başarılı/başarısız kontrollerini saatlik görünümde listeler; bu örnekleme SLA garantisi değildir.
 - [x] PR #31 bildirim merkezini, PR #32 kullanıcıya özel Türkçe/İngilizce CSV geçmiş indirmesini production'a taşıdı. CI unit test/lint/build/Playwright'den geçti; canlı `/api/health` `ok` döndü. Merkez; eşitleme hatası, kaynak sınırı, müşteri geri bildirimi ve anket yanıtlarını gösterir, okundu durumunu yönetir ve 180 gün saklar.
 - [x] PR #35 durum sayfasını son 7 günün saatlik sağlık geçmişine genişletti. PR #36 herkese açık geri bildirim ve anket formlarına Vercel BotID Basic ekledi; GitHub CI ve Vercel production yayınları başarılı oldu. 14 Ekim 2026 canlı kontrolünde `/api/health` `ok` döndü ve `/status` Neon erişimini ve yedi günlük görünümü gösterdi. Vercel Bot Protection ayrıca Log modunda etkinleştirildi; bu mod yalnızca trafik kaydı yapar.
