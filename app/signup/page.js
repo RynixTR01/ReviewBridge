@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
+import { safeAuthNextPath } from "@/lib/auth/redirect";
 
 export default function SignupPage() {
   const locale = useLocale();
@@ -19,12 +20,16 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
+  function nextPath() {
+    return safeAuthNextPath(new URLSearchParams(window.location.search).get("next"));
+  }
+
   async function handleGoogleLogin() {
     setError("");
     try {
       const { error } = await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${window.location.origin}/dashboard`,
+        callbackURL: `${window.location.origin}${nextPath()}`,
       });
       if (error) setError(error.message);
     } catch (authError) {
@@ -76,7 +81,7 @@ export default function SignupPage() {
         // Welcome email is best-effort; don't block sign-in.
       }
 
-      router.push("/dashboard");
+      router.push(nextPath());
       router.refresh();
     } catch (verifyError) {
       setError(verifyError.message || t(locale, "E-posta adresiniz doğrulanamadı.", "Your email address could not be verified."));

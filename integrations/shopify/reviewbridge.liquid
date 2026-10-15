@@ -1,0 +1,8 @@
+{% comment %}
+  ReviewBridge widget for a Shopify Custom Liquid block.
+  Replace WIDGET_TOKEN with the 32-character token from ReviewBridge.
+{% endcomment %}
+{% assign reviewbridge_token = "WIDGET_TOKEN" %}
+<div class="reviewbridge-widget">
+  <script async src="https://review-bridge.vercel.app/api/widget/{{ reviewbridge_token | escape }}"></script>
+</div>

@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth/server";
 import { query } from "@/lib/db";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import AiReviewSummary from "./AiReviewSummary";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -25,6 +26,7 @@ export default async function InsightsPage() {
   const stats = ids.length ? await query(
     `SELECT source_id,
        count(*)::int AS total,
+       count(*) FILTER (WHERE body IS NOT NULL AND length(trim(body)) > 0 AND reviewed_at >= now() - interval '365 days')::int AS written_count,
        round(avg(rating)::numeric, 1) AS average,
        count(*) FILTER (WHERE rating <= 2)::int AS low_count,
        count(*) FILTER (WHERE rating = 1)::int AS stars_1,
@@ -51,7 +53,7 @@ export default async function InsightsPage() {
   ) : [];
   const statsBySource = new Map(stats.map((item) => [item.source_id, item]));
   return <div className="mx-auto max-w-4xl space-y-6">
-    <div><h1 className="text-2xl font-bold text-foreground">{t(locale, "Yorum eğilimleri", "Review insights")}</h1><p className="mt-1 text-sm text-muted">{t(locale, "Puan dağılımı ve son 30 günün önceki 30 günle karşılaştırması. Az yorumlu dönemler güvenilir bir eğilim göstermez; bu ekran otomatik bir yapay zekâ yorumu değildir.", "Rating distribution and a comparison of the last 30 days with the prior 30. Low-volume periods do not establish a reliable trend; this is not an AI-generated interpretation.")}</p></div>
+    <div><h1 className="text-2xl font-bold text-foreground">{t(locale, "Yorum eğilimleri", "Review insights")}</h1><p className="mt-1 text-sm text-muted">{t(locale, "Puan dağılımını ve son 30 günün önceki 30 günle karşılaştırmasını inceleyin. Az yorumlu dönemler güvenilir bir eğilim göstermez. İsterseniz her kaynak için ayrıca yapay zekâ özeti oluşturabilirsiniz.", "Explore rating distribution and compare the last 30 days with the prior 30. Low-volume periods do not establish a reliable trend. You can also generate an AI summary for each source.")}</p></div>
     {sources.length === 0 && <p className="text-sm text-muted">{t(locale, "Önce bir yorum kaynağı ekleyin.", "Add a review source first.")}</p>}
     {sources.map((source) => {
       const row = statsBySource.get(source.id);
@@ -69,6 +71,7 @@ export default async function InsightsPage() {
           {difference !== null && <p className="mt-1 text-xs text-muted">{t(locale, "Ortalama puan değişimi", "Average rating change")}: {difference > 0 ? "+" : ""}{difference.toFixed(1)} ★</p>}
           {lowReviews.some((item) => item.source_id === source.id) && <div className="mt-4 border-t border-border pt-3"><h3 className="text-sm font-semibold text-foreground">{t(locale, "Dikkat gerektiren son yorumlar", "Recent reviews to examine")}</h3>{lowReviews.filter((item) => item.source_id === source.id).map((item, index) => <p key={`${item.reviewed_at}-${index}`} className="mt-2 line-clamp-3 break-words text-sm text-muted">{item.rating} ★ · {item.body}</p>)}</div>}
         </>}
+        <AiReviewSummary sourceId={source.id} locale={locale} reviewCount={Number(row?.written_count) || 0} />
       </section>;
     })}
   </div>;

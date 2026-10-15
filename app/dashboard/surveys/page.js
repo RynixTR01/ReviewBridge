@@ -5,6 +5,8 @@ import { t } from "@/lib/i18n";
 import { summarizeSurveyScores } from "@/lib/survey-score";
 import CreateSurveyForm from "./CreateSurveyForm";
 import CopySurveyLinkButton from "./CopySurveyLinkButton";
+import InvitationCampaignForm from "./InvitationCampaignForm";
+import CancelInvitationCampaignButton from "./CancelInvitationCampaignButton";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -34,6 +36,20 @@ export default async function SurveysDashboard() {
      JOIN public.customer_surveys s ON s.id = r.survey_id
      WHERE s.user_id = $1 AND r.comment IS NOT NULL
      ORDER BY r.created_at DESC LIMIT 100`,
+    [user.id],
+  );
+  const campaigns = await query(
+    `SELECT campaign.id, campaign.title, campaign.status, campaign.recipient_count,
+            campaign.scheduled_at, campaign.created_at,
+            count(invitation.id) FILTER (WHERE invitation.status = 'sent')::int AS sent_count,
+            count(invitation.id) FILTER (WHERE invitation.status = 'failed')::int AS failed_count,
+            count(invitation.id) FILTER (WHERE invitation.last_error_code = 'delivery_unknown')::int AS unknown_delivery_count,
+            count(invitation.id) FILTER (WHERE invitation.status = 'unsubscribed')::int AS opted_out_count
+     FROM public.survey_invitation_campaigns campaign
+     LEFT JOIN public.survey_invitations invitation ON invitation.campaign_id = campaign.id
+     WHERE campaign.user_id = $1
+     GROUP BY campaign.id
+     ORDER BY campaign.created_at DESC LIMIT 50`,
     [user.id],
   );
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://review-bridge.vercel.app";
@@ -70,9 +86,17 @@ export default async function SurveysDashboard() {
               <p className="mt-2 text-xs text-muted">{t(locale, "Ortalama puan", "Average score")}: {summary.average ?? "—"} / {survey.survey_type === "nps" ? 10 : 5}</p>
               <p className="mt-2 break-all text-xs text-muted">{`${baseUrl}/survey/${survey.public_token}`}</p>
               <CopySurveyLinkButton url={`${baseUrl}/survey/${survey.public_token}`} locale={locale} />
+              {process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL
+                ? <InvitationCampaignForm surveyId={survey.id} surveyTitle={survey.title} />
+                : <p className="mt-4 rounded-lg bg-muted-bg p-3 text-xs text-muted">{t(locale, "Anket daveti açılmadan önce Vercel'de Resend API anahtarı ve doğrulanmış gönderici ayarlanmalı.", "Set a Resend API key and verified sender in Vercel before enabling survey invitations.")}</p>}
             </article>
           );
         })}
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground">{t(locale, "Davet kampanyaları", "Invitation campaigns")}</h2>
+        {campaigns.length === 0 && <p className="text-sm text-muted">{t(locale, "Henüz davet planlanmadı.", "No invitations have been scheduled yet.")}</p>}
+        {campaigns.map((campaign) => <article key={campaign.id} className="rounded-xl border border-border bg-white p-4"><div className="flex flex-wrap justify-between gap-2"><strong className="text-sm text-foreground">{campaign.title}</strong><span className="text-xs text-muted">{campaign.status}</span></div><p className="mt-1 text-xs text-muted">{new Date(campaign.scheduled_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")} · {campaign.sent_count}/{campaign.recipient_count} {t(locale, "gönderildi", "sent")} · {campaign.failed_count} {t(locale, "başarısız", "failed")} · {campaign.opted_out_count} {t(locale, "vazgeçti", "opted out")}</p>{Number(campaign.unknown_delivery_count) > 0 && <p className="mt-2 text-xs text-amber-700">{t(locale, "Bazı teslimatlar doğrulanamadı; alıcılara ulaşmış olabilir. Aynı listeyi hemen tekrar göndermeyin.", "Some deliveries could not be confirmed and may have reached recipients. Do not immediately send the same list again.")}</p>}{campaign.status === "scheduled" && <CancelInvitationCampaignButton campaignId={campaign.id} locale={locale} />}</article>)}
       </section>
       <section className="space-y-3">
         <h2 className="text-lg font-semibold text-foreground">{t(locale, "Yazılı yanıtlar", "Written responses")}</h2>

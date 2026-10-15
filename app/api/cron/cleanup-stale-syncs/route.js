@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import { finishSyncHistory } from "@/lib/sync-history";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { deliverSyncFailureAlerts } from "@/lib/sync-alerts";
+import { deliverDueSurveyInvitations } from "@/lib/survey-invitations";
 
 export const maxDuration = 60;
 
@@ -40,6 +41,37 @@ export async function GET(request) {
     await query("DELETE FROM public.customer_survey_daily_limits WHERE response_day < CURRENT_DATE - INTERVAL '2 days'");
     await query("DELETE FROM public.customer_survey_responses WHERE created_at < NOW() - INTERVAL '365 days'");
     await query("DELETE FROM public.user_notifications WHERE created_at < NOW() - INTERVAL '180 days'");
+    await query(
+      `UPDATE public.survey_invitations
+       SET status = 'failed', attempt_count = LEAST(attempt_count + 1, 3),
+           claimed_at = NULL, last_error_code = 'delivery_unknown'
+       WHERE status = 'pending' AND claimed_at < NOW() - INTERVAL '30 minutes'`,
+    );
+    await query(
+      `UPDATE public.survey_invitations invitation
+       SET status = 'cancelled', recipient_email = NULL, unsubscribe_token = NULL,
+           claimed_at = NULL, last_error_code = 'expired'
+       FROM public.survey_invitation_campaigns campaign
+       WHERE campaign.id = invitation.campaign_id
+         AND invitation.status IN ('pending', 'failed')
+         AND campaign.scheduled_at < NOW() - INTERVAL '90 days'`,
+    );
+    await query(
+      `UPDATE public.survey_invitation_campaigns
+       SET status = 'cancelled'
+       WHERE status = 'scheduled' AND scheduled_at < NOW() - INTERVAL '90 days'`,
+    );
+    await query(
+      `DELETE FROM public.survey_invitation_campaigns
+       WHERE status IN ('sent', 'partial', 'cancelled') AND created_at < NOW() - INTERVAL '180 days'`,
+    );
+    await query(
+      `DELETE FROM public.agency_brand_invitations
+       WHERE (accepted_at IS NOT NULL AND accepted_at < NOW() - INTERVAL '180 days')
+          OR (expires_at < NOW() - INTERVAL '30 days' AND accepted_at IS NULL)`,
+    );
+
+    const surveyInvitations = await deliverDueSurveyInvitations({ limit: 20, maxDurationMs: 25_000 });
 
     let autoSyncStarted = 0;
     let autoSyncFailed = 0;
@@ -95,6 +127,7 @@ export async function GET(request) {
       message: `Cleaned up ${data.length} stale syncs.`,
       autoSyncStarted,
       autoSyncFailed,
+      surveyInvitations,
       alerts,
     }, { status: 200 });
 

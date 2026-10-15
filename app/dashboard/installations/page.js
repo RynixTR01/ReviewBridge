@@ -25,6 +25,12 @@ export default async function InstallationsPage() {
   );
   return <div className="mx-auto max-w-4xl space-y-6">
     <div><h1 className="text-2xl font-bold text-foreground">{t(locale, "Widget kurulumları", "Widget installations")}</h1><p className="mt-1 text-sm text-muted">{t(locale, "Widget bir web sayfasında açıldığında görülen alan adlarını burada izleyin. Bu kayıt alan adı sahipliğini doğrulamaz.", "See the domains where a widget has loaded. This observation does not verify domain ownership.")}</p></div>
+    <section className="rounded-xl border border-border bg-white p-4">
+      <h2 className="font-semibold text-foreground">{t(locale, "WordPress", "WordPress")}</h2>
+      <p className="mt-1 text-sm text-muted">{t(locale, "Eklentiyi indirip WordPress yönetim panelinizden yükleyin. Ardından widget kısa kodunuzu sayfa veya yazıya ekleyin.", "Download the plugin and install it from your WordPress dashboard. Then add your widget shortcode to a page or post.")}</p>
+      <a href="/downloads/reviewbridge.zip" download className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">{t(locale, "WordPress eklentisini indir", "Download WordPress plugin")}</a>
+      <p className="mt-2 text-xs text-muted">{t(locale, 'Kısa kod örneği: [reviewbridge token="WIDGET_TOKEN"]', 'Shortcode example: [reviewbridge token="WIDGET_TOKEN"]')}</p>
+    </section>
     <div className="space-y-3">{rows.length === 0 && <p className="text-sm text-muted">{t(locale, "Henüz widget yok.", "No widgets yet.")}</p>}{rows.map((row, index) => <article key={`${row.id}:${row.site_host || index}`} className="rounded-xl border border-border bg-white p-4">
       <div className="flex flex-wrap justify-between gap-2"><div><strong className="text-foreground">{row.widget_title || row.business_name}</strong><p className="text-xs text-muted">{row.business_name}</p></div><Link href={`/dashboard/widget/${row.id}`} className="text-sm text-primary underline">{t(locale, "Widget'ı aç", "Open widget")}</Link></div>
       {row.site_host ? <p className="mt-3 text-sm text-foreground">{row.site_host} · {row.views} {t(locale, "yükleme", "loads")} · {t(locale, "Son görülme", "Last seen")}: {new Date(row.last_seen_at).toLocaleString(locale === "tr" ? "tr-TR" : "en-US")}</p> : <p className="mt-3 text-sm text-muted">{t(locale, "Henüz dış bir sitede yüklenme görülmedi. Kodu sitenize ekleyip sayfayı açın.", "No load has been observed on an external site. Add the code to your site and open the page.")}</p>}
