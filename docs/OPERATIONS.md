@@ -42,6 +42,8 @@ Set these for the Production environment and redeploy after changing them:
 - The Neon AI Gateway is enabled for the production branch. Vercel Production has a branch-scoped `ai_gateway:invoke` credential saved as the server-only Secret `NEON_AI_GATEWAY_TOKEN` and the branch host configured in `NEON_AI_GATEWAY_BASE_URL`. PR #39 deployed with these values. Verify the summary using a signed-in test account only when a user explicitly requests it; each model request may incur Neon usage charges.
 - The Apify token was rotated by the account owner on 14 October 2026 and entered as a Vercel Secret. The token value was not shared in chat. Verify the currently active Apify token in the dashboard before future rotations.
 - The Apify account page checked on 13 October showed $0.02 of $5.00 included usage; its two latest Google Maps actor runs each cost $0.01 and succeeded. This account-level view does not prove that a ReviewBridge production sync delivered its webhook successfully.
+- PR #41 added support for Google Maps `Share > Copy link` URLs by resolving `maps.app.goo.gl` links before Apify receives them. The redirect must end at a Google Maps URL; Google Search result links remain unsupported. A live Apify smoke test is still gated on confirming the source provider's access terms.
+- Agency editors can now open a brand's widget editor directly from the client-space page; the underlying server action restricts edits to widgets on brands where the signed-in user is an editor. Client/viewer roles retain preview-only access. A live two-account permission test still needs a disposable agency owner and member account.
 
 ## Release verification
 
