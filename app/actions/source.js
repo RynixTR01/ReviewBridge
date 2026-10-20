@@ -8,7 +8,7 @@ import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { buildGoogleMapsActorInput, buildTrustpilotActorInput, mapApifyReviews, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { buildGoogleMapsActorInput, buildTrustpilotActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
 import { normalizeReviewRating } from "@/lib/review-rating";
@@ -105,58 +105,28 @@ export async function addSourceAction(prevState, formData) {
     return { error: `${plan} planında en fazla ${limits.maxSources} kaynak ekleyebilirsiniz. Daha fazla kaynak için planınızı yükseltin.` };
   }
 
-  // 1. Call SerpAPI (or similar service) to verify and fetch reviews
+  // 1. Prepare source metadata; provider reviews are fetched by the background sync.
   let businessName = "Bilinmeyen işletme";
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
   
   const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
+  const startsAsyncSync = Boolean(process.env.APIFY_API_TOKEN) && (platform === "google" || platform === "trustpilot");
 
 
   try {
-    // Note: Apify actor applies to Google Maps.
-    // For this example, we mock the fetch if APIFY_API_TOKEN isn't set.
     if (process.env.APIFY_API_TOKEN) {
       if (platform === "google") {
-        // For Google, we skip the synchronous fetch. The webhook will handle it.
         businessName = "Google işletmesi (eşitleniyor...)";
-        // We will call startApifyRun *after* creating the source in the DB.
       } else if (platform === "trustpilot") {
         const companyDomain = extractTrustpilotDomain(identifier);
         if (!companyDomain) {
           return { error: 'Şirket alan adı bulunamadı. Trustpilot bağlantınızı veya şirket alan adınızı girin (ör. apple.com).' };
         }
 
-        // Override identifier with clean domain for DB storage
         identifier = companyDomain;
-
-        const tpResponse = await fetch(
-          'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?timeout=60',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${process.env.APIFY_API_TOKEN}`,
-            },
-            body: JSON.stringify(buildTrustpilotActorInput(companyDomain, reviewsToFetch)),
-          }
-        );
-        if (!tpResponse.ok) {
-          throw new Error(`Trustpilot provider returned ${tpResponse.status}`);
-        }
-        const tpData = await tpResponse.json();
-
-        if (!Array.isArray(tpData)) {
-          console.error("Trustpilot actor failed:", tpData);
-          return { error: "Trustpilot yanıtı okunamadı. Bağlantıyı kontrol edip yeniden deneyin." };
-        }
-
-        reviewsList = mapApifyReviews(tpData, "trustpilot");
-        if (reviewsList.length === 0) {
-          return { error: "Bu Trustpilot profilinden yorum alınamadı. Profil bağlantısının doğru ve yorumların herkese açık olduğunu kontrol edin." };
-        }
-        businessName = tpData.find((item) => typeof item?.businessName === "string" && item.businessName.trim())?.businessName.trim() || companyDomain;
+        businessName = companyDomain;
       }
     } else {
       if (process.env.NODE_ENV === 'development') {
@@ -177,7 +147,6 @@ export async function addSourceAction(prevState, formData) {
   }
 
   // 2. Insert into sources
-  const startsAsyncGoogleSync = platform === "google" && Boolean(process.env.APIFY_API_TOKEN);
   let newSource;
   try {
     newSource = await queryOne(
@@ -193,9 +162,9 @@ export async function addSourceAction(prevState, formData) {
         businessName,
         totalScore,
         totalReviewsCount,
-        startsAsyncGoogleSync ? null : new Date().toISOString(),
-        startsAsyncGoogleSync ? new Date().toISOString() : null,
-        startsAsyncGoogleSync ? "pending" : "done",
+        startsAsyncSync ? null : new Date().toISOString(),
+        startsAsyncSync ? new Date().toISOString() : null,
+        startsAsyncSync ? "pending" : "done",
       ]
     );
   } catch (sourceError) {
@@ -204,17 +173,22 @@ export async function addSourceAction(prevState, formData) {
   }
 
   const historyId = await startSyncHistory(newSource.id);
-  // If Google, start the async Apify run now that we have the source.id
-  if (startsAsyncGoogleSync) {
+  // Start Apify after creating the source so slow review collection stays out of the form request.
+  if (startsAsyncSync) {
     try {
+      const actorId = platform === "google" ? APIFY_ACTORS.GOOGLE_MAPS : APIFY_ACTORS.TRUSTPILOT;
+      const actorInput = platform === "google"
+        ? {
+            ...buildGoogleMapsActorInput(identifier, mapsUrl),
+            maxReviews: reviewsToFetch,
+            reviewsSort: 'newest',
+          }
+        : buildTrustpilotActorInput(identifier, reviewsToFetch);
       const runId = await startApifyRun(
-        APIFY_ACTORS.GOOGLE_MAPS,
-        {
-          ...buildGoogleMapsActorInput(identifier, mapsUrl),
-          maxReviews: reviewsToFetch,
-          reviewsSort: 'newest'
-        },
-        newSource.id
+        actorId,
+        actorInput,
+        newSource.id,
+        platform === "trustpilot" ? { timeoutSeconds: 600 } : undefined,
       );
 
       await query(
@@ -223,7 +197,7 @@ export async function addSourceAction(prevState, formData) {
       );
       await attachSyncRun(historyId, runId);
     } catch (err) {
-      console.error("Failed to start initial Google sync:", err);
+      console.error(`Failed to start initial ${platform} sync:`, err);
       await query(
         `UPDATE public.sources
          SET sync_status = $1, last_sync_error = $2,
@@ -235,7 +209,7 @@ export async function addSourceAction(prevState, formData) {
     }
   }
 
-  // 3. Insert reviews (only for synchronous platforms like Trustpilot)
+  // 3. Insert reviews for local development fallback; Apify-backed sources use the webhook.
   const reviewsToInsert = reviewsList.slice(0, reviewsToFetch).map((r) => ({
     source_id: newSource.id,
     external_review_id: createStableReviewId(platform, r),
@@ -279,7 +253,7 @@ export async function addSourceAction(prevState, formData) {
     }
   }
 
-  if (!startsAsyncGoogleSync && reviewsSaved) {
+  if (!startsAsyncSync && reviewsSaved) {
     await finishSyncHistory({ historyId, sourceId: newSource.id, status: "done", reviewsCount: reviewsToInsert.length });
   }
 
@@ -312,9 +286,6 @@ export async function addSourceAction(prevState, formData) {
 
   revalidatePath("/dashboard");
   
-  // Warning disabled as actors are now fully synchronous
-
-
   // Redirect to the newly created widget customization page
   if (newWidget) {
     redirect(`/dashboard/widget/${newWidget.id}`);
