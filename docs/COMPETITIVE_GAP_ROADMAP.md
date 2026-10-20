@@ -137,8 +137,8 @@ Resmî dokümanlardaki teknik erişim sınırları da kaynak bazında farklıdı
 - [x] E-posta kaydında doğrulama kodu sonrası Neon Auth oturumu kontrol edilir; doğrulama otomatik giriş yapmadıysa aynı hesapla giriş tamamlanmadan kullanıcı panele gönderilmez. Oturum açma sonrası tam sayfa geçişi tarayıcı çerezini sunucuya taşır.
 - [x] Google ve e-posta girişinde korumalı sayfaya dönüş hedefi korunur; yönlendirme yalnızca ReviewBridge içindeki izinli dashboard/davet yollarını kabul eder.
 - [x] Landing, giriş/kayıt, panel, gizlilik ve kullanım koşulları sayfalarındaki harf rozetleri ile tarayıcı favicon'u özgün köprü-yıldız görseliyle değiştirildi.
-- [x] Yerel kontrol: 77 birim testi geçti, lint temiz ve üretim derlemesi geçti. Derleme yalnızca yerel doğrulama için sahte test Auth ayarlarıyla yapıldı; canlı oturum denemesi ve yayına alındığı sonucu olarak sayılmaz.
-- [ ] Değişikliği production'a aldıktan sonra gerçek Google girişi ile doğrulanmış e-posta hesabında oturumun panelde kaldığını, ana sayfa/panel geçişinde tekrar giriş istemediğini sınamak.
+- [x] PR #46 CI: 77 birim testi, lint, production build ve Playwright E2E geçti; PR 20 Ekim 2026'da birleştirildi ve Vercel Production yayını başarılı oldu. Canlı `/api/health` `{"status":"ok"}` döndü; giriş yapılmış mevcut tarayıcı oturumu ana sayfada “Panele dön” gösterdi.
+- [ ] Yeni bir Google OAuth girişi ve doğrulanmış test e-postasıyla kayıt/girişi sınamak; mevcut oturumun canlı ana sayfada tanınması, yeni kimlik doğrulama akışının uçtan uca denendiği anlamına gelmez.
 
 ### 14 Ekim 2026 sonraki ürün paketi
 
