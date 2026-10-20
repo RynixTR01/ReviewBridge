@@ -3,7 +3,7 @@ import { query, queryOne } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { buildReviewAnalysisPrompt, parseReviewAnalysisResponse, reviewInsightError, reviewInsightGeminiErrorCode } from "@/lib/ai-review-insights";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request) {
   let locale = request.headers.get("x-reviewbridge-locale") === "en" ? "en" : "tr";
@@ -63,7 +63,7 @@ export async function POST(request) {
   if (reviewCount < 3) return fail("insufficient_reviews", 422);
 
   try {
-    const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
     if (!/^[a-zA-Z0-9._-]+$/.test(model)) return fail("gemini_setup", 503);
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const response = await fetch(endpoint, {
@@ -71,7 +71,7 @@ export async function POST(request) {
       headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
       body: JSON.stringify(prompt.request),
       cache: "no-store",
-      signal: AbortSignal.timeout(25_000),
+      signal: AbortSignal.timeout(50_000),
     });
     if (!response.ok) {
       console.error("Gemini review summary request failed.", { status: response.status });
