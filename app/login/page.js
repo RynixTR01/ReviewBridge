@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
 import { safeAuthNextPath } from "@/lib/auth/redirect";
+import BrandMark from "@/components/BrandMark";
 
 export default function LoginPage() {
   const locale = useLocale();
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setŞifre] = useState("");
   const [error, setError] = useState("");
@@ -52,8 +51,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(nextPath());
-    router.refresh();
+    window.location.replace(nextPath());
   }
 
   return (
@@ -61,7 +59,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 font-bold text-xl text-foreground mb-10">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-bold">R</span>
+          <BrandMark size={32} />
           ReviewBridge
         </Link>
 

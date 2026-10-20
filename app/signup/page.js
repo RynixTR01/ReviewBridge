@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
 import { safeAuthNextPath } from "@/lib/auth/redirect";
+import BrandMark from "@/components/BrandMark";
 
 export default function SignupPage() {
   const locale = useLocale();
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setŞifre] = useState("");
@@ -19,6 +18,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   function nextPath() {
     return safeAuthNextPath(new URLSearchParams(window.location.search).get("next"));
@@ -72,6 +72,32 @@ export default function SignupPage() {
         setVerifying(false);
         return;
       }
+      setEmailVerified(true);
+
+      // Neon Auth may verify the address without creating a browser session.
+      // Ensure the new account is signed in before sending it to the dashboard.
+      let hasSession = false;
+      try {
+        const sessionResult = await authClient.getSession();
+        const activeEmail = sessionResult.data?.session?.user?.email || sessionResult.data?.user?.email;
+        hasSession = activeEmail?.toLowerCase() === email.trim().toLowerCase();
+      } catch {
+        // The email/password sign-in below is the authoritative session check.
+      }
+
+      if (!hasSession) {
+        let signInError;
+        try {
+          ({ error: signInError } = await authClient.signIn.email({ email, password }));
+        } catch (authError) {
+          signInError = authError;
+        }
+        if (signInError) {
+          setError(t(locale, "E-posta doğrulandı ancak oturum açılamadı. Giriş sayfasından devam edin.", "Your email is verified, but we couldn't sign you in. Continue from the sign-in page."));
+          setVerifying(false);
+          return;
+        }
+      }
 
       // Send the welcome message after verification, when the account session
       // exists and the server can safely identify its owner.
@@ -81,8 +107,7 @@ export default function SignupPage() {
         // Welcome email is best-effort; don't block sign-in.
       }
 
-      router.push(nextPath());
-      router.refresh();
+      window.location.replace(nextPath());
     } catch (verifyError) {
       setError(verifyError.message || t(locale, "E-posta adresiniz doğrulanamadı.", "Your email address could not be verified."));
       setVerifying(false);
@@ -98,18 +123,31 @@ export default function SignupPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">{t(locale, "E-posta adresinizi doğrulayın", "Verify your email address")}</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-3">
+            {emailVerified
+              ? t(locale, "E-posta adresiniz doğrulandı", "Your email is verified")
+              : t(locale, "E-posta adresinizi doğrulayın", "Verify your email address")}
+          </h1>
           <p className="text-muted leading-relaxed">
-            {t(locale, "Hesabınızı etkinleştirmek için ", "Enter the one-time code sent to ")}
+            {emailVerified
+              ? t(locale, "Hesabınız etkin. Oturum açılamazsa giriş sayfasından devam edin: ", "Your account is active. If sign-in could not complete, continue from the sign-in page: ")
+              : t(locale, "Hesabınızı etkinleştirmek için ", "Enter the one-time code sent to ")}
             <strong className="text-foreground">{email}</strong>
-            {t(locale, " adresine gönderilen tek kullanımlık kodu girin.", " to activate your account.")}
+            {!emailVerified && t(locale, " adresine gönderilen tek kullanımlık kodu girin.", " to activate your account.")}
           </p>
           {error && (
             <div className="mt-6 p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-sm">
               {error}
             </div>
           )}
-          <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
+          {emailVerified ? (
+            <Link
+              href="/login"
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-white hover:bg-primary-hover"
+            >
+              {t(locale, "Giriş sayfasına git", "Go to sign in")}
+            </Link>
+          ) : <form onSubmit={handleVerifyEmail} className="mt-6 space-y-4">
             <label htmlFor="email-otp" className="sr-only">{t(locale, "E-posta doğrulama kodu", "Email verification code")}</label>
             <input
               id="email-otp"
@@ -130,7 +168,7 @@ export default function SignupPage() {
             >
               {verifying ? t(locale, "Doğrulanıyor…", "Verifying…") : t(locale, "E-postayı doğrula", "Verify email")}
             </button>
-          </form>
+          </form>}
         </div>
       </div>
     );
@@ -141,7 +179,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 font-bold text-xl text-foreground mb-10">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-bold">R</span>
+          <BrandMark size={32} />
           ReviewBridge
         </Link>
 
