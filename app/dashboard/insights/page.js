@@ -26,7 +26,7 @@ export default async function InsightsPage() {
   const stats = ids.length ? await query(
     `SELECT source_id,
        count(*)::int AS total,
-       count(*) FILTER (WHERE body IS NOT NULL AND length(trim(body)) > 0 AND reviewed_at >= now() - interval '365 days')::int AS written_count,
+       count(*) FILTER (WHERE rating BETWEEN 1 AND 5 AND body IS NOT NULL AND length(trim(body)) > 0 AND reviewed_at >= now() - interval '365 days')::int AS written_count,
        round(avg(rating)::numeric, 1) AS average,
        count(*) FILTER (WHERE rating <= 2)::int AS low_count,
        count(*) FILTER (WHERE rating = 1)::int AS stars_1,
