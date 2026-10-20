@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { extractPlaceId, isGoogleMapsUrl } from "../app/lib/extractPlaceId.js";
+import { buildGoogleReviewUrl } from "../app/lib/googleReviewUrl.js";
 import { buildGoogleMapsActorInput } from "../app/lib/apify.js";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "../app/lib/googleMapsShortUrl.js";
 import { extractTrustpilotDomain } from "../app/lib/trustpilot.js";
@@ -11,6 +12,22 @@ test("Google Maps source parser accepts Maps place links and rejects general Goo
   assert.equal(extractPlaceId(mapsUrl), "0x14bbd9d06e5197c1:0x6ba191251552411e");
   assert.equal(isGoogleMapsUrl("https://www.google.com/search?q=restaurant+reviews"), false);
   assert.equal(extractPlaceId("https://www.google.com/search?q=restaurant+reviews"), null);
+});
+
+test("Google review links use the Maps review action for hex listing IDs", () => {
+  const hexId = "0x14c391652edb708b:0x9d1f75a00a75b3c7";
+  const googleUrl = "https://www.google.com/maps/place//data=!4m3!3m2!1s0x14c391652edb708b:0x9d1f75a00a75b3c7!12e1";
+  assert.equal(buildGoogleReviewUrl(hexId), googleUrl);
+  assert.equal(buildGoogleReviewUrl(`https://www.google.com/maps/place/Business/data=!1s${hexId}!12e1`), googleUrl);
+});
+
+test("Google review links preserve supported Place IDs and reject search URLs", () => {
+  assert.equal(
+    buildGoogleReviewUrl("ChIJN1t_tDeuEmsRUsoyG83frY4"),
+    "https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4",
+  );
+  assert.equal(buildGoogleReviewUrl("https://www.google.com/search?q=business+reviews"), null);
+  assert.equal(buildGoogleReviewUrl("0xnot-a-valid-id"), null);
 });
 
 test("Google Maps short share links resolve to an allowed Maps listing URL", async () => {

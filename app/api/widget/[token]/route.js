@@ -1,4 +1,4 @@
-import { extractPlaceId } from "@/app/lib/extractPlaceId";
+import { buildGoogleReviewUrl } from "@/app/lib/googleReviewUrl";
 import { query, queryOne } from "@/lib/db";
 import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { createWidgetEtag, filterWidgetReviews, getWidgetColors, isAllowedWidgetDomain, matchesWidgetEtag } from "@/lib/widget-rendering";
@@ -137,8 +137,7 @@ export async function GET(_request, { params }) {
   const isStale = widget.source_platform !== "first_party" && (!lastSyncIso || Date.now() - new Date(lastSyncIso).getTime() > 7 * 24 * 60 * 60 * 1000);
   let reviewUrl = null;
   if (widget.show_review_button && widget.source_platform === "google") {
-    const placeId = extractPlaceId(widget.source_place_id);
-    if (placeId && /^[A-Za-z0-9_-]+$/.test(placeId)) reviewUrl = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(placeId)}`;
+    reviewUrl = buildGoogleReviewUrl(widget.source_place_id || widget.source_maps_url);
   } else if (widget.show_review_button && widget.source_platform === "trustpilot" && /^[a-zA-Z0-9.-]+$/.test(widget.source_place_id || "")) {
     reviewUrl = `https://www.trustpilot.com/review/${encodeURIComponent(widget.source_place_id)}#writeareview`;
   } else if (widget.show_review_button && widget.source_platform === "first_party" && /^[a-f0-9]{48}$/.test(widget.source_place_id || "")) {
