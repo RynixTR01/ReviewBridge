@@ -64,10 +64,11 @@ test("starts an Apify run with bearer auth and a signed callback header", async 
       NEXT_PUBLIC_APP_URL: "https://reviewbridge.example/",
     }, async () => {
       const input = { startUrls: [{ url: "https://www.google.com/maps/place/example" }] };
-      assert.equal(await startApifyRun("owner/actor", input, "source/123"), "run-123");
+      assert.equal(await startApifyRun("owner/actor", input, "source/123", { timeoutSeconds: 600 }), "run-123");
       assert.equal(requestUrl.origin, "https://api.apify.com");
       assert.equal(requestUrl.pathname, "/v2/actors/owner%2Factor/runs");
       assert.equal(requestUrl.searchParams.has("token"), false);
+      assert.equal(requestUrl.searchParams.get("timeout"), "600");
       assert.equal(requestOptions.headers.Authorization, "Bearer unit-test-token");
       assert.deepEqual(JSON.parse(requestOptions.body), input);
 
@@ -80,6 +81,15 @@ test("starts an Apify run with bearer auth and a signed callback header", async 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("rejects invalid Apify run timeouts before making a request", async () => {
+  await withEnv({ APIFY_API_TOKEN: "unit-test-token", APIFY_WEBHOOK_SECRET: "unit-test-webhook-secret" }, async () => {
+    await assert.rejects(
+      startApifyRun("owner/actor", {}, "source-123", { timeoutSeconds: 0 }),
+      /timeoutSeconds must be a positive integer/,
+    );
+  });
 });
 
 test("fetches run metadata and dataset with bearer auth and no token query parameter", async () => {

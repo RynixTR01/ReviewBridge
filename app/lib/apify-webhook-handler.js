@@ -74,8 +74,10 @@ export function createApifyWebhookHandler({
         const rawItems = await getDatasetItems(runId);
         const platform = source.platform || (actId === APIFY_ACTORS.GOOGLE_MAPS ? "google" : "trustpilot");
         const mappedReviews = mapApifyReviews(rawItems, platform);
-        const businessTitle = platform === "google" && Array.isArray(rawItems)
-          ? rawItems.find((item) => typeof item?.title === "string" && item.title.trim())?.title.trim() || null
+        const businessTitle = Array.isArray(rawItems)
+          ? platform === "google"
+            ? rawItems.find((item) => typeof item?.title === "string" && item.title.trim())?.title.trim() || null
+            : rawItems.find((item) => typeof item?.businessName === "string" && item.businessName.trim())?.businessName.trim() || null
           : null;
 
         const uniqueReviews = [...new Map(
@@ -104,7 +106,8 @@ export function createApifyWebhookHandler({
                last_synced_at = NOW(), last_sync_error = NULL,
                sync_retry_count = 0, sync_retry_after = NULL,
                business_name = CASE
-                 WHEN business_name IN ('Google işletmesi (eşitleniyor...)', 'Google Business (Syncing...)', 'Google Business', 'Bilinmeyen işletme')
+                 WHEN (business_name IN ('Google işletmesi (eşitleniyor...)', 'Google Business (Syncing...)', 'Google Business', 'Bilinmeyen işletme')
+                   OR platform = 'trustpilot')
                    AND $2::text IS NOT NULL THEN $2
                  ELSE business_name
                END

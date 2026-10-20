@@ -62,11 +62,16 @@ export function buildWebhookUrl(sourceId) {
  * @param {string} sourceId The ID of the source being synced. Used to build the webhook URL.
  * @returns {Promise<string>} The Apify run ID.
  */
-export async function startApifyRun(actorId, input, sourceId) {
+export async function startApifyRun(actorId, input, sourceId, options = {}) {
   const token = process.env.APIFY_API_TOKEN;
   const secret = process.env.APIFY_WEBHOOK_SECRET;
   if (!token) throw new Error("APIFY_API_TOKEN is not set");
   if (!secret) throw new Error("APIFY_WEBHOOK_SECRET is not set");
+
+  const { timeoutSeconds } = options;
+  if (timeoutSeconds !== undefined && (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 1)) {
+    throw new Error("Apify timeoutSeconds must be a positive integer.");
+  }
 
   const webhook = {
     eventTypes: ['ACTOR.RUN.SUCCEEDED', 'ACTOR.RUN.FAILED', 'ACTOR.RUN.ABORTED', 'ACTOR.RUN.TIMED_OUT'],
@@ -74,8 +79,10 @@ export async function startApifyRun(actorId, input, sourceId) {
     headersTemplate: JSON.stringify({ 'x-webhook-secret': secret })
   };
   const encodedWebhooks = Buffer.from(JSON.stringify([webhook]), 'utf8').toString('base64');
+  const query = new URLSearchParams({ webhooks: encodedWebhooks });
+  if (timeoutSeconds !== undefined) query.set("timeout", String(timeoutSeconds));
   const url = "https://api.apify.com/v2/actors/" + encodeURIComponent(actorId) +
-    "/runs?webhooks=" + encodeURIComponent(encodedWebhooks);
+    "/runs?" + query.toString();
 
   const response = await fetch(url, {
     method: 'POST',

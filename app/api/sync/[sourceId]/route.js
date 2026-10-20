@@ -154,6 +154,7 @@ export async function POST(request, { params }) {
           APIFY_ACTORS.TRUSTPILOT,
           buildTrustpilotActorInput(companyDomain, 20),
           source.id,
+          { timeoutSeconds: 600 },
         );
         await query(
           `UPDATE public.sources SET apify_run_id = $2, sync_status = 'pending',
