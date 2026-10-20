@@ -10,7 +10,7 @@ Bu yol haritası, rakiplerde görülen her özelliği körü körüne kopyalamak
 
 - Neon Postgres ve Neon Auth üzerinde Next.js/Vercel uygulaması.
 - Google Maps ve Trustpilot kaynakları; Apify tabanlı veri alma akışı.
-- Kaynak ekleme, yinelenen kaynak kontrolü, elle eşitleme, eşitleme geçmişi, retry ve takılmış işleri temizleme. Google Maps `Paylaş > Bağlantıyı kopyala` kısa bağlantıları PR #41 ile çözümleniyor; Google Search URL'leri hâlâ desteklenmiyor.
+- Kaynak ekleme, yinelenen kaynak kontrolü, elle eşitleme, eşitleme geçmişi, retry ve takılmış işleri temizleme. Google Maps `Paylaş > Bağlantıyı kopyala` kısa bağlantıları PR #41 ile destekleniyor; Google Search URL'leri hâlâ desteklenmiyor.
 - List, grid, carousel, masonry ve floating yorum düzenleri; floating banner Pro/Agency planlarında PR #22 ile production'a alındı (14 Ekim 2026). Light/dark/minimal temalar; ortalama puan rozeti; font, kart aralığı ve köşe ayarları; yorum kaynağına gitme düğmesi; ReviewBridge rozeti.
 - Türkçe/İngilizce arayüz, mobil düzen, e-posta/parola ve Google ile giriş, profil/hesap silme, Lemon Squeezy aboneliği. Google OAuth üretimde test edildi: dashboard erişimi ve ana sayfaya dönüp yenileme sonrası oturumun korunduğu doğrulandı. E-posta OTP kayıt fallback'i PR #49'da unit testlerle güvenceye alındı; canlı OTP doğrulaması henüz yapılmadı.
 - Dashboard'da kaynak ve yorum sayıları, puan özeti ve eşitleme durumu.
