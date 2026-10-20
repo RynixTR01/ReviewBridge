@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { filterWidgetReviews, getWidgetColors } from "@/lib/widget-rendering";
 import FloatingPreviewShell from "./FloatingPreviewShell";
+import BrandMark from "@/components/BrandMark";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -142,9 +143,7 @@ export default async function PreviewPage({ params }) {
       {/* Top Bar */}
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 font-bold text-gray-900 text-lg">
-          <span className="w-7 h-7 rounded bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-            R
-          </span>
+          <BrandMark size={28} />
           ReviewBridge
           <span className="text-xs font-normal text-gray-400 ml-2">{t(locale, "Bileşen önizlemesi", "Widget preview")}</span>
         </div>
