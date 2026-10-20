@@ -52,10 +52,8 @@ export async function POST(request) {
   const reviews = await query(
     `SELECT rating, body, reviewed_at
      FROM public.reviews
-     WHERE source_id = $1 AND rating BETWEEN 1 AND 5 AND body IS NOT NULL AND length(trim(body)) > 0
-       AND reviewed_at >= now() - interval '365 days'
-     ORDER BY reviewed_at DESC
-     LIMIT 60`,
+     WHERE source_id = $1 AND rating BETWEEN 1 AND 5
+     ORDER BY reviewed_at DESC NULLS LAST`,
     [source.id],
   );
   const prompt = buildReviewAnalysisPrompt(reviews, locale);
@@ -78,8 +76,14 @@ export async function POST(request) {
       const code = reviewInsightGeminiErrorCode(response.status);
       return fail(code, code === "gemini_rate_limit" ? 429 : code === "unavailable" ? 502 : 503);
     }
-    const result = parseReviewAnalysisResponse(await response.json());
-    return Response.json({ sourceName: source.business_name, ...result, evidenceCount: reviewCount }, { headers: { "Cache-Control": "no-store" } });
+    const result = parseReviewAnalysisResponse(await response.json(), reviewCount);
+    return Response.json({
+      sourceName: source.business_name,
+      ...result,
+      evidenceCount: reviewCount,
+      totalReviewCount: prompt.totalReviewCount,
+      ratingProfile: prompt.ratingProfile,
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("AI review analysis failed.", { name: error?.name });
     return fail("unavailable", 502);
