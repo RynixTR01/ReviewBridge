@@ -38,6 +38,7 @@ export async function POST(request) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const firstName = escapeHtml((user.name || "there").trim().split(/\s+/)[0]);
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://review-bridge.vercel.app").replace(/\/$/, "");
 
     try {
       const { error } = await resend.emails.send({
@@ -47,7 +48,7 @@ export async function POST(request) {
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           <div style="text-align: center; margin-bottom: 32px;">
-            <div style="display: inline-block; width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #0ea5e9); color: white; font-size: 20px; font-weight: bold; line-height: 48px;">R</div>
+            <img src="${appUrl}/brand/reviewbridge-mark.png" alt="ReviewBridge" width="48" height="48" style="display: block; margin: 0 auto; border-radius: 12px;" />
           </div>
           <h1 style="font-size: 24px; font-weight: 700; color: #0f172a; text-align: center; margin-bottom: 16px;">
             Welcome to ReviewBridge, ${firstName}!
