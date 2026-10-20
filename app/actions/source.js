@@ -8,7 +8,7 @@ import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { buildGoogleMapsActorInput, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
+import { buildGoogleMapsActorInput, buildTrustpilotActorInput, mapApifyReviews, startApifyRun, APIFY_ACTORS } from "@/app/lib/apify";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
 import { normalizeReviewRating } from "@/lib/review-rating";
@@ -132,15 +132,14 @@ export async function addSourceAction(prevState, formData) {
         identifier = companyDomain;
 
         const tpResponse = await fetch(
-          'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?token=' + 
-          process.env.APIFY_API_TOKEN + '&timeout=60',
+          'https://api.apify.com/v2/acts/memo23~trustpilot-scraper-ppe/run-sync-get-dataset-items?timeout=60',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              startUrls: ['https://www.trustpilot.com/review/' + companyDomain],
-              maxResults: reviewsToFetch
-            })
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.APIFY_API_TOKEN}`,
+            },
+            body: JSON.stringify(buildTrustpilotActorInput(companyDomain, reviewsToFetch)),
           }
         );
         if (!tpResponse.ok) {
@@ -148,22 +147,16 @@ export async function addSourceAction(prevState, formData) {
         }
         const tpData = await tpResponse.json();
 
-        if (Array.isArray(tpData)) {
-          console.log("Trustpilot response length:", tpData.length);
-          
-          businessName = companyDomain;
-          reviewsList = tpData.map(item => ({
-            review_id: item.id || item.reviewId || null,
-            reviewer_name: item.consumer?.displayName || 'Anonymous',
-            rating: item.rating || 0,
-            body: item.text || null,
-            reviewed_at: item.dates?.publishedDate || new Date().toISOString(),
-            review_date_estimated: !item.dates?.publishedDate,
-          }));
-        } else {
+        if (!Array.isArray(tpData)) {
           console.error("Trustpilot actor failed:", tpData);
           return { error: "Trustpilot yanıtı okunamadı. Bağlantıyı kontrol edip yeniden deneyin." };
         }
+
+        reviewsList = mapApifyReviews(tpData, "trustpilot");
+        if (reviewsList.length === 0) {
+          return { error: "Bu Trustpilot profilinden yorum alınamadı. Profil bağlantısının doğru ve yorumların herkese açık olduğunu kontrol edin." };
+        }
+        businessName = tpData.find((item) => typeof item?.businessName === "string" && item.businessName.trim())?.businessName.trim() || companyDomain;
       }
     } else {
       if (process.env.NODE_ENV === 'development') {

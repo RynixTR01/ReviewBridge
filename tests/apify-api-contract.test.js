@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getDatasetItems, startApifyRun } from "../app/lib/apify.js";
+import { buildTrustpilotActorInput, getDatasetItems, mapApifyReviews, startApifyRun } from "../app/lib/apify.js";
 
 function withEnv(values, run) {
   const original = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
@@ -14,6 +14,38 @@ function withEnv(values, run) {
       }
     });
 }
+
+test("builds bounded Trustpilot actor input using the current Apify field names", () => {
+  assert.deepEqual(buildTrustpilotActorInput("Amazon.com", 20), {
+    startUrls: ["https://www.trustpilot.com/review/amazon.com"],
+    maxItems: 20,
+    expandRegionalDomains: false,
+    sortBy: "recent",
+  });
+  assert.throws(() => buildTrustpilotActorInput("amazon.com", 0), /positive review limit/);
+  assert.throws(() => buildTrustpilotActorInput("amazon.com/../../other", 20), /company domain/);
+});
+
+test("maps the current Trustpilot actor output fields into review records", () => {
+  assert.deepEqual(mapApifyReviews([{
+    id: "trustpilot-review-1",
+    reviewerName: "Aylin",
+    rating: 4,
+    text: "Good service",
+    publishedDate: "2026-10-18T08:00:00.000Z",
+    url: "https://www.trustpilot.com/reviews/trustpilot-review-1",
+    consumer: { displayName: "Fallback name" },
+  }], "trustpilot"), [{
+    review_id: "trustpilot-review-1",
+    avatar_url: null,
+    review_url: "https://www.trustpilot.com/reviews/trustpilot-review-1",
+    reviewer_name: "Aylin",
+    rating: 4,
+    body: "Good service",
+    reviewed_at: "2026-10-18T08:00:00.000Z",
+    review_date_estimated: false,
+  }]);
+});
 
 test("starts an Apify run with bearer auth and a signed callback header", async () => {
   const originalFetch = globalThis.fetch;

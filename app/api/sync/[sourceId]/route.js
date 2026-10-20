@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
-import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput } from "@/app/lib/apify";
+import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput, buildTrustpilotActorInput } from "@/app/lib/apify";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
 import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-history";
 import { createStableReviewId } from "@/lib/review-id";
@@ -152,7 +152,7 @@ export async function POST(request, { params }) {
       try {
         const runId = await startApifyRun(
           APIFY_ACTORS.TRUSTPILOT,
-          { startUrls: [`https://www.trustpilot.com/review/${companyDomain}`], maxResults: 20 },
+          buildTrustpilotActorInput(companyDomain, 20),
           source.id,
         );
         await query(

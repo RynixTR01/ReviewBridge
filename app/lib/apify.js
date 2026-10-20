@@ -26,6 +26,22 @@ export function buildGoogleMapsActorInput(identifier, mapsUrl) {
   throw new Error("Google Maps input must be a supported Maps URL or Place ID.");
 }
 
+export function buildTrustpilotActorInput(companyDomain, maxItems) {
+  const domain = typeof companyDomain === "string" ? companyDomain.trim().toLowerCase() : "";
+  const itemLimit = Number(maxItems);
+  const isValidDomain = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(domain);
+  if (!isValidDomain || !Number.isInteger(itemLimit) || itemLimit < 1) {
+    throw new Error("Trustpilot input requires a company domain and a positive review limit.");
+  }
+
+  return {
+    startUrls: [`https://www.trustpilot.com/review/${domain}`],
+    maxItems: itemLimit,
+    expandRegionalDomains: false,
+    sortBy: "recent",
+  };
+}
+
 /**
  * Builds the webhook URL with the sourceId; the shared secret is sent in a request header.
  * @param {string} sourceId The ID of the source being synced.
@@ -177,9 +193,10 @@ export function mapApifyReviews(items, platform) {
     return items.map(item => {
       let parsedDate = new Date().toISOString();
       let dateEstimated = true;
-      if (item.dates?.publishedDate) {
+      const publishedDate = item.publishedDate || item.dates?.publishedDate;
+      if (publishedDate) {
          try {
-           parsedDate = new Date(item.dates.publishedDate).toISOString();
+           parsedDate = new Date(publishedDate).toISOString();
            dateEstimated = false;
          } catch(e) {}
       }
@@ -187,7 +204,7 @@ export function mapApifyReviews(items, platform) {
         review_id: item.id || item.reviewId || null,
         avatar_url: item.consumer?.avatarUrl || item.consumer?.avatar?.imageUrl || null,
         review_url: item.reviewUrl || item.url || null,
-        reviewer_name: item.consumer?.displayName || 'Anonymous',
+        reviewer_name: item.reviewerName || item.consumer?.displayName || 'Anonymous',
         rating: normalizeReviewRating(item.rating),
         body: item.text || null,
         reviewed_at: parsedDate,
