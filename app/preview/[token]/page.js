@@ -1,4 +1,4 @@
-import { extractPlaceId } from "@/app/lib/extractPlaceId";
+import { buildGoogleReviewUrl } from "@/app/lib/googleReviewUrl";
 import { query, queryOne } from "@/lib/db";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
@@ -88,12 +88,9 @@ export default async function PreviewPage({ params }) {
   let reviewUrl = null;
   let buttonLabel = '';
 
-  if (widget.show_review_button && widget.source_platform && (widget.source_maps_url || widget.source_platform === "first_party")) {
+  if (widget.show_review_button && widget.source_platform) {
     if (widget.source_platform === 'google') {
-      const placeId = extractPlaceId(widget.source_place_id);
-      reviewUrl = placeId 
-        ? 'https://search.google.com/local/writereview?placeid=' + placeId
-        : null;
+      reviewUrl = buildGoogleReviewUrl(widget.source_place_id || widget.source_maps_url);
       buttonLabel = t(widgetDisplayLocale, "⭐ Google'da yorum bırak", "⭐ Leave a review on Google");
     } else if (widget.source_platform === 'trustpilot') {
       const domain = widget.source_place_id;
