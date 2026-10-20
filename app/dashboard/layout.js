@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import BrandMark from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function DashboardLayout({ children }) {
       <aside className="sticky top-0 z-40 w-full shrink-0 bg-white border-b border-border shadow-sm md:static md:w-64 md:border-b-0 md:border-r md:shadow-none flex flex-col">
         <div className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 border-b border-border">
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-foreground">
-            <span className="w-6 h-6 rounded bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">R</span>
+            <BrandMark size={24} className="rounded-md" />
             ReviewBridge
           </Link>
           <form action="/auth/signout" method="post" className="md:hidden">

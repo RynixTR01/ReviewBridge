@@ -1,6 +1,6 @@
 # ReviewBridge: Rakip Özellik Açıkları ve Uygulama Yol Haritası
 
-Denetim tarihi: 15 Ekim 2026
+Denetim tarihi: 20 Ekim 2026
 
 Kapsam: Proje kodu ve ürün akışı; doğrudan rakip olarak Trustmary, Elfsight ve EmbedSocial; TrustMRR ise pazar/ürün keşfi örneği olarak incelendi.
 
@@ -131,6 +131,14 @@ Resmî dokümanlardaki teknik erişim sınırları da kaynak bazında farklıdı
 - Kullanıcıdan her dosya için onay istenmeyecek; önemli aşama tamamlandığında kısa değişiklik özeti verilecek. Üretim veritabanı/vercel production gibi dış etkili adım gerekiyorsa yayın öncesi somut değişiklik ve sonucu gösterilecek.
 
 ## Durum
+
+### 20 Ekim 2026 — Oturum devamlılığı ve marka işareti
+
+- [x] E-posta kaydında doğrulama kodu sonrası Neon Auth oturumu kontrol edilir; doğrulama otomatik giriş yapmadıysa aynı hesapla giriş tamamlanmadan kullanıcı panele gönderilmez. Oturum açma sonrası tam sayfa geçişi tarayıcı çerezini sunucuya taşır.
+- [x] Google ve e-posta girişinde korumalı sayfaya dönüş hedefi korunur; yönlendirme yalnızca ReviewBridge içindeki izinli dashboard/davet yollarını kabul eder.
+- [x] Landing, giriş/kayıt, panel, gizlilik ve kullanım koşulları sayfalarındaki harf rozetleri ile tarayıcı favicon'u özgün köprü-yıldız görseliyle değiştirildi.
+- [x] Yerel kontrol: 77 birim testi geçti, lint temiz ve üretim derlemesi geçti. Derleme yalnızca yerel doğrulama için sahte test Auth ayarlarıyla yapıldı; canlı oturum denemesi ve yayına alındığı sonucu olarak sayılmaz.
+- [ ] Değişikliği production'a aldıktan sonra gerçek Google girişi ile doğrulanmış e-posta hesabında oturumun panelde kaldığını, ana sayfa/panel geçişinde tekrar giriş istemediğini sınamak.
 
 ### 14 Ekim 2026 sonraki ürün paketi
 

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { PLAN_LIMITS, PLAN_PRICES_USD } from "@/lib/plans";
+import BrandMark from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ function Navbar({ isSignedIn, locale }) {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
         <Link href="/" className="flex shrink-0 items-center gap-1.5 sm:gap-2 font-bold text-base sm:text-xl text-foreground">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-bold">R</span>
+          <BrandMark size={32} />
           ReviewBridge
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm text-muted">
@@ -417,7 +418,7 @@ function Footer({ locale }) {
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2 font-bold text-white text-lg">
-            <span className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">R</span>
+            <BrandMark size={28} />
             ReviewBridge
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm">

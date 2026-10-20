@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { PLAN_PRICES_USD } from "@/lib/plans";
+import BrandMark from "@/components/BrandMark";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -18,7 +19,7 @@ export default async function TermsPage() {
       <nav className="border-b border-border bg-white/80 backdrop-blur-lg">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-foreground">
-            <span className="w-7 h-7 rounded-md bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">R</span>
+            <BrandMark size={28} className="rounded-md" />
             ReviewBridge
           </Link>
         </div>
