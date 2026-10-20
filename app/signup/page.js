@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth/client";
+import { ensureVerifiedSignupSession } from "@/lib/auth/signup-session";
 import { useLocale } from "@/app/LanguageProvider";
 import { t } from "@/lib/i18n";
 import { safeAuthNextPath } from "@/lib/auth/redirect";
@@ -74,29 +75,15 @@ export default function SignupPage() {
       }
       setEmailVerified(true);
 
-      // Neon Auth may verify the address without creating a browser session.
-      // Ensure the new account is signed in before sending it to the dashboard.
-      let hasSession = false;
-      try {
-        const sessionResult = await authClient.getSession();
-        const activeEmail = sessionResult.data?.session?.user?.email || sessionResult.data?.user?.email;
-        hasSession = activeEmail?.toLowerCase() === email.trim().toLowerCase();
-      } catch {
-        // The email/password sign-in below is the authoritative session check.
-      }
-
-      if (!hasSession) {
-        let signInError;
-        try {
-          ({ error: signInError } = await authClient.signIn.email({ email, password }));
-        } catch (authError) {
-          signInError = authError;
-        }
-        if (signInError) {
-          setError(t(locale, "E-posta doğrulandı ancak oturum açılamadı. Giriş sayfasından devam edin.", "Your email is verified, but we couldn't sign you in. Continue from the sign-in page."));
-          setVerifying(false);
-          return;
-        }
+      // Ensure email verification also results in a browser session.
+      const { error: sessionError } = await ensureVerifiedSignupSession(authClient, {
+        email,
+        password,
+      });
+      if (sessionError) {
+        setError(t(locale, "E-posta doğrulandı ancak oturum açılamadı. Giriş sayfasından devam edin.", "Your email is verified, but we couldn't sign you in. Continue from the sign-in page."));
+        setVerifying(false);
+        return;
       }
 
       // Send the welcome message after verification, when the account session
