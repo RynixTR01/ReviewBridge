@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { query, queryOne } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
-import { buildReviewAnalysisPrompt, parseReviewAnalysisResponse, reviewInsightError } from "@/lib/ai-review-insights";
+import { buildReviewAnalysisPrompt, parseReviewAnalysisResponse, reviewInsightError, reviewInsightGeminiErrorCode } from "@/lib/ai-review-insights";
 
 export const maxDuration = 30;
 
@@ -19,10 +19,9 @@ export async function POST(request) {
     return fail("rate_limit", 429);
   }
 
-  const baseUrl = process.env.NEON_AI_GATEWAY_BASE_URL;
-  const token = process.env.NEON_AI_GATEWAY_TOKEN;
-  if (!baseUrl || !token) {
-    return fail("unavailable", 503);
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return fail("gemini_config", 503);
   }
 
   const contentLength = Number(request.headers.get("content-length") || 0);
@@ -60,23 +59,24 @@ export async function POST(request) {
     [source.id],
   );
   const prompt = buildReviewAnalysisPrompt(reviews, locale);
-  const reviewCount = prompt.messages[1].content ? JSON.parse(prompt.messages[1].content).reviews.length : 0;
+  const reviewCount = prompt.reviewCount;
   if (reviewCount < 3) return fail("insufficient_reviews", 422);
 
   try {
-    const gatewayUrl = new URL(baseUrl);
-    if (gatewayUrl.protocol !== "https:") return fail("unavailable", 503);
-    const endpoint = new URL("/v1/chat/completions", gatewayUrl);
+    const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+    if (!/^[a-zA-Z0-9._-]+$/.test(model)) return fail("gemini_setup", 503);
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(prompt),
+      headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+      body: JSON.stringify(prompt.request),
       cache: "no-store",
       signal: AbortSignal.timeout(25_000),
     });
     if (!response.ok) {
-      console.error("Neon AI Gateway request failed.", { status: response.status });
-      return fail("unavailable", 502);
+      console.error("Gemini review summary request failed.", { status: response.status });
+      const code = reviewInsightGeminiErrorCode(response.status);
+      return fail(code, code === "gemini_rate_limit" ? 429 : code === "unavailable" ? 502 : 503);
     }
     const result = parseReviewAnalysisResponse(await response.json());
     return Response.json({ sourceName: source.business_name, ...result, evidenceCount: reviewCount }, { headers: { "Cache-Control": "no-store" } });
