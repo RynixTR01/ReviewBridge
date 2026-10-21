@@ -1,10 +1,9 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/server";
-import { query, queryOne } from "@/lib/db";
+import { getNeonClient, query, queryOne } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { PLAN_LIMITS } from "@/lib/plans";
 import crypto from "crypto";
 import { extractPlaceId, isGoogleMapsUrl } from "@/app/lib/extractPlaceId";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
@@ -17,6 +16,8 @@ import { createSourceLimitNotification } from "@/lib/notifications";
 import { getLocale } from "@/lib/i18n-server";
 import { isConnectedReviewSource } from "@/lib/review-source-catalog";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
+import { createSourceWithinPlanLimit, getSourcePlanStatus } from "@/lib/source-plan-guard";
+import { providerAttemptLimited } from "@/lib/provider-budget";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -64,7 +65,7 @@ export async function addSourceAction(prevState, formData) {
       mapsUrl = await resolveGoogleMapsShortUrl(rawInput);
       identifier = extractPlaceId(mapsUrl) || mapsUrl;
     } catch (error) {
-      console.warn("Could not resolve Google Maps share link:", error);
+      console.warn("Could not resolve a Google Maps share link.", { name: error?.name });
       return {
         error: "Google Haritalar paylaşım bağlantısı açılamadı. Bağlantının herkese açık olduğundan emin olun veya Maps profil bağlantısını kullanın.",
       };
@@ -83,36 +84,16 @@ export async function addSourceAction(prevState, formData) {
     return { error: "Bu işletme zaten kaynaklarınıza ekli. Mevcut kaynağı panelden kullanabilir veya eşitleyebilirsiniz." };
   }
 
-  // Check plan limits
-  const profile = await queryOne(
-    "SELECT plan FROM public.users WHERE id = $1",
-    [user.id]
-  );
-
-  const plan = profile?.plan || "free";
-  const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
-
-  const sourceCount = await queryOne(
-    "SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1",
-    [user.id]
-  );
-  const count = sourceCount?.count ?? 0;
-
-
-  if (count >= limits.maxSources) {
-    await createSourceLimitNotification({ userId: user.id, count, limit: limits.maxSources });
-    await sendUsageLimitAlert({ userId: user.id, count, limit: limits.maxSources, locale: await getLocale() });
-    return { error: `${plan} planında en fazla ${limits.maxSources} kaynak ekleyebilirsiniz. Daha fazla kaynak için planınızı yükseltin.` };
-  }
-
   // 1. Prepare source metadata; provider reviews are fetched by the background sync.
   let businessName = "Bilinmeyen işletme";
   let reviewsList = [];
   let totalScore = null;
   let totalReviewsCount = null;
   
-  const reviewsToFetch = (plan === 'pro' || plan === 'agency') ? 40 : 20;
   const startsAsyncSync = Boolean(process.env.APIFY_API_TOKEN) && (platform === "google" || platform === "trustpilot");
+  if (startsAsyncSync && await providerAttemptLimited(user.id, user.plan)) {
+    return { error: "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." };
+  }
 
 
   try {
@@ -142,35 +123,43 @@ export async function addSourceAction(prevState, formData) {
       }
     }
   } catch (err) {
-    console.error("Error fetching reviews:", err);
+    console.error("Could not prepare review source.", { name: err?.name });
     return { error: "Yorumlar alınamadı. Kaynak eklenmedi; lütfen daha sonra yeniden deneyin." };
   }
 
-  // 2. Insert into sources
-  let newSource;
+  // The plan and capacity check share one serialized transaction with source
+  // creation so parallel submissions cannot exceed the account's allowance.
+  let admission;
   try {
-    newSource = await queryOne(
-      `INSERT INTO public.sources
-         (user_id, platform, place_id, business_name, total_score,
-          total_reviews_count, last_synced_at, sync_started_at, sync_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
-      [
-        user.id,
-        platform,
-        identifier,
-        businessName,
-        totalScore,
-        totalReviewsCount,
-        startsAsyncSync ? null : new Date().toISOString(),
-        startsAsyncSync ? new Date().toISOString() : null,
-        startsAsyncSync ? "pending" : "done",
-      ]
-    );
+    admission = await createSourceWithinPlanLimit(getNeonClient(), {
+      userId: user.id,
+      platform,
+      placeId: identifier,
+      businessName,
+      totalScore,
+      totalReviewsCount,
+      lastSyncedAt: startsAsyncSync ? null : new Date().toISOString(),
+      syncStartedAt: startsAsyncSync ? new Date().toISOString() : null,
+      syncStatus: startsAsyncSync ? "pending" : "done",
+    });
   } catch (sourceError) {
-    console.error("Insert source error:", sourceError);
+    console.error("Could not insert review source.", { code: sourceError?.code });
     return { error: "Kaynak veritabanına kaydedilemedi." };
   }
+
+  if (admission.status === "duplicate") {
+    return { error: "Bu işletme zaten kaynaklarınıza ekli. Mevcut kaynağı panelden kullanabilir veya eşitleyebilirsiniz." };
+  }
+  if (admission.status === "limit") {
+    await createSourceLimitNotification({ userId: user.id, count: admission.count, limit: admission.limit });
+    await sendUsageLimitAlert({ userId: user.id, count: admission.count, limit: admission.limit, locale: await getLocale() });
+    return { error: `${admission.plan} planında en fazla ${admission.limit} kaynak ekleyebilirsiniz. Daha fazla kaynak için planınızı yükseltin.` };
+  }
+  if (admission.status !== "created") return { error: "Kaynak oluşturulamadı. Lütfen tekrar deneyin." };
+
+  const newSource = admission.source;
+  const plan = admission.plan;
+  const reviewsToFetch = plan === "pro" || plan === "agency" ? 40 : 20;
 
   const historyId = await startSyncHistory(newSource.id);
   // Start Apify after creating the source so slow review collection stays out of the form request.
@@ -197,7 +186,7 @@ export async function addSourceAction(prevState, formData) {
       );
       await attachSyncRun(historyId, runId);
     } catch (err) {
-      console.error(`Failed to start initial ${platform} sync:`, err);
+      console.error(`Could not start initial ${platform} sync.`, { name: err?.name });
       await query(
         `UPDATE public.sources
          SET sync_status = $1, last_sync_error = $2,
@@ -242,7 +231,7 @@ export async function addSourceAction(prevState, formData) {
         values
       );
     } catch (reviewsError) {
-      console.error("Insert reviews error:", reviewsError);
+      console.error("Could not save local review records.", { code: reviewsError?.code });
       reviewsSaved = false;
       await query(
         `UPDATE public.sources SET sync_status = 'error',
@@ -281,7 +270,7 @@ export async function addSourceAction(prevState, formData) {
       ]
     );
   } catch (widgetError) {
-    console.error("Widget creation error:", widgetError);
+    console.error("Could not create the default widget.", { code: widgetError?.code });
   }
 
   revalidatePath("/dashboard");
@@ -300,6 +289,11 @@ export async function setSourceAutoSyncAction(formData) {
   const user = await getCurrentUser();
   if (!user || !sourceId) return { error: "Not authenticated" };
 
+  if (enabled) {
+    const entitlement = await getSourcePlanStatus(getNeonClient(), sourceId);
+    if (!entitlement?.active) return { error: "Bu kaynak mevcut plan sınırınızı aşıyor." };
+  }
+
   try {
     const updated = await queryOne(
       "UPDATE public.sources SET auto_sync_enabled = $1 WHERE id = $2 AND user_id = $3 RETURNING id",
@@ -307,7 +301,7 @@ export async function setSourceAutoSyncAction(formData) {
     );
     if (!updated) return { error: "Source not found." };
   } catch (error) {
-    console.error("Auto sync preference update failed:", error);
+    console.error("Could not update automatic sync preference.", { code: error?.code });
     return { error: "Could not update automatic sync setting." };
   }
 

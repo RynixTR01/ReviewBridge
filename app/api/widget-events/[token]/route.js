@@ -3,6 +3,8 @@ import { isRateLimited } from "@/lib/rate-limit";
 import { isAllowedWidgetDomain } from "@/lib/widget-rendering";
 import { observedWidgetHost } from "@/lib/widget-installation";
 import { experimentMetricForEvent } from "@/lib/widget-experiments";
+import { PLAN_LIMITS } from "@/lib/plans";
+import { effectivePlanSql } from "@/lib/billing-entitlement";
 
 const EVENT_COLUMNS = {
   view: "views",
@@ -28,11 +30,23 @@ export async function POST(request, { params }) {
   if (!metric) return new Response(null, { status: 400 });
 
   const widget = await queryOne(
-    `SELECT w.id, w.allowed_domains, w.experiment_enabled, w.experiment_id, w.show_review_button, u.plan AS user_plan
-     FROM public.widgets w JOIN public.users u ON u.id = w.user_id WHERE w.embed_token = $1`,
+    `SELECT w.id, w.allowed_domains, w.experiment_enabled, w.experiment_id, w.show_review_button,
+            ${effectivePlanSql('u')} AS user_plan,
+            (SELECT count(*)::int + 1 FROM public.sources older
+             WHERE older.user_id = s.user_id
+               AND (older.created_at < s.created_at
+                 OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
+     FROM public.widgets w
+     JOIN public.users u ON u.id = w.user_id
+     JOIN public.sources s ON s.id = w.source_id AND s.user_id = w.user_id
+     WHERE w.embed_token = $1`,
     [token],
   );
   if (!widget) return new Response(null, { status: 404 });
+  const plan = PLAN_LIMITS[widget.user_plan] ? widget.user_plan : "free";
+  if (Number(widget.source_position) > PLAN_LIMITS[plan].maxSources) {
+    return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  }
   if (!isAllowedWidgetDomain(request, widget.allowed_domains)) return new Response(null, { status: 403 });
 
   const experimentMetric = experimentMetricForEvent(widget, payload);

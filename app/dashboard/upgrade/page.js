@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { PLAN_LIMITS, PLAN_PRICES_USD } from "@/lib/plans";
+import { manageSubscriptionAction, refreshSubscriptionAction, startCheckoutAction } from "@/app/actions/billing";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -30,7 +31,7 @@ function CrossIcon() {
   );
 }
 
-export default async function UpgradePage() {
+export default async function UpgradePage({ searchParams }) {
   const locale = await getLocale();
   const user = await getCurrentUser();
 
@@ -39,20 +40,23 @@ export default async function UpgradePage() {
   }
 
   const profile = await queryOne(
-    "SELECT plan, email FROM public.users WHERE id = $1",
+    "SELECT plan, lemonsqueezy_subscription_id, billing_status, billing_ends_at, billing_renews_at FROM public.users WHERE id = $1",
     [user.id]
   );
 
   const currentPlan = profile?.plan || "free";
   const billingTestMode = process.env.BILLING_MODE !== "live";
-  const userEmail = profile?.email || user.email || "";
-
-  const proCheckoutUrl = process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL
-    ? `${process.env.NEXT_PUBLIC_LEMONSQUEEZY_PRO_URL}?checkout[email]=${encodeURIComponent(userEmail)}`
-    : "#";
-  const agencyCheckoutUrl = process.env.NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL
-    ? `${process.env.NEXT_PUBLIC_LEMONSQUEEZY_AGENCY_URL}?checkout[email]=${encodeURIComponent(userEmail)}`
-    : "#";
+  const hasSubscription = Boolean(profile?.lemonsqueezy_subscription_id);
+  const billingConfigured = Boolean(process.env.LEMONSQUEEZY_API_KEY && process.env.LEMONSQUEEZY_STORE_ID
+    && process.env.LEMONSQUEEZY_WEBHOOK_SECRET && process.env.LEMONSQUEEZY_PRO_VARIANT_ID && process.env.LEMONSQUEEZY_AGENCY_VARIANT_ID);
+  const billingNotice = (await searchParams)?.billing;
+  const notice = {
+    unavailable: t(locale, "Abonelik hizmetine şu an ulaşılamıyor. İşlem tamamlanmadı; lütfen tekrar deneyin.", "Billing is currently unavailable. The operation was not completed; please try again."),
+    busy: t(locale, "Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.", "Too many requests. Please try again later."),
+    return: t(locale, "Ödeme sonucunun hesabınıza ulaşması biraz sürebilir. Aşağıdaki düğmeyle abonelik durumunu yenileyebilirsiniz.", "It may take a moment for your account to receive the payment result. You can refresh your subscription status below."),
+    refreshed: t(locale, "Abonelik durumu kontrol edildi.", "Subscription status checked."),
+    pending: t(locale, "Bir ödeme oturumu zaten hazırlanıyor veya açık. Aynı planı yeniden açabilirsiniz; başka plan için önce mevcut oturumun sona ermesini bekleyin.", "A checkout is already being prepared or is open. You can reopen the same plan; wait for it to expire before choosing another plan."),
+  }[billingNotice];
 
   const plans = [
     {
@@ -71,8 +75,7 @@ export default async function UpgradePage() {
         { text: t(locale, "Rozeti kaldır", "Remove badge"), included: false },
       ],
       cta: currentPlan === "free" ? t(locale, "Mevcut plan", "Current plan") : t(locale, "Alt plana geç", "Downgrade"),
-      ctaDisabled: true,
-      ctaHref: "#",
+      ctaDisabled: !hasSubscription,
       highlight: false,
     },
     {
@@ -92,11 +95,10 @@ export default async function UpgradePage() {
         { text: t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"), included: true },
         { text: t(locale, "Yorum gizleme ve sabitleme", "Hide and pin reviews"), included: true },
         { text: t(locale, "Özel widget dili ve renkleri", "Custom widget language and colors"), included: true },
-        { text: t(locale, "Daha sık eşitleme", "More frequent syncs"), included: true },
+        { text: t(locale, "Günlük otomatik eşitleme ve elle yenileme", "Daily automatic sync and manual refresh"), included: true },
       ],
       cta: currentPlan === "pro" ? t(locale, "Mevcut plan", "Current plan") : currentPlan === "agency" ? t(locale, "Alt plana geç", "Downgrade") : t(locale, "Pro’ya yükselt", "Upgrade to Pro"),
-      ctaDisabled: currentPlan === "pro" || currentPlan === "agency",
-      ctaHref: currentPlan === "free" ? proCheckoutUrl : "#",
+      ctaDisabled: currentPlan === "pro",
       highlight: true,
     },
     {
@@ -115,11 +117,10 @@ export default async function UpgradePage() {
         { text: t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"), included: true },
         { text: t(locale, "Yorum gizleme ve sabitleme", "Hide and pin reviews"), included: true },
         { text: t(locale, "Özel widget dili ve renkleri", "Custom widget language and colors"), included: true },
-        { text: t(locale, "Daha sık eşitleme", "More frequent syncs"), included: true },
+        { text: t(locale, "Günlük otomatik eşitleme ve elle yenileme", "Daily automatic sync and manual refresh"), included: true },
       ],
       cta: currentPlan === "agency" ? t(locale, "Mevcut plan", "Current plan") : t(locale, "Ajans planına yükselt", "Upgrade to Agency"),
       ctaDisabled: currentPlan === "agency",
-      ctaHref: currentPlan !== "agency" ? agencyCheckoutUrl : "#",
       highlight: false,
     },
   ];
@@ -129,7 +130,8 @@ export default async function UpgradePage() {
     { q: t(locale, "Hemen ücret alınır mı?", "Will I be charged immediately?"), a: billingTestMode
       ? t(locale, "Hayır. Ödeme sistemi şu anda test modunda; gerçek ücret alınmaz.", "No. Payments are currently in test mode; no real charge is made.")
       : t(locale, "Evet. Yükseltme sonrası faturalandırma başlar ve özelliklere hemen erişirsiniz.", "Yes. Billing starts after you upgrade and features become available immediately.") },
-    { q: t(locale, "Planımı değiştirebilir miyim?", "Can I change my plan?"), a: t(locale, "İstediğiniz zaman plan değiştirebilirsiniz. Yardım için destek ekibiyle iletişime geçin.", "You can change plans at any time. Contact support if you need help.") },
+    { q: t(locale, "Planımı değiştirebilir miyim?", "Can I change my plan?"), a: t(locale, "Aboneliği yönet düğmesiyle müşteri portalını açın. Plan değişikliği, iptal, fatura ve ödeme yöntemi işlemlerini oradan yapabilirsiniz.", "Open the customer portal with Manage subscription for plan changes, cancellation, invoices, and payment methods.") },
+    { q: t(locale, "Ödeme başarısız olursa ne olur?", "What happens if a payment fails?"), a: t(locale, "Yenileme denemeleri sırasında en fazla 14 gün erişim korunur. Tahsilat tamamlanamazsa Ücretsiz plan sınırları uygulanır; kaynaklarınız ve yorumlarınız silinmez.", "Access continues for up to 14 days during payment recovery. If payment cannot be collected, Free limits apply; your sources and reviews are preserved.") },
   ];
 
   return (
@@ -150,6 +152,30 @@ export default async function UpgradePage() {
         <p className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
           {t(locale, "Ödeme sistemi test modunda. Plan denemeleri için gerçek ücret alınmaz.", "Payments are in test mode. Plan trials do not incur real charges.")}
         </p>
+      )}
+      {!billingConfigured && <p className="mb-6 rounded-xl border border-border p-4 text-sm">
+        {t(locale, "Abonelik işlemleri şu anda hazırlık aşamasında. Mevcut hesabınızı kullanmaya devam edebilirsiniz.", "Subscription management is being prepared. You can continue using your existing account.")}
+      </p>}
+      {notice && <p role="status" className="mb-6 rounded-xl bg-muted-bg p-4 text-sm">{notice}</p>}
+      {(hasSubscription || billingNotice === "return") && (
+        <div className="mb-8 rounded-xl border border-border p-4 space-y-3">
+          {profile?.billing_ends_at && <p>{t(locale, "Erişim bitişi: ", "Access ends: ")}
+            {new Date(profile.billing_ends_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</p>}
+          {!profile?.billing_ends_at && profile?.billing_renews_at && <p>{t(locale, "Sonraki ödeme: ", "Next payment: ")}
+            {new Date(profile.billing_renews_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</p>}
+          <div className="flex flex-wrap gap-3">
+            {hasSubscription && <form action={manageSubscriptionAction}>
+              <button disabled={!billingConfigured} className="rounded-lg bg-primary text-white px-4 py-2 disabled:opacity-50">
+                {t(locale, "Aboneliği yönet", "Manage subscription")}
+              </button>
+            </form>}
+            <form action={refreshSubscriptionAction}>
+              <button disabled={!billingConfigured} className="rounded-lg border border-border px-4 py-2 disabled:opacity-50">
+                {t(locale, "Abonelik durumunu yenile", "Refresh subscription status")}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Plan Cards */}
@@ -206,7 +232,7 @@ export default async function UpgradePage() {
               </ul>
 
               {/* CTA Button */}
-              {plan.ctaDisabled ? (
+              {plan.ctaDisabled || !billingConfigured ? (
                 <button
                   disabled
                   className="w-full py-3 rounded-xl text-sm font-semibold bg-muted-bg text-muted border border-border cursor-not-allowed"
@@ -214,10 +240,10 @@ export default async function UpgradePage() {
                   {plan.cta}
                 </button>
               ) : (
-                <a
-                  href={plan.ctaHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <form action={hasSubscription ? manageSubscriptionAction : startCheckoutAction}>
+                <input type="hidden" name="plan" value={plan.key} />
+                <button
+                  type="submit"
                   className={`w-full py-3 rounded-xl text-sm font-semibold text-center block transition-all ${
                     plan.highlight
                       ? "bg-primary text-white hover:bg-primary-hover shadow-sm"
@@ -225,7 +251,8 @@ export default async function UpgradePage() {
                   }`}
                 >
                   {plan.cta}
-                </a>
+                </button>
+                </form>
               )}
             </div>
           );

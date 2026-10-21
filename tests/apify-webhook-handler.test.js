@@ -31,7 +31,7 @@ function createDependencies(overrides = {}) {
     },
     mapApifyReviews: () => [],
     query: async (sql, values) => state.queries.push({ sql, values }),
-    queryOne: async () => ({ id: sourceId, apify_run_id: runId, platform: "google" }),
+    queryOne: async () => ({ id: sourceId, apify_run_id: runId, platform: "google", plan: "free", source_position: 1 }),
     finishSyncHistory: async (entry) => state.histories.push(entry),
     createStableReviewId: (_platform, review) => review.review_id,
     scheduleSyncRetry: async (_query, id, message) => state.retries.push({ id, message }),
@@ -74,6 +74,29 @@ test("ignores a callback for an old run without fetching its dataset", async () 
     assert.deepEqual(body, { message: "Ignored: run ID mismatch" });
     assert.equal(state.datasetCalls.length, 0);
     assert.equal(state.queries.length, 0);
+  } finally {
+    if (originalSecret === undefined) delete process.env.APIFY_WEBHOOK_SECRET;
+    else process.env.APIFY_WEBHOOK_SECRET = originalSecret;
+  }
+});
+
+test("does not persist an in-flight sync after its source falls outside the current plan", async () => {
+  const originalSecret = process.env.APIFY_WEBHOOK_SECRET;
+  const { dependencies, state } = createDependencies({
+    queryOne: async () => ({ id: sourceId, apify_run_id: runId, platform: "google", plan: "free", source_position: 2 }),
+  });
+  try {
+    const { response, body } = await post(dependencies);
+    assert.equal(response.status, 200);
+    assert.deepEqual(body, { message: "Ignored: source exceeds the current plan limit" });
+    assert.equal(state.datasetCalls.length, 0);
+    assert.match(state.queries[0].sql, /SET sync_status = 'error'/);
+    assert.deepEqual(state.histories, [{
+      sourceId,
+      runId,
+      status: "error",
+      errorMessage: "Kaynak mevcut plan sınırını aşıyor.",
+    }]);
   } finally {
     if (originalSecret === undefined) delete process.env.APIFY_WEBHOOK_SECRET;
     else process.env.APIFY_WEBHOOK_SECRET = originalSecret;

@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/server";
-import { query, queryOne } from "@/lib/db";
+import { getNeonClient, query, queryOne } from "@/lib/db";
 import { extractTrustpilotDomain } from "@/app/lib/trustpilot";
 import { startApifyRun, APIFY_ACTORS, buildGoogleMapsActorInput, buildTrustpilotActorInput } from "@/app/lib/apify";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
@@ -7,6 +7,8 @@ import { startSyncHistory, attachSyncRun, finishSyncHistory } from "@/lib/sync-h
 import { createStableReviewId } from "@/lib/review-id";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { normalizeReviewRating } from "@/lib/review-rating";
+import { getSourcePlanStatus } from "@/lib/source-plan-guard";
+import { providerAttemptLimited } from "@/lib/provider-budget";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -46,13 +48,14 @@ export async function POST(request, { params }) {
     }
 
     // --- Sync Rate Limiting ---
-    // Fetch user plan to determine cooldown
     const userId = source.user_id;
-    const profile = await queryOne(
-      'SELECT plan FROM public.users WHERE id = $1',
-      [userId]
-    );
-    const userPlan = profile?.plan || 'free';
+    const entitlement = await getSourcePlanStatus(getNeonClient(), source.id);
+    if (!entitlement?.active) {
+      return Response.json({
+        error: "This source is paused because it exceeds your current plan's source limit. Upgrade your plan or remove an earlier source to reactivate it.",
+      }, { status: 403, headers: { "Cache-Control": "no-store" } });
+    }
+    const userPlan = entitlement.plan;
 
     const SYNC_COOLDOWNS_MS = {
       free:   86_400_000,  // 24 hours
@@ -84,6 +87,11 @@ export async function POST(request, { params }) {
       }
     }
     // --- End Rate Limiting ---
+    if (await providerAttemptLimited(userId, userPlan)) {
+      return Response.json({ error: "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." }, {
+        status: 429, headers: { "Retry-After": "3600", "Cache-Control": "no-store" },
+      });
+    }
 
     // Atomically claim the source so concurrent clicks cannot launch parallel
     // provider runs for the same source. Stuck claims become retryable after 15m.
@@ -142,7 +150,7 @@ export async function POST(request, { params }) {
 
         return Response.json({ status: 'pending', message: 'Syncing in background...' });
       } catch (err) {
-        console.error("Failed to start Google sync:", err);
+        console.error("Could not start Google sync.", { name: err?.name });
         await scheduleSyncRetry(query, source.id, "Eşitleme başlatılamadı.");
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Eşitleme başlatılamadı." });
         return Response.json({ error: "Eşitleme başlatılamadı." }, { status: 500 });
@@ -164,7 +172,7 @@ export async function POST(request, { params }) {
         await attachSyncRun(historyId, runId);
         return Response.json({ status: "pending", message: "Trustpilot sync started in the background." });
       } catch (error) {
-        console.error("Failed to start Trustpilot sync:", error);
+        console.error("Could not start Trustpilot sync.", { name: error?.name });
         await scheduleSyncRetry(query, source.id, "Trustpilot eşitlemesi başlatılamadı.");
         await finishSyncHistory({ historyId, sourceId: source.id, status: "error", errorMessage: "Trustpilot eşitlemesi başlatılamadı." });
         return Response.json({ error: "Failed to start Trustpilot sync" }, { status: 502 });
@@ -235,11 +243,11 @@ export async function POST(request, { params }) {
       try {
         await scheduleSyncRetry(query, currentSourceId, "Yorumlar kaydedilemedi veya eşitleme tamamlanamadı.");
       } catch (sourceUpdateError) {
-        console.error("Could not mark source sync as failed:", sourceUpdateError);
+        console.error("Could not update source sync status.", { name: sourceUpdateError?.name });
       }
       await finishSyncHistory({ historyId, sourceId: currentSourceId, status: "error", errorMessage: "Eşitleme sırasında hata oluştu." });
     }
-    console.error("Sync error:", err);
+    console.error("Source sync request failed.", { name: err?.name });
     return Response.json({ error: "Sunucu hatası oluştu." }, { status: 500 });
   }
 }

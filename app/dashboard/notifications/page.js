@@ -27,7 +27,7 @@ export default async function NotificationsPage() {
     );
   } catch (error) {
     available = false;
-    console.error("Notification center is unavailable.", error?.message);
+    console.error("Notification center is unavailable.", { code: error?.code });
   }
 
   const unreadCount = notifications.filter((item) => !item.read_at).length;

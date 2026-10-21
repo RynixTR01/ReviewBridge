@@ -19,7 +19,7 @@ export async function DELETE(request, { params }) {
       return Response.json({ error: "Source not found" }, { status: 404 });
     }
   } catch (error) {
-    console.error("Delete source error:", error);
+    console.error("Source deletion failed.", { code: error?.code });
     return Response.json({ error: "Failed to delete source" }, { status: 500 });
   }
 

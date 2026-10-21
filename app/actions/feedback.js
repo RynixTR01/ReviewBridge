@@ -5,14 +5,15 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/server";
-import { query, queryOne } from "@/lib/db";
-import { PLAN_LIMITS } from "@/lib/plans";
+import { getNeonClient, query, queryOne } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createFeedbackNotification, createSourceLimitNotification } from "@/lib/notifications";
 import { isHoneypotFilled } from "@/lib/public-form-protection";
 import { checkBotId } from "botid/server";
+import { createSourceWithinPlanLimit } from "@/lib/source-plan-guard";
+import { submitFirstPartyFeedbackWithinPlan } from "@/lib/feedback-submission";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^[a-f0-9]{48}$/;
@@ -24,37 +25,32 @@ export async function createFeedbackSourceAction(_previousState, formData) {
   const name = String(formData.get("businessName") || "").trim();
   if (name.length < 2 || name.length > 100) return { error: t(locale, "İşletme adı 2–100 karakter olmalı.", "Business name must be 2–100 characters.") };
 
-  const profile = await queryOne("SELECT plan FROM public.users WHERE id = $1", [user.id]);
-  const plan = PLAN_LIMITS[profile?.plan] ? profile.plan : "free";
-  const count = await queryOne("SELECT count(*)::int AS count FROM public.sources WHERE user_id = $1", [user.id]);
-  if (count.count >= PLAN_LIMITS[plan].maxSources) {
-    await createSourceLimitNotification({ userId: user.id, count: count.count, limit: PLAN_LIMITS[plan].maxSources });
-    return { error: t(locale, "Planınızın kaynak sınırına ulaştınız.", "You have reached your plan's source limit.") };
-  }
-
   const token = randomBytes(24).toString("hex");
   const widgetToken = randomUUID().replaceAll("-", "");
-  let widget;
+  let admission;
   try {
-    widget = await queryOne(
-      `WITH new_source AS (
-         INSERT INTO public.sources
-           (user_id, platform, place_id, business_name, sync_status, last_synced_at)
-         VALUES ($1, 'first_party', $2, $3, 'done', now()) RETURNING id
-       )
-       INSERT INTO public.widgets
-         (user_id, source_id, theme, max_reviews, show_badge, embed_token,
-          user_plan, source_place_id, source_platform)
-       SELECT $1, id, 'light', 5, true, $4, $5, $2, 'first_party'
-      FROM new_source RETURNING id, source_id`,
-      [user.id, token, name, widgetToken, plan],
-    );
+    admission = await createSourceWithinPlanLimit(getNeonClient(), {
+      userId: user.id,
+      platform: "first_party",
+      placeId: token,
+      businessName: name,
+      lastSyncedAt: new Date().toISOString(),
+      syncStatus: "done",
+      widget: { embedToken: widgetToken },
+    });
   } catch (error) {
-    console.error("Feedback source creation failed:", error);
+    console.error("Feedback source creation failed.", { code: error?.code });
+    return { error: t(locale, "Geri bildirim kaynağı oluşturulamadı.", "Could not create the feedback source.") };
+  }
+  if (admission.status === "limit") {
+    await createSourceLimitNotification({ userId: user.id, count: admission.count, limit: admission.limit });
+    return { error: t(locale, "Planınızın kaynak sınırına ulaştınız.", "You have reached your plan's source limit.") };
+  }
+  if (admission.status !== "created" || !admission.source || !admission.widgetId) {
     return { error: t(locale, "Geri bildirim kaynağı oluşturulamadı.", "Could not create the feedback source.") };
   }
   revalidatePath("/dashboard");
-  redirect(`/dashboard/feedback?source=${widget.source_id}`);
+  redirect(`/dashboard/feedback?source=${admission.source.id}`);
 }
 
 export async function submitFeedbackAction(_previousState, formData) {
@@ -75,32 +71,23 @@ export async function submitFeedbackAction(_previousState, formData) {
   if (await isRateLimited({ headers: requestHeaders }, `feedback:${token}`, { limit: 5, windowMs: 60 * 60 * 1000 })) {
     return { error: t(locale, "Çok fazla gönderim yapıldı. Daha sonra tekrar deneyin.", "Too many submissions. Please try again later.") };
   }
-  const source = await queryOne(
-    "SELECT id, user_id, business_name FROM public.sources WHERE platform = 'first_party' AND place_id = $1",
-    [token],
-  );
-  if (!source) return { error: t(locale, "Bu geri bildirim bağlantısı bulunamadı.", "This feedback link could not be found.") };
-  const submitted = await queryOne(
-    `WITH quota AS (
-       INSERT INTO public.feedback_daily_limits (source_id, quota_day, submission_count)
-       VALUES ($1, CURRENT_DATE, 1)
-       ON CONFLICT (source_id, quota_day) DO UPDATE
-       SET submission_count = public.feedback_daily_limits.submission_count + 1
-       WHERE public.feedback_daily_limits.submission_count < 100
-       RETURNING source_id
-     )
-     INSERT INTO public.feedback_submissions
-       (source_id, reviewer_name, rating, body, consented_at)
-     SELECT $1, $2, $3, $4, now() FROM quota
-     RETURNING id`,
-    [source.id, name, rating, body],
-  );
-  if (!submitted) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
+  let submission;
+  try {
+    submission = await submitFirstPartyFeedbackWithinPlan(getNeonClient(), { token, name, rating, body });
+  } catch (error) {
+    console.error("Public feedback submission failed.", { code: error?.code });
+    return { error: t(locale, "Gönderim tamamlanamadı. Daha sonra tekrar deneyin.", "The submission could not be completed. Please try again later.") };
+  }
+  if (!submission) return { error: t(locale, "Bu geri bildirim bağlantısı bulunamadı.", "This feedback link could not be found.") };
+  if (!submission.active) {
+    return { error: t(locale, "Bu geri bildirim bağlantısı mevcut plan sınırı nedeniyle geçici olarak kapalı.", "This feedback link is paused because it exceeds the current plan limit.") };
+  }
+  if (!submission.submission_id) return { error: t(locale, "Bugün için gönderim sınırına ulaşıldı.", "The submission limit for today has been reached.") };
   await createFeedbackNotification({
-    userId: source.user_id,
-    sourceId: source.id,
-    sourceName: source.business_name,
-    submissionId: submitted.id,
+    userId: submission.user_id,
+    sourceId: submission.source_id,
+    sourceName: submission.business_name,
+    submissionId: submission.submission_id,
   });
   return { success: true };
 }

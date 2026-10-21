@@ -52,7 +52,7 @@ export async function GET(request, { params }) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error("Status Endpoint Error:", error);
+    console.error("Source status request failed.", { name: error?.name });
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

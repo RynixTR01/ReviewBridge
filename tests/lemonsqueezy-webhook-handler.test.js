@@ -2,154 +2,55 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { createLemonSqueezyWebhookHandler } from "../app/lib/lemonsqueezy-webhook-handler.js";
-import {
-  resolveLemonSqueezyPlan,
-  verifyLemonSqueezySignature,
-} from "../lib/lemonsqueezy-webhook.js";
-
-const signingSecret = "handler-test-secret";
-
-function createPayload({ eventName = "subscription_created", variantId = "12345" } = {}) {
-  return {
-    meta: { event_name: eventName, custom_data: { user_id: "user-1" } },
-    data: {
-      id: "subscription-789",
-      attributes: { variant_id: variantId, updated_at: "2026-10-14T00:00:00.000Z" },
-    },
-  };
+import { resolveLemonSqueezyPlan, verifyLemonSqueezySignature } from "../lib/lemonsqueezy-webhook.js";
+import { checkoutBinding } from "../lib/billing-state.js";
+const secret = "handler-test-secret";
+process.env.LEMONSQUEEZY_WEBHOOK_SECRET = secret;
+process.env.LEMONSQUEEZY_STORE_ID = "321";
+process.env.LEMONSQUEEZY_PRO_VARIANT_ID = "12345";
+process.env.LEMONSQUEEZY_AGENCY_VARIANT_ID = "67890";
+process.env.BILLING_MODE = "test";
+function payload(overrides = {}) {
+  return { meta: { event_name: "subscription_updated", custom_data: { user_id: "user-1", binding: checkoutBinding("user-1", "test", secret) } }, data: { type: "subscriptions", id: "789", attributes: { status: "active", variant_id: "12345", test_mode: true, store_id: 321, updated_at: "2026-10-20T00:00:00Z", ...overrides } } };
 }
-
-function createRequest(payload, { secret = signingSecret, signature } = {}) {
-  const rawBody = JSON.stringify(payload);
-  const hmac = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  return new Request("https://app.example/api/webhooks/lemonsqueezy", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-signature": signature || hmac,
-    },
-    body: rawBody,
-  });
+function request(value, signature) {
+  const raw = typeof value === "string" ? value : JSON.stringify(value);
+  return new Request("https://app.test/api/webhooks/lemonsqueezy", { method: "POST", body: raw, headers: { "x-signature": signature || crypto.createHmac("sha256", secret).update(raw).digest("hex") } });
 }
-
-function createDependencies({ result = { claimed_count: 1, user_id: "user-1", updated_user_id: "user-1" } } = {}) {
+function handler(result = { user_id: "user-1", updated_user_id: "user-1", claimed_count: 1, plan: "pro" }) {
   const calls = [];
-  return {
-    calls,
-    dependencies: {
-      resolveLemonSqueezyPlan,
-      verifyLemonSqueezySignature,
-      queryOne: async (sql, params) => {
-        calls.push({ sql, params });
-        return result;
-      },
-    },
-  };
+  return { calls, post: createLemonSqueezyWebhookHandler({ resolveLemonSqueezyPlan, verifyLemonSqueezySignature, applyState: async (event) => { calls.push(event); return result; } }) };
 }
-
-async function withEnv(values, run) {
-  const original = Object.fromEntries(Object.keys(values).map((key) => [key, process.env[key]]));
-  for (const [key, value] of Object.entries(values)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
-  }
-  try {
-    return await run();
-  } finally {
-    for (const [key, value] of Object.entries(original)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-  }
-}
-
-test("fails closed when webhook signing secret is missing", async () => {
-  const oldConsoleError = console.error;
-  console.error = () => {};
-  try {
-    await withEnv({ LEMONSQUEEZY_WEBHOOK_SECRET: undefined }, async () => {
-      const { calls, dependencies } = createDependencies();
-      const response = await createLemonSqueezyWebhookHandler(dependencies)(createRequest(createPayload()));
-      assert.equal(response.status, 503);
-      assert.equal(calls.length, 0);
-    });
-  } finally {
-    console.error = oldConsoleError;
-  }
-});
-
-test("rejects invalid signatures before checking subscriptions", async () => {
-  await withEnv({ LEMONSQUEEZY_WEBHOOK_SECRET: signingSecret }, async () => {
-    const { calls, dependencies } = createDependencies();
-    const response = await createLemonSqueezyWebhookHandler(dependencies)(
-      createRequest(createPayload(), { signature: "invalid-signature" })
-    );
-    assert.equal(response.status, 401);
+test("only signed subscription states matching environment/store/product are persisted", async () => {
+  for (const [input, status] of [[payload({ test_mode: false }), 422], [payload({ store_id: 999 }), 422], [payload({ variant_id: 999 }), 422], [payload({ updated_at: "bad" }), 422], ["invalid json", 400]]) {
+    const { calls, post } = handler();
+    assert.equal((await post(request(input))).status, status);
     assert.equal(calls.length, 0);
-  });
+  }
+  assert.equal((await handler().post(request(payload(), "invalid"))).status, 401);
 });
-
-test("matches a configured variant and applies the signed subscription event", async () => {
-  await withEnv({
-    LEMONSQUEEZY_WEBHOOK_SECRET: signingSecret,
-    LEMONSQUEEZY_PRO_VARIANT_ID: "12345",
-    LEMONSQUEEZY_AGENCY_VARIANT_ID: "67890",
-  }, async () => {
-    const { calls, dependencies } = createDependencies();
-    const response = await createLemonSqueezyWebhookHandler(dependencies)(createRequest(createPayload()));
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      success: true,
-      event: "subscription_created",
-      plan: "pro",
-    });
-    assert.equal(calls.length, 1);
-    assert.match(calls[0].sql, /INSERT INTO public\.lemonsqueezy_webhook_events/);
-    assert.match(calls[0].sql, /ON CONFLICT \(event_hash\) DO NOTHING/);
-    assert.match(calls[0].sql, /newer\.event_at > \$7::timestamptz/);
-    assert.match(calls[0].sql, /lemonsqueezy_subscription_id/);
-    assert.equal(calls[0].params[1], "subscription_created");
-    assert.equal(calls[0].params[2], "user-1");
-    assert.equal(calls[0].params[4], "subscription-789");
-    assert.equal(calls[0].params[5], "pro");
-    assert.equal(calls[0].params[6], "2026-10-14T00:00:00.000Z");
-    assert.match(calls[0].params[0], /^[a-f0-9]{64}$/);
-  });
+test("valid event persists signed user binding and uses the applied plan", async () => {
+  const { calls, post } = handler();
+  const result = await post(request(payload()));
+  assert.deepEqual(await result.json(), { success: true, event: "subscription_updated", plan: "pro" });
+  assert.equal(calls[0].userId, "user-1");
+  assert.match(calls[0].eventHash, /^[0-9a-f]{64}$/);
 });
-
-test("returns an idempotent success for duplicate webhook events", async () => {
-  await withEnv({
-    LEMONSQUEEZY_WEBHOOK_SECRET: signingSecret,
-    LEMONSQUEEZY_PRO_VARIANT_ID: "12345",
-  }, async () => {
-    const { dependencies } = createDependencies({ result: { claimed_count: 0, user_id: "user-1" } });
-    const response = await createLemonSqueezyWebhookHandler(dependencies)(createRequest(createPayload()));
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { success: true, duplicate: true });
-  });
+test("unsigned custom user ID and checkout email cannot select another account", async () => {
+  const input = payload({ user_email: "victim@example.test" });
+  input.meta.custom_data.binding = "invalid";
+  const { calls, post } = handler(null);
+  assert.equal((await post(request(input))).status, 409);
+  assert.equal(calls[0].userId, null);
 });
-
-test("does not apply an older event or a cancellation to the user's paid plan", async () => {
-  await withEnv({
-    LEMONSQUEEZY_WEBHOOK_SECRET: signingSecret,
-    LEMONSQUEEZY_PRO_VARIANT_ID: "12345",
-  }, async () => {
-    const stale = createDependencies({ result: { claimed_count: 1, user_id: "user-1", updated_user_id: null } });
-    const staleResponse = await createLemonSqueezyWebhookHandler(stale.dependencies)(createRequest(createPayload()));
-    assert.deepEqual(await staleResponse.json(), {
-      success: true,
-      stale: true,
-      message: "Older subscription event ignored",
-    });
-
-    const cancellation = createDependencies({ result: { claimed_count: 1, user_id: "user-1", updated_user_id: null } });
-    const cancellationResponse = await createLemonSqueezyWebhookHandler(cancellation.dependencies)(
-      createRequest(createPayload({ eventName: "subscription_cancelled" }))
-    );
-    assert.equal(cancellationResponse.status, 200);
-    assert.deepEqual(await cancellationResponse.json(), {
-      success: true,
-      message: "Cancellation noted; plan remains active until expiry",
-    });
-  });
+test("duplicate and stale events do not report a new plan grant", async () => {
+  const duplicate = await handler({ user_id: "u", claimed_count: 0 }).post(request(payload()));
+  assert.deepEqual(await duplicate.json(), { success: true, duplicate: true });
+  const stale = await handler({ user_id: "u", claimed_count: 1 }).post(request(payload()));
+  assert.deepEqual(await stale.json(), { success: true, stale: true });
+});
+test("irrelevant signed events are acknowledged without requiring a user identity", async () => {
+  const { calls, post } = handler();
+  assert.equal((await post(request({ meta: { event_name: "order_created" } }))).status, 200);
+  assert.equal(calls.length, 0);
 });

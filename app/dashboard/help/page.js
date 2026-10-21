@@ -26,6 +26,10 @@ export default async function YardımPage() {
       </div>
 
       {/* FAQ Section */}
+      <section className="mb-6 rounded-xl border border-border p-4 text-sm text-muted">
+        <h2 className="font-semibold text-foreground">{t(locale, "Tarama deneme sınırı", "Scan attempt limits")}</h2>
+        <p className="mt-2">{t(locale, "Hesap başına saatte Free: 5, Pro: 20, Ajans: 60 tarama başlatma denemesi yapılabilir. Yeni kaynak ekleme ve yeniden denemeler aynı sınırı kullanır; başarısız denemeler de sayılır. Kaynak bazındaki eşitleme bekleme süreleri ayrıca geçerlidir.", "Each account can attempt to start 5 scans per hour on Free, 20 on Pro, or 60 on Agency. Adding sources and retrying scans share this limit, including failed attempts. Per-source sync cooldowns also apply.")}</p>
+      </section>
       <div className="mb-10">
         <h2 className="text-lg font-bold text-foreground mb-4">{t(locale, "Sık sorulan sorular", "Frequently asked questions")}</h2>
         <FaqAccordion />

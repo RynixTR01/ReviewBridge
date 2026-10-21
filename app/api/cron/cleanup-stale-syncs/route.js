@@ -3,10 +3,12 @@ import { finishSyncHistory } from "@/lib/sync-history";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { deliverSyncFailureAlerts } from "@/lib/sync-alerts";
 import { deliverDueSurveyInvitations } from "@/lib/survey-invitations";
+import { EXPIRE_BILLING_SQL } from "@/lib/billing-state";
 
 export const maxDuration = 60;
 
 export async function GET(request) {
+  const deadline = Date.now() + 50_000;
   try {
     // We only allow GET requests. In Vercel, cron jobs hit the endpoint via GET.
     // Ensure we are authorized. Vercel cron jobs send a secure header.
@@ -14,6 +16,7 @@ export async function GET(request) {
     if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    await query(EXPIRE_BILLING_SQL, [null]);
 
     // Calculate the threshold time: 15 minutes ago
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -71,40 +74,59 @@ export async function GET(request) {
           OR (expires_at < NOW() - INTERVAL '30 days' AND accepted_at IS NULL)`,
     );
 
-    const surveyInvitations = await deliverDueSurveyInvitations({ limit: 20, maxDurationMs: 25_000 });
+    const surveyInvitations = deadline - Date.now() > 15_000
+      ? await deliverDueSurveyInvitations({ limit: 20, maxDurationMs: 15_000 })
+      : { sent: 0, failed: 0, deferred: true };
 
     let autoSyncStarted = 0;
     let autoSyncFailed = 0;
+    let autoSyncDeferred = 0;
     if (process.env.APIFY_API_TOKEN) {
       const base = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
       const baseUrl = base ? new URL(base) : null;
       if (baseUrl && ["https:", "http:"].includes(baseUrl.protocol)) {
         const dueSources = await query(
-          `SELECT s.id
-           FROM public.sources s
-           JOIN public.users u ON u.id = s.user_id
-           WHERE s.platform IN ('google', 'trustpilot')
-             AND s.sync_status IS DISTINCT FROM 'pending'
+          `WITH ranked_sources AS (
+             SELECT s.id, s.platform, s.sync_status, s.sync_retry_after,
+                    s.sync_retry_count, s.auto_sync_enabled, s.last_synced_at,
+                    u.plan,
+                    row_number() OVER (
+                      PARTITION BY s.user_id
+                      ORDER BY s.created_at ASC, s.id ASC
+                    )::int AS source_position
+             FROM public.sources s
+             JOIN public.users u ON u.id = s.user_id
+           )
+           SELECT id
+           FROM ranked_sources
+           WHERE platform IN ('google', 'trustpilot')
+             AND source_position <= CASE plan WHEN 'agency' THEN 2147483647
+                                                WHEN 'pro' THEN 5 ELSE 1 END
+             AND sync_status IS DISTINCT FROM 'pending'
              AND (
-               (s.sync_retry_after IS NOT NULL AND s.sync_retry_after <= NOW()
-                 AND s.sync_retry_count < 3)
-               OR (s.auto_sync_enabled = true AND s.sync_status IS DISTINCT FROM 'error'
-                 AND (s.last_synced_at IS NULL OR s.last_synced_at < NOW() -
-                   CASE u.plan WHEN 'agency' THEN INTERVAL '30 minutes'
+               (sync_retry_after IS NOT NULL AND sync_retry_after <= NOW()
+                 AND sync_retry_count < 3)
+               OR (auto_sync_enabled = true AND sync_status IS DISTINCT FROM 'error'
+                 AND (last_synced_at IS NULL OR last_synced_at < NOW() -
+                   CASE plan WHEN 'agency' THEN INTERVAL '30 minutes'
                                WHEN 'pro' THEN INTERVAL '2 hours'
                                ELSE INTERVAL '24 hours' END))
              )
-           ORDER BY s.sync_retry_after ASC NULLS LAST, s.last_synced_at ASC NULLS FIRST
+           ORDER BY sync_retry_after ASC NULLS LAST, last_synced_at ASC NULLS FIRST
            LIMIT 25`,
         );
 
         for (let index = 0; index < (dueSources || []).length; index += 5) {
+          if (deadline - Date.now() < 5_000) {
+            autoSyncDeferred = dueSources.length - index;
+            break;
+          }
           const batch = dueSources.slice(index, index + 5);
           const results = await Promise.allSettled(batch.map(({ id }) =>
             fetch(new URL(`/api/sync/${encodeURIComponent(id)}`, baseUrl), {
               method: "POST",
               headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
-              signal: AbortSignal.timeout(20_000),
+              signal: AbortSignal.timeout(Math.min(15_000, Math.max(1_000, deadline - Date.now()))),
               cache: "no-store",
             }),
           ));
@@ -120,19 +142,20 @@ export async function GET(request) {
       console.error("Scheduled sync dispatch had failures.", { autoSyncStarted, autoSyncFailed });
     }
 
-    const alerts = await deliverSyncFailureAlerts();
+    const alerts = await deliverSyncFailureAlerts({ maxDurationMs: Math.max(0, deadline - Date.now()) });
 
     return Response.json({ 
-      success: true, 
+      success: autoSyncFailed === 0 && autoSyncDeferred === 0,
       message: `Cleaned up ${data.length} stale syncs.`,
       autoSyncStarted,
       autoSyncFailed,
+      autoSyncDeferred,
       surveyInvitations,
       alerts,
-    }, { status: 200 });
+    }, { status: autoSyncFailed || autoSyncDeferred ? 503 : 200 });
 
   } catch (err) {
-    console.error('Cleanup Cron Error:', err);
+    console.error("Scheduled cleanup failed.", { name: err?.name });
     return Response.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

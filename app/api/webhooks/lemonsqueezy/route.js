@@ -1,4 +1,5 @@
-import { queryOne } from "@/lib/db";
+import { getNeonClient } from "@/lib/db";
+import { applySubscriptionState } from "@/lib/billing-state";
 import {
   resolveLemonSqueezyPlan,
   verifyLemonSqueezySignature,
@@ -6,7 +7,7 @@ import {
 import { createLemonSqueezyWebhookHandler } from "@/app/lib/lemonsqueezy-webhook-handler";
 
 export const POST = createLemonSqueezyWebhookHandler({
-  queryOne,
+  applyState: (event) => applySubscriptionState(getNeonClient(), event),
   resolveLemonSqueezyPlan,
   verifyLemonSqueezySignature,
 });

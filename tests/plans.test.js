@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { normalizeWidgetSettings, PLAN_LIMITS, contrastRatio } from "../lib/plans.js";
 
 test("widget review limits match the plan page", () => {
+  assert.equal(PLAN_LIMITS.free.maxSources, 1);
+  assert.equal(PLAN_LIMITS.pro.maxSources, 5);
+  assert.equal(PLAN_LIMITS.agency.maxSources, Infinity);
   assert.equal(PLAN_LIMITS.free.maxReviews, 10);
   assert.equal(PLAN_LIMITS.pro.maxReviews, 20);
   assert.equal(PLAN_LIMITS.agency.maxReviews, 20);

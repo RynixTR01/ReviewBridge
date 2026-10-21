@@ -13,7 +13,8 @@ export default async function InsightsPage() {
   const user = await getCurrentUser();
   const locale = await getLocale();
   const sources = await query(
-    `SELECT s.id, s.business_name, s.platform, b.name AS brand_name
+    `SELECT s.id, s.business_name, s.platform, b.name AS brand_name,
+            CASE WHEN s.user_id = $1 THEN 'owner' ELSE m.role END AS access_role
      FROM public.sources s
      JOIN public.users owner_profile ON owner_profile.id = s.user_id
      LEFT JOIN public.agency_brands b ON b.id = s.brand_id
@@ -71,7 +72,9 @@ export default async function InsightsPage() {
           {difference !== null && <p className="mt-1 text-xs text-muted">{t(locale, "Ortalama puan değişimi", "Average rating change")}: {difference > 0 ? "+" : ""}{difference.toFixed(1)} ★</p>}
           {lowReviews.some((item) => item.source_id === source.id) && <div className="mt-4 border-t border-border pt-3"><h3 className="text-sm font-semibold text-foreground">{t(locale, "Dikkat gerektiren son yorumlar", "Recent reviews to examine")}</h3>{lowReviews.filter((item) => item.source_id === source.id).map((item, index) => <p key={`${item.reviewed_at}-${index}`} className="mt-2 line-clamp-3 break-words text-sm text-muted">{item.rating} ★ · {item.body}</p>)}</div>}
         </>}
-        <AiReviewSummary sourceId={source.id} locale={locale} reviewCount={Number(row?.written_count) || 0} />
+        {(["owner", "editor"].includes(source.access_role))
+          ? <AiReviewSummary sourceId={source.id} locale={locale} reviewCount={Number(row?.written_count) || 0} />
+          : <p className="mt-4 rounded-lg bg-muted-bg px-3 py-2 text-xs text-muted">{t(locale, "AI özeti yalnızca marka sahibi veya düzenleyici tarafından başlatılabilir.", "Only the brand owner or an editor can start an AI summary.")}</p>}
       </section>;
     })}
   </div>;
