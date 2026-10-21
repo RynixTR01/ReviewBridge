@@ -6,6 +6,7 @@ import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { filterWidgetReviews, getWidgetColors } from "@/lib/widget-rendering";
 import FloatingPreviewShell from "./FloatingPreviewShell";
 import BrandMark from "@/components/BrandMark";
+import { effectivePlanSql } from "@/lib/billing-entitlement";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -33,8 +34,12 @@ export default async function PreviewPage({ params }) {
 
   // Fetch widget
   const widget = await queryOne(
-    `SELECT w.*, u.plan AS current_user_plan, s.business_name, s.platform AS current_source_platform,
-            s.last_synced_at, s.sync_status
+    `SELECT w.*, ${effectivePlanSql('u')} AS current_user_plan, s.business_name, s.platform AS current_source_platform,
+            s.last_synced_at, s.sync_status,
+            (SELECT count(*)::int + 1 FROM public.sources older
+             WHERE older.user_id = s.user_id
+               AND (older.created_at < s.created_at
+                 OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
      FROM public.widgets w JOIN public.users u ON u.id = w.user_id
      JOIN public.sources s ON s.id = w.source_id WHERE w.embed_token = $1`,
     [token]
@@ -53,6 +58,16 @@ export default async function PreviewPage({ params }) {
 
   const userPlan = widget.current_user_plan || widget.user_plan || "free";
   const limits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
+  if (Number(widget.source_position) > limits.maxSources) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-50 px-5">
+        <section className="max-w-lg rounded-2xl border border-amber-200 bg-white p-7 text-center shadow-sm">
+          <h1 className="text-xl font-bold text-gray-900">{t(locale, "Bileşen geçici olarak duraklatıldı", "Widget temporarily paused")}</h1>
+          <p className="mt-2 text-sm text-gray-600">{t(locale, "Bu kaynak mevcut planın kaynak sınırını aşıyor. Veriler silinmedi; plan yükseltildiğinde veya daha eski bir kaynak kaldırıldığında bileşen yeniden açılır.", "This source exceeds the current plan's source limit. Your data was not deleted; the widget becomes available again after an upgrade or removal of an earlier source.")}</p>
+        </section>
+      </main>
+    );
+  }
   const safeSettings = normalizeWidgetSettings({
     theme: widget.theme, maxReviews: widget.max_reviews, showBadge: widget.show_badge,
     smartFilter: widget.smart_filter, showReviewButton: widget.show_review_button,

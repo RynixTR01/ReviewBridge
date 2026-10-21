@@ -4,6 +4,7 @@ import { normalizeWidgetSettings, PLAN_LIMITS } from "@/lib/plans";
 import { createWidgetEtag, filterWidgetReviews, getWidgetColors, isAllowedWidgetDomain, matchesWidgetEtag } from "@/lib/widget-rendering";
 import { buildWidgetEmbedScript } from "@/lib/widget-embed-script";
 import { isRateLimited } from "@/lib/rate-limit";
+import { effectivePlanSql } from "@/lib/billing-entitlement";
 
 const escapeHtml = (value) => String(value ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -35,8 +36,13 @@ export async function GET(_request, { params }) {
   }
 
   const widget = await queryOne(
-    `SELECT w.*, u.plan AS user_plan, s.business_name, s.platform AS source_platform,
+    `SELECT w.*, ${effectivePlanSql('u')} AS user_plan, s.business_name, s.platform AS source_platform,
             s.place_id AS source_place_id, s.last_synced_at, s.sync_status
+            , (SELECT count(*)::int + 1
+               FROM public.sources older
+               WHERE older.user_id = s.user_id
+                 AND (older.created_at < s.created_at
+                   OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
      FROM public.widgets w
      JOIN public.users u ON u.id = w.user_id
      JOIN public.sources s ON s.id = w.source_id
@@ -55,6 +61,16 @@ export async function GET(_request, { params }) {
 
   const plan = PLAN_LIMITS[widget.user_plan] ? widget.user_plan : "free";
   const limits = PLAN_LIMITS[plan];
+  if (Number(widget.source_position) > limits.maxSources) {
+    return new Response("console.warn('ReviewBridge: This widget is paused because its source exceeds the current plan limit.');", {
+      status: 403,
+      headers: {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
   const safeSettings = normalizeWidgetSettings({
     theme: widget.theme,
     maxReviews: widget.max_reviews,

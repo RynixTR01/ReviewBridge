@@ -69,7 +69,9 @@ export async function createSurveyInvitationCampaignAction(_previousState, formD
     return { error: t(locale, "1–100 arasında geçerli ve benzersiz e-posta adresi girin.", "Enter 1–100 valid, unique email addresses.") };
   }
 
-  if (await isRateLimited({ headers: await headers() }, `survey-campaign:${user.id}`, { limit: 5, windowMs: 60 * 60 * 1000 })) {
+  if (await isRateLimited({ headers: await headers() }, `survey-campaign:${user.id}`, {
+    limit: 5, windowMs: 60 * 60 * 1000, scope: "account", failClosed: true,
+  })) {
     return { error: t(locale, "Bir saatte en fazla 5 kampanya oluşturabilirsiniz. Lütfen daha sonra deneyin.", "You can create up to 5 campaigns per hour. Please try again later.") };
   }
 

@@ -11,21 +11,43 @@ test("redacts common contact details and bounds review text before sending", () 
   assert.equal(redactReviewText("x".repeat(700)).length, 500);
 });
 
-test("prompt includes every written review and the full rating profile", () => {
+test("prompt sends at most 60 recent review texts and keeps the supplied full rating profile", () => {
   const prompt = buildReviewAnalysisPrompt([
     ...Array.from({ length: 80 }, (_, index) => ({ rating: (index % 5) + 1, body: `Review ${index}` })),
     { rating: 5, body: "   " },
   ], "en");
   const reviewSet = JSON.parse(prompt.request.contents[0].parts[0].text).reviews;
-  assert.equal(reviewSet.length, 80);
-  assert.equal(prompt.reviewCount, 80);
+  assert.equal(reviewSet.length, 60);
+  assert.equal(prompt.reviewCount, 60);
   assert.equal(prompt.totalReviewCount, 81);
   assert.equal(prompt.ratingProfile.writtenReviewCount, 80);
   assert.equal(prompt.ratingProfile.ratingDistribution[1], 16);
   assert.equal(prompt.ratingProfile.ratingDistribution[5], 17);
-  assert.equal(reviewSet.at(-1).ref, 80);
+  assert.equal(reviewSet.at(-1).ref, 60);
   assert.match(prompt.request.systemInstruction.parts[0].text, /untrusted data/);
   assert.equal(prompt.request.generationConfig.responseMimeType, "application/json");
+});
+
+test("AI prompt can use the exact rating profile without sending more review text", () => {
+  const prompt = buildReviewAnalysisPrompt(
+    Array.from({ length: 75 }, (_, index) => ({ rating: 5, body: `Review ${index}` })),
+    "en",
+    {
+      total_review_count: 120,
+      written_review_count: 95,
+      average_rating: "4.6",
+      stars_1: 4,
+      stars_2: 5,
+      stars_3: 11,
+      stars_4: 26,
+      stars_5: 74,
+    },
+  );
+  assert.equal(prompt.reviewCount, 60);
+  assert.equal(prompt.totalReviewCount, 120);
+  assert.equal(prompt.ratingProfile.writtenReviewCount, 95);
+  assert.equal(prompt.ratingProfile.averageRating, 4.6);
+  assert.deepEqual(prompt.ratingProfile.ratingDistribution, { 1: 4, 2: 5, 3: 11, 4: 26, 5: 74 });
 });
 
 test("parses evidence-backed themes and drops refs that do not identify supplied reviews", () => {

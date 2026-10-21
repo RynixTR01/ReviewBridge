@@ -28,18 +28,29 @@ export default async function DashboardPage() {
 
   // Fetch sources and their corresponding widget
   const sources = await query(
-    `SELECT s.*, b.name AS brand_name,
-       CASE WHEN s.user_id = $1 THEN 'owner' ELSE bm.role END AS access_role,
+    `WITH visible_sources AS (
+       SELECT source.*, owner_profile.plan AS source_owner_plan, b.name AS brand_name,
+              CASE WHEN source.user_id = $1 THEN 'owner' ELSE bm.role END AS access_role
+       FROM public.sources source
+       LEFT JOIN public.agency_brands b ON b.id = source.brand_id
+       LEFT JOIN public.agency_brand_members bm ON bm.brand_id = b.id AND bm.user_id = $1
+       LEFT JOIN public.users owner_profile ON owner_profile.id = source.user_id
+       WHERE source.user_id = $1 OR (bm.user_id = $1 AND owner_profile.plan = 'agency')
+     ), ranked_sources AS (
+       SELECT visible_sources.*,
+              row_number() OVER (
+                PARTITION BY visible_sources.user_id
+                ORDER BY visible_sources.created_at ASC, visible_sources.id ASC
+              )::int AS owner_source_position
+       FROM visible_sources
+     )
+     SELECT s.*,
        COALESCE(w.widgets, '[]'::json) AS widgets
-     FROM public.sources AS s
-     LEFT JOIN public.agency_brands b ON b.id = s.brand_id
-     LEFT JOIN public.agency_brand_members bm ON bm.brand_id = b.id AND bm.user_id = $1
-     LEFT JOIN public.users owner_profile ON owner_profile.id = s.user_id
+     FROM ranked_sources AS s
      LEFT JOIN LATERAL (
        SELECT json_agg(json_build_object('id', id, 'embed_token', embed_token, 'theme', theme, 'title', widget_title, 'created_at', created_at)) AS widgets
        FROM public.widgets WHERE source_id = s.id
      ) AS w ON true
-     WHERE s.user_id = $1 OR (bm.user_id = $1 AND owner_profile.plan = 'agency')
      ORDER BY s.created_at DESC`,
     [user.id]
   );
@@ -64,38 +75,43 @@ export default async function DashboardPage() {
   if (sourceIds.length > 0) {
     try {
       const historyRows = await query(
-        "SELECT source_id, status, started_at, completed_at, reviews_count, error_message " +
-        "FROM public.sync_history WHERE source_id = ANY($1::uuid[]) ORDER BY started_at DESC",
+        `WITH ranked_history AS (
+           SELECT source_id, status, started_at, completed_at, reviews_count, error_message,
+                  row_number() OVER (PARTITION BY source_id ORDER BY started_at DESC)::int AS position
+           FROM public.sync_history
+           WHERE source_id = ANY($1::uuid[])
+         )
+         SELECT source_id, status, started_at, completed_at, reviews_count, error_message
+         FROM ranked_history WHERE position <= 5 ORDER BY started_at DESC`,
         [sourceIds]
       );
       for (const row of historyRows || []) {
         const history = syncHistory[row.source_id] || (syncHistory[row.source_id] = []);
-        if (history.length < 5) history.push(row);
+        history.push(row);
       }
     } catch (historyError) {
-      console.warn("Sync history table is not available yet.", historyError?.message);
+      console.warn("Sync history table is not available yet.", { code: historyError?.code });
     }
 
     const reviews = await query(
-      "SELECT source_id, rating FROM public.reviews WHERE source_id = ANY($1::uuid[])",
+      `SELECT source_id, count(*)::int AS count,
+              coalesce(sum(rating), 0)::int AS total_rating
+       FROM public.reviews
+       WHERE source_id = ANY($1::uuid[])
+       GROUP BY source_id`,
       [sourceIds]
     );
 
     if (reviews) {
-      totalReviews = reviews.length;
-
-      // Group by source_id
-      for (const r of reviews) {
-        if (!reviewStats[r.source_id]) {
-          reviewStats[r.source_id] = { count: 0, totalRating: 0 };
-        }
-        reviewStats[r.source_id].count++;
-        reviewStats[r.source_id].totalRating += r.rating;
-      }
-
-      // Calculate averages
-      for (const sid in reviewStats) {
-        reviewStats[sid].avg = (reviewStats[sid].totalRating / reviewStats[sid].count).toFixed(1);
+      for (const row of reviews) {
+        const count = Number(row.count) || 0;
+        const totalRating = Number(row.total_rating) || 0;
+        totalReviews += count;
+        reviewStats[row.source_id] = {
+          count,
+          totalRating,
+          avg: count ? (totalRating / count).toFixed(1) : "0.0",
+        };
       }
     }
 
@@ -123,7 +139,7 @@ export default async function DashboardPage() {
       );
       widgetMetrics = Object.fromEntries((rows || []).map((row) => [row.widget_id, row]));
     } catch (metricsError) {
-      console.warn("Widget metrics unavailable; apply their migration.", metricsError?.message);
+      console.warn("Widget metrics unavailable; apply their migration.", { code: metricsError?.code });
     }
   }
 
@@ -215,6 +231,7 @@ export default async function DashboardPage() {
         const planLimits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
         const maxSources = planLimits.maxSources;
         const used = sources.filter((source) => source.user_id === user.id).length;
+        const paused = sources.filter((source) => source.user_id === user.id && source.owner_source_position > maxSources).length;
         const isUnlimited = maxSources === Infinity;
         const pct = isUnlimited ? Math.min((used / 10) * 100, 100) : (used / maxSources) * 100;
         const barColor = pct >= 100 ? "bg-red-500" : userPlan === "free" ? "bg-amber-500" : "bg-primary";
@@ -229,6 +246,7 @@ export default async function DashboardPage() {
             <div className="w-full h-2 bg-muted-bg rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
             </div>
+            {paused > 0 && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{t(locale, `${paused} kaynak mevcut plan sınırını aştığı için duraklatıldı. Verileriniz korunuyor; planı yükseltirseniz veya daha eski bir kaynağı silerseniz sıradaki kaynak yeniden etkinleşir.`, `${paused} source${paused === 1 ? "" : "s"} paused because they exceed your plan limit. Your data is preserved; upgrading or deleting an earlier source reactivates the next source.`)}</p>}
           </div>
         );
       })()}
@@ -305,6 +323,8 @@ export default async function DashboardPage() {
             const widgetId = source.widgets?.[0]?.id;
             const isOwner = source.access_role === "owner";
             const canEdit = isOwner || source.access_role === "editor";
+            const sourceOwnerPlan = PLAN_LIMITS[source.source_owner_plan] ? source.source_owner_plan : "free";
+            const sourcePausedByPlan = isOwner && source.owner_source_position > PLAN_LIMITS[sourceOwnerPlan].maxSources;
             const widgetTheme = source.widgets?.[0]?.theme || "light";
             const isGoogle = source.platform === "google";
             const isFirstParty = source.platform === "first_party";
@@ -357,6 +377,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <h3 className="break-words font-semibold text-foreground text-lg">{source.business_name?.replace(" (Syncing...)", "")}</h3>
                       {source.brand_name && <p className="text-xs font-medium text-primary">{source.brand_name}</p>}
+                      {sourcePausedByPlan && <p role="status" className="mt-1 text-xs font-medium text-amber-800">{t(locale, "Mevcut plan sınırı nedeniyle duraklatıldı · Veriler korunuyor", "Paused by the current plan limit · Data is preserved")}</p>}
                       {!isOwner && <p className="text-xs text-muted">{source.access_role === "editor" ? t(locale, "Paylaşılan · düzenleyici", "Shared · editor") : source.access_role === "client" ? t(locale, "Paylaşılan · müşteri", "Shared · client") : t(locale, "Paylaşılan · görüntüleyici", "Shared · viewer")}</p>}
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-medium text-muted capitalize px-2 py-0.5 bg-muted-bg rounded-md">
@@ -415,8 +436,8 @@ export default async function DashboardPage() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Sync now button */}
-                    {isFirstParty ? (isOwner && <Link href="/dashboard/feedback" className="rounded-lg border border-border px-3 py-2 text-sm text-primary">{t(locale, "Yanıtları yönet", "Manage responses")}</Link>) : (canEdit && <SyncButton sourceId={source.id} />)}
-                    {!isFirstParty && isOwner && <form action={setSourceAutoSyncAction}>
+                    {isFirstParty ? (isOwner && <Link href="/dashboard/feedback" className="rounded-lg border border-border px-3 py-2 text-sm text-primary">{t(locale, "Yanıtları yönet", "Manage responses")}</Link>) : (canEdit && !sourcePausedByPlan && <SyncButton sourceId={source.id} />)}
+                    {!isFirstParty && isOwner && !sourcePausedByPlan && <form action={setSourceAutoSyncAction}>
                       <input type="hidden" name="sourceId" value={source.id} />
                       <input type="hidden" name="enabled" value={source.auto_sync_enabled ? "false" : "true"} />
                       <button type="submit" className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${source.auto_sync_enabled ? "border-green-200 bg-green-50 text-green-800" : "border-border text-muted hover:bg-muted-bg hover:text-foreground"}`} aria-label={source.auto_sync_enabled ? t(locale, "Günlük otomatik eşitlemeyi kapat", "Disable daily auto-sync") : t(locale, "Günlük otomatik eşitlemeyi aç", "Enable daily auto-sync")}>

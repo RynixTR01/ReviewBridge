@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }) {
     );
     unreadNotificationCount = Number(result?.count || 0);
   } catch (error) {
-    console.warn("Notification badge is unavailable.", error?.message);
+    console.warn("Notification badge is unavailable.", { code: error?.code });
   }
 
   const plan = user.plan || "free";

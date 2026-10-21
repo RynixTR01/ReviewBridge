@@ -141,7 +141,7 @@ export async function updateWidgetAction(formData) {
       ]
     );
   } catch (error) {
-    console.error("Widget update error:", error);
+    console.error("Widget update failed.", { code: error?.code });
     return { error: "Failed to update widget settings." };
   }
 
@@ -188,7 +188,7 @@ export async function setWidgetReviewPreferenceAction({ widgetId, reviewId, stat
       if (!saved) return { error: "Review not found for this widget." };
     }
   } catch (error) {
-    console.error("Review moderation failed:", error);
+    console.error("Review moderation failed.", { code: error?.code });
     return { error: "Could not save review preference." };
   }
 

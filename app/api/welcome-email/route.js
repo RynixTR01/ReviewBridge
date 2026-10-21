@@ -85,7 +85,7 @@ export async function POST(request) {
 
     return Response.json({ success: true });
   } catch (err) {
-    console.error("Welcome email error:", err);
+    console.error("Welcome email delivery failed.", { name: err?.name });
     return Response.json({ error: "Failed to send email" }, { status: 500 });
   }
 }

@@ -1,3 +1,5 @@
+import { PLAN_LIMITS } from "../../lib/plans.js";
+
 /**
  * Creates an Apify callback handler with injectable provider and database
  * dependencies so its request flow can be verified without live services.
@@ -47,7 +49,15 @@ export function createApifyWebhookHandler({
       const runStatus = resource.status;
 
       const source = await queryOne(
-        "SELECT id, apify_run_id, platform FROM public.sources WHERE id = $1",
+        `SELECT s.id, s.apify_run_id, s.platform, u.plan,
+                (SELECT count(*)::int + 1
+                 FROM public.sources older
+                 WHERE older.user_id = s.user_id
+                   AND (older.created_at < s.created_at
+                     OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
+         FROM public.sources s
+         JOIN public.users u ON u.id = s.user_id
+         WHERE s.id = $1`,
         [sourceId]
       );
 
@@ -57,6 +67,24 @@ export function createApifyWebhookHandler({
 
       if (source.apify_run_id !== runId) {
         return Response.json({ message: "Ignored: run ID mismatch" }, { status: 200 });
+      }
+
+      const currentPlan = PLAN_LIMITS[source.plan] ? source.plan : "free";
+      if (Number(source.source_position) > PLAN_LIMITS[currentPlan].maxSources) {
+        await query(
+          `UPDATE public.sources
+           SET sync_status = 'error', last_sync_error = $2,
+               apify_run_id = NULL, sync_started_at = NULL
+           WHERE id = $1 AND apify_run_id = $3`,
+          [sourceId, "Kaynak mevcut plan sınırını aşıyor.", runId],
+        );
+        await finishSyncHistory({
+          sourceId,
+          runId,
+          status: "error",
+          errorMessage: "Kaynak mevcut plan sınırını aşıyor.",
+        });
+        return Response.json({ message: "Ignored: source exceeds the current plan limit" }, { status: 200 });
       }
 
       if (runStatus !== "SUCCEEDED") {
@@ -116,11 +144,11 @@ export function createApifyWebhookHandler({
         );
 
         await finishSyncHistory({ sourceId, runId, status: "done", reviewsCount: uniqueReviews.length });
-        console.log(`Successfully synced ${uniqueReviews.length} reviews for source ${sourceId}`);
+        console.log(`Successfully synced ${uniqueReviews.length} reviews.`);
 
         return Response.json({ success: true, count: uniqueReviews.length }, { status: 200 });
       } catch (processError) {
-        console.error("Error processing reviews:", processError);
+        console.error("Apify review callback processing failed.", { name: processError?.name });
 
         await scheduleSyncRetry(query, sourceId, `Failed to process reviews: ${processError.message}`);
         await finishSyncHistory({
@@ -133,7 +161,7 @@ export function createApifyWebhookHandler({
         return Response.json({ error: "Failed to process reviews" }, { status: 500 });
       }
     } catch (err) {
-      console.error("Apify Webhook Error:", err);
+      console.error("Apify webhook request failed.", { name: err?.name });
       return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
   };
