@@ -8,6 +8,7 @@ import { resolveApplicationProfile } from "../lib/auth/profile-binding.js";
 import { accountExportChunks } from "../lib/account-export.js";
 import { EDITABLE_SOURCE_SQL, EDITABLE_WIDGET_SQL } from "../lib/agency-access-queries.js";
 import { effectivePlanSql } from "../lib/billing-entitlement.js";
+import { deleteApplicationAccount, deletionIdentityHash, finishIdentityDeletion, getAccountDeletion } from "../lib/account-deletion.js";
 
 const expectedHost = process.argv[2];
 const url = process.env.DATABASE_URL;
@@ -17,7 +18,7 @@ if (!url || !expectedHost || new URL(url).hostname !== expectedHost
   throw new Error("Explicit isolated audit branch connection required.");
 }
 const database = neon(url);
-for (const name of ["20261020_01_billing_state.sql", "20261020_02_identity_binding.sql"]) {
+for (const name of ["20261020_01_billing_state.sql", "20261020_02_identity_binding.sql", "20261021_02_account_deletion.sql"]) {
   const statements = readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8")
     .split(";").map(s => s.trim()).filter(Boolean);
   await database.transaction(statements.map(s => database.query(s)));
@@ -152,7 +153,38 @@ try {
   assert.equal((await database.query(EDITABLE_SOURCE_SQL, [sourceIds[0], ids[1]])).length, 0);
   assert.equal((await database.query(EDITABLE_WIDGET_SQL, [widget.id, ids[1]])).length, 0);
   console.log("PASS expired paid access denied without login or cron maintenance");
+  assert.equal(await deleteApplicationAccount(database, ids[1], identity.id), false);
+  assert.equal(await getAccountDeletion(database, identity.id), null);
+  const [deleting] = await database.query("SELECT lemonsqueezy_subscription_id AS subscription FROM public.users WHERE id=$1", [ids[0]]);
+  assert.equal(await deleteApplicationAccount(database, ids[0], identity.id, 'unconfirmed-subscription'), false);
+  await database.query("UPDATE public.users SET billing_checkout_expires_at=now()+interval '30 minutes' WHERE id=$1", [ids[0]]);
+  assert.equal(await deleteApplicationAccount(database, ids[0], identity.id, deleting.subscription), false);
+  await database.query("UPDATE public.users SET billing_checkout_expires_at=NULL WHERE id=$1", [ids[0]]);
+  assert.equal(await deleteApplicationAccount(database, ids[0], identity.id, deleting.subscription), true);
+  assert.equal((await database.query("SELECT id FROM public.sources WHERE user_id=$1", [ids[0]])).length, 0);
+  assert.equal((await database.query("SELECT id FROM public.widgets WHERE user_id=$1", [ids[0]])).length, 0);
+  assert.equal((await database.query("SELECT id FROM public.users WHERE id=$1", [ids[1]])).length, 1);
+  assert.equal(await resolveApplicationProfile(database, identity), null);
+  const failed = await finishIdentityDeletion(database, identity.id, async () => { throw new Error('provider unavailable'); });
+  assert.equal(failed.complete, false);
+  assert.equal((await getAccountDeletion(database, identity.id)).identity_deleted_at, null);
+  const resetAttempt = () => database.query("UPDATE public.account_deletions SET last_attempt_at=NULL WHERE identity_hash=$1", [deletionIdentityHash(identity.id)]);
+  await resetAttempt();
+  const verification = await finishIdentityDeletion(database, identity.id, async () => ({ data: { success: true, message: 'Verification email sent' } }));
+  assert.equal(verification.complete, false);
+  await resetAttempt();
+  let providerCalls = 0;
+  const retries = await Promise.all(Array.from({ length: 4 }, () => finishIdentityDeletion(database, identity.id, async () => {
+    providerCalls++;
+    return { data: { success: true, message: 'User deleted' } };
+  })));
+  assert.equal(providerCalls, 1);
+  assert.equal(retries.filter(r => r.complete).length, 1);
+  assert.ok((await getAccountDeletion(database, identity.id)).identity_deleted_at);
+  assert.equal(await resolveApplicationProfile(database, identity), null);
+  console.log("PASS durable deletion, other-account rejection, provider failure/retry, verification distinction and resurrection prevention");
 } finally {
+  await database.query("DELETE FROM public.account_deletions WHERE identity_hash=$1", [deletionIdentityHash(`${prefix}-auth`)]);
   await database.query("DELETE FROM public.lemonsqueezy_webhook_events WHERE user_key = ANY($1::text[])", [ids]);
   await database.query("DELETE FROM public.users WHERE id = ANY($1::uuid[])", [ids]);
   console.log("Isolated synthetic fixtures removed; production untouched.");

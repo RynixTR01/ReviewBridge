@@ -6,7 +6,8 @@
 
 Bu rapor 14 çalışma başlığı içerir; bunlar 14 ayrı güvenlik açığı demek değildir. Doğrulanmış hatalar, henüz yayınlanmamış düzeltmeler, gerekli operasyon kontrolleri ve karar verilmesi gereken ürün kuralları ayrı belirtilmiştir. İnceleme kapsamı dışındaki her sistemin kusursuz olduğunu iddia etmez.
 
-## Bu incelemede ne doğrulandı?
+## İlk incelemenin tarihsel durumu — 20 Ekim
+Bu bölüm ilk inceleme anını kaydeder; güncel uygulama ve yayın bilgileri aşağıdaki 21 Ekim kaydındadır.
 - GitHub main: `4c0bab38279d303ebd38b638a9e123b6a1d89cf1`. Çalışma dalı: `codex/security-plan-audit`; yerel güvenlik değişiklikleri commit edilmemiş ve main'e gitmemiş.
 - Yerel testler: **100 geçti, 0 başarısız**. Veritabanı ve ödeme sağlayıcısını taklit eden testlerin gerçek entegrasyon kanıtı olmadığı ayrıca dikkate alındı.
 - Canlı `/api/health`: **HTTP 200**, `{"status":"ok"}`. Bu uç nokta yalnızca basit veritabanı sorgusu yapıyor; giriş/ödeme/sync testinin yerine geçmez.
@@ -215,7 +216,7 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 Bu bölüm ilk bulgulardan sonra yapılan işleri kaydeder; aşağıdaki açık kapılar kapanmadan satışa hazır sonucu verilmez.
 
 - Next 16.4.2, React 19.3.1 ve Resend 6.34.1 güncellendi. Production bağımlılık taramasında sıfır bilinen açık; geliştirme araçlarında braces zinciri için ayrı takip gerekiyor.
-- 111 birim testi, derleme ve lint geçti. Dil/mobil/widget için dört tarayıcı testi geçti; canlı oturum ve gerçek test satın alımı bunların yerine geçmez.
+- 111 birim testi, derleme ve lint geçti. Dil/mobil/widget ve yetkisiz API erişimi için altı tarayıcı testi geçti; gerçek test satın alımı bunların yerine geçmez.
 - İzole Neon dalında eşzamanlı Free kaynak sınırı, bağımsız hesaplar, ters sıralı/tekrar abonelik olayları, eski aboneliğin yeniyi kapatamaması, veri kaybetmeden düşüş, sabit kimlik eşleme, hesap dışa aktarma ve ajans rol/marka izolasyonu geçti. Süre dolumu giriş veya cron beklemeden okunurken uygulanıyor.
 - Abonelik durum/tarih ve sabit auth kimliği ekleyen iki migration production'a uygulandı. Kullanıcı verileri silinmedi.
 - SQL ile oluşturulan `reviewbridge_runtime` rolü yönetici, CREATE, TRUNCATE ve BYPASSRLS yetkilerine sahip değil. Sunucunun dört eski RLS tablosuna erişimi yalnız bu role özel politikalarla sağlandı. İzole dalda gerçek INSERT/UPDATE/SELECT/DELETE, production'da okuma görünürlüğü doğrulandı. Kullanıcılar arası yetkilendirme sunucu sorgularındadır; bu bağlantı tarayıcıya verilmez.
@@ -224,8 +225,12 @@ Bu bölüm ilk bulgulardan sonra yapılan işleri kaydeder; aşağıdaki açık 
 - Checkout hesap imzası, aynı anda rezervasyon, eski linkin tekrar kullanılmasını önleme, portal ve sağlayıcıdan abonelik karşılaştırması eklendi. Süresi bitmiş abonelik ancak sağlayıcıdan doğrulandıktan sonra yeni checkout açabilir.
 - Hesap başına saatlik tarama başlatma denemesi Free 5 / Pro 20 / Agency 60; ilk ekleme ve retry aynı limiti kullanır. Başarısız deneme de sayılır. Yardım sayfasına açıklandı. Bu, aylık bütçe/uyarı çalışmasının tamamlandığı anlamına gelmez.
 - Zamanlanmış işlerde süre bütçesi ve yarım kalma görünürlüğü eklendi. Billing kuyruğunda kalan hesap varsa başarılı yanıt dönmez.
+- PR #57 CI ve Vercel kontrolleriyle main'e birleştirildi (`2a21f1e`). Production Ready; canlı oturum, dört kaynak ve 160 yorum görüntülendi. Önizlemede Google ile giriş ve yenilemede oturum koruması geçti. Önizleme için yalnızca sahip olduğumuz dal adresi Neon güvenilir adreslerine eklendi.
+- Sonraki değişiklik: uygulama verisiyle aynı işlemde kalıcı silme günlüğü; kimlik servisi hata verirse tekrar deneme ekranı; aynı kimliğin yeniden profil oluşturmasının engellenmesi. İzole veritabanında başka hesap reddi, cascade, kesinti, e-posta doğrulamasını silinme saymama ve eşzamanlı tekrar testleri geçti. Ek tablo production'a uygulandı; bu takip değişikliğinin yayını ayrıca doğrulanmalıdır.
 
-**Henüz kapanmayan yayın/satış kapıları:** Kodun PR/CI/production yayını ve canlı doğrulaması; yeni test satın alımı→webhook→portal yaşam döngüsü; kesintiye uğrayan kimlik silme işlemi için kalıcı onarım; bağımsız yedekten geri yükleme; çalışan destek/gönderici e-postası; ticari hosting ve veri sağlayıcı koşulları; dönem bütçeleri ve alarmın gerçekten teslimi. Preview veritabanı şeması production'dan ayrıysa ayrıca hazırlanmalıdır.
+- Şifreli public yedek boş test veritabanına geri yüklendi; bütün satırlar ve sequence değerleri karşılaştırıldı ve eşleşti. `docs/RECOVERY_RUNBOOK.md` kanıtı ve silinen hesapların kurtarmada geri gelmesini önleyen adımları kaydeder. Cihaz dışı düzenli yedek ve Auth kurtarması henüz tamam değildir.
+
+**Henüz kapanmayan yayın/satış kapıları:** Silme/health takip değişikliğinin yayını; yeni test satın alımı→webhook→portal yaşam döngüsü; kimlik servisi silme akışının gerçek geçici hesapla doğrulanması; düzenli cihaz dışı yedek ve Auth kurtarma; çalışan destek/gönderici e-postası; ticari hosting ve veri sağlayıcı koşulları; dönem bütçeleri ve alarmın gerçekten teslimi. Kesintiyle kalan yerel geçici düz metin dosyalarının temizliği otomatik onay denetimince engellendi. Preview şeması production'dan ayrıysa ayrıca hazırlanmalıdır.
 
 ## Uygulama sırası
 1. **Güvenlik zemini:** yamalı bağımlılıklar, gerçekten sınırlı veritabanı rolü, yerel düzeltmelerin entegrasyon testleri ve kontrollü yayını (01–03).

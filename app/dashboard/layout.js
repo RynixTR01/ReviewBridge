@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth/server";
-import { queryOne } from "@/lib/db";
+import { auth, getCurrentUser } from "@/lib/auth/server";
+import { getNeonClient, queryOne } from "@/lib/db";
+import { getAccountDeletion } from "@/lib/account-deletion";
 import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 import { getLocale } from "@/lib/i18n-server";
@@ -15,6 +16,8 @@ export default async function DashboardLayout({ children }) {
   const user = await getCurrentUser();
 
   if (!user) {
+    const { data: session } = await auth.getSession();
+    if (await getAccountDeletion(getNeonClient(), session?.user?.id)) redirect("/account-deletion");
     redirect("/login");
   }
 
