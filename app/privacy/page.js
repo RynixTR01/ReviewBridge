@@ -76,7 +76,7 @@ export default async function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "6. Haklarınız", "6. Your Rights")}</h2>
-            <p>{t(locale, "Kişisel verilerinize istediğiniz zaman erişme, bunları düzeltme veya silme hakkınız vardır. Hesabınızı panelden silebilirsiniz; bu işlem bağlı kaynaklar, yorumlar ve bileşenler dâhil ilişkili tüm verileri kaldırır.", "You have the right to access, correct, or delete your personal data at any time. You can delete your account from your dashboard, which will remove all associated data including connected sources, reviews, and widgets.")}</p>
+            <p>{t(locale, "Kişisel verilerinize erişebilir, bunları düzeltebilir veya silme isteğinde bulunabilirsiniz. Hesabınızı panelden sildiğinizde bağlı kaynaklar, yorumlar ve bileşenler kaldırılır. Giriş hesabının silinmesi yarıda kalırsa yeniden deneme ekranı açılır. İşlemi takip etmek ve eski kimliğin hesabı tekrar oluşturmasını engellemek için e-posta veya yorum içermeyen, kimlikten türetilmiş bir özet ve işlem tarihleri saklanır. Yedeklerdeki kopyalar ayrı saklama ve geri yükleme kurallarına tabidir.", "You can access, correct, or request deletion of your personal data. Deleting your account from the dashboard removes connected sources, reviews, and widgets. If sign-in identity deletion is interrupted, a recovery screen lets you retry. An identity-derived hash and operation timestamps, containing no email or review content, are retained to track the request and prevent the old identity from recreating the account. Backup copies are subject to separate retention and recovery procedures.")}</p>
           </section>
 
           <section>

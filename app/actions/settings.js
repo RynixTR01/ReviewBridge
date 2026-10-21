@@ -2,7 +2,8 @@
 
 import { getCurrentUser } from "@/lib/auth/server";
 import { auth } from "@/lib/auth/server";
-import { query, queryOne } from "@/lib/db";
+import { getNeonClient, query, queryOne } from "@/lib/db";
+import { deleteApplicationAccount, finishIdentityDeletion, getAccountDeletion } from "@/lib/account-deletion";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { billingApi } from "@/lib/billing";
@@ -71,14 +72,18 @@ export async function deleteAccountAction(formData) {
   if (!user) {
     return { error: "Not authenticated." };
   }
+  const { data: session } = await auth.getSession();
+  if (!session?.user?.id) return { error: "Not authenticated." };
 
   // Never remove the only link to a subscription that can still renew.
   // A provider failure leaves the user's account intact and retryable.
+  let confirmedSubscriptionId = null;
   try {
     const billing = await queryOne(
       "SELECT lemonsqueezy_subscription_id FROM public.users WHERE id = $1", [user.id],
     );
     if (billing?.lemonsqueezy_subscription_id) {
+      confirmedSubscriptionId = billing.lemonsqueezy_subscription_id;
       const subscription = await billingApi.getSubscription(billing.lemonsqueezy_subscription_id);
       if (!["cancelled", "expired"].includes(subscription.attributes.status)) {
         await billingApi.cancelSubscription(billing.lemonsqueezy_subscription_id);
@@ -89,39 +94,27 @@ export async function deleteAccountAction(formData) {
   }
 
   try {
-    const deletedProfile = await queryOne(
-      `WITH deleted_user AS (
-         DELETE FROM public.users WHERE id = $1 RETURNING id
-       ), deleted_billing_events AS (
-         DELETE FROM public.lemonsqueezy_webhook_events
-         WHERE user_key = (SELECT id::text FROM deleted_user)
-         RETURNING event_hash
-       )
-       SELECT id FROM deleted_user`,
-      [user.id],
-    );
-    if (!deletedProfile) return { error: "Account data could not be found. Please contact support." };
+    const deletedProfile = await deleteApplicationAccount(getNeonClient(), user.id, session.user.id, confirmedSubscriptionId);
+    if (!deletedProfile) return { error: "A checkout may still be open or the subscription changed. Wait for the checkout to expire (up to 30 minutes), then retry.", deletionPendingCheckout: true };
   } catch (error) {
     console.error("Delete ReviewBridge account data failed.", { name: error?.name });
     return { error: "Failed to delete account data. Please try again." };
   }
 
-  // Remove application data first so a later identity-provider failure cannot
-  // leave the customer's reviews, invitations, or profile orphaned in Neon.
-  let authDeleteError = null;
-  try {
-    const result = await auth.deleteUser({});
-    authDeleteError = result?.error || null;
-  } catch (error) {
-    authDeleteError = error;
-  }
-  if (authDeleteError) {
-    console.error("Delete Neon Auth identity failed after application data removal.", { name: authDeleteError?.name });
-    try { await auth.signOut(); } catch { /* the application data is already removed */ }
-    return { error: "Your ReviewBridge data was deleted, but the sign-in could not be removed. Please contact support." };
-  }
-
+  const result = await finishIdentityDeletion(getNeonClient(), session.user.id, () => auth.deleteUser({}));
+  if (!result.complete) redirect("/account-deletion");
   try { await auth.signOut(); } catch { /* identity deletion already invalidated the account */ }
+  redirect("/");
+}
 
+export async function retryAccountDeletionAction() {
+  // Recovery does not create a profile or trust a user-supplied identity ID.
+  const { data: session } = await auth.getSession();
+  if (!session?.user?.id) redirect("/login?next=%2Faccount-deletion");
+  const job = await getAccountDeletion(getNeonClient(), session.user.id);
+  if (!job) redirect("/dashboard");
+  const result = await finishIdentityDeletion(getNeonClient(), session.user.id, () => auth.deleteUser({}));
+  if (!result.complete) redirect("/account-deletion?retry=1");
+  try { await auth.signOut(); } catch { /* deletion invalidates the identity */ }
   redirect("/");
 }

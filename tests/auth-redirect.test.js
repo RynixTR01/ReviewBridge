@@ -4,6 +4,7 @@ import { safeAuthNextPath } from "../lib/auth/redirect.js";
 
 test("auth redirect preserves safe dashboard and invite destinations", () => {
   assert.equal(safeAuthNextPath("/dashboard"), "/dashboard");
+  assert.equal(safeAuthNextPath("/account-deletion"), "/account-deletion");
   assert.equal(safeAuthNextPath("/dashboard/widget/abc-123?tab=reviews"), "/dashboard/widget/abc-123?tab=reviews");
   assert.equal(safeAuthNextPath(`/join/brand/${"a".repeat(48)}`), `/join/brand/${"a".repeat(48)}`);
 });

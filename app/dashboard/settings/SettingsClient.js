@@ -133,7 +133,11 @@ export function DangerZone() {
       formData.append("confirmation", confirmation);
       const result = await deleteAccountAction(formData);
       if (result?.error) {
-        setError(locale === "tr" ? "Hesap silinemedi. Lütfen yeniden deneyin." : result.error);
+        setError(locale === "tr"
+          ? result.deletionPendingCheckout
+            ? "Açık bir ödeme bağlantısı olabilir veya abonelik değişmiş olabilir. Bağlantının süresi dolduktan sonra (en fazla 30 dakika) tekrar deneyin."
+            : "Hesap silinemedi. Lütfen yeniden deneyin."
+          : result.error);
       }
     });
   };
