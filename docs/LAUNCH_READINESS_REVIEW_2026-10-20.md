@@ -282,6 +282,6 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - UptimeRobot test bildiriminin Hotmail'e teslimini kullanıcı doğruladı.
 - İki günlük bakım işinin kalıcı durum tablosu production'a eklendi; kısıtlı runtime erişimi doğrulandı.
 - Başarısızlık, yeniden deneme, eşzamanlı çalışmayı reddetme, yarım kalan iş ve kaçırılan zamanlama testleri izole Neon dalında geçti.
-- Bu kayıt hazırlanırken bakım izleme kodunun yayını ve production görevlerinin yeniden çalıştırılması henüz tamamlanmadı.
+- PR #59 main'e birleştirildi; GitHub CI ve Vercel production yayını başarılı. İki görevin Vercel Cron Jobs üzerinden elle çalıştırılması Neon'da `success` ve yeni `succeeded_at` kaydı oluşturdu. Canlı `/api/health` HTTP 200 döndü. Bu bir kerelik doğrulama, gelecekteki günlük çalışmaların yerini tutmaz; UptimeRobot alarmı onları izleyecek.
 - Geliştirme araçlarında braces CVE-2026-93687 için yama yayımlanmamıştı; üretim bağımlılık taraması temizdi. Lint sürümünü zorla düşürmek çözüm olarak uygulanmadı.
 - Düzenli cihaz dışı yedek, bağımsız Auth kurtarması, doğrulanmış destek/gönderici adresi ve gerçek sağlayıcılarla kalan uçtan uca testler açık; genel satış hazır onayı verilmedi.
