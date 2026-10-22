@@ -47,6 +47,7 @@ export default async function UpgradePage({ searchParams }) {
   const currentPlan = profile?.plan || "free";
   const billingTestMode = process.env.BILLING_MODE !== "live";
   const hasSubscription = Boolean(profile?.lemonsqueezy_subscription_id);
+  const hasCurrentSubscription = hasSubscription && profile?.billing_status !== "expired";
   const billingConfigured = Boolean(process.env.LEMONSQUEEZY_API_KEY && process.env.LEMONSQUEEZY_STORE_ID
     && process.env.LEMONSQUEEZY_WEBHOOK_SECRET && process.env.LEMONSQUEEZY_PRO_VARIANT_ID && process.env.LEMONSQUEEZY_AGENCY_VARIANT_ID);
   const billingNotice = (await searchParams)?.billing;
@@ -246,16 +247,16 @@ export default async function UpgradePage({ searchParams }) {
               </ul>
 
               {/* CTA Button */}
-              {plan.ctaDisabled || !billingConfigured || (billingTestMode && hasSubscription) ? (
+              {plan.ctaDisabled || !billingConfigured || (billingTestMode && hasCurrentSubscription) ? (
                 <button
                   disabled
                   className="w-full py-3 rounded-xl text-sm font-semibold bg-muted-bg text-muted border border-border cursor-not-allowed"
                 >
-                  {billingTestMode && hasSubscription && !plan.ctaDisabled
+                  {billingTestMode && hasCurrentSubscription && !plan.ctaDisabled
                     ? t(locale, "Mağaza etkinleşince kullanılabilir", "Available when the store is activated") : plan.cta}
                 </button>
               ) : (
-                <form action={hasSubscription ? manageSubscriptionAction : startCheckoutAction}>
+                <form action={hasCurrentSubscription ? manageSubscriptionAction : startCheckoutAction}>
                 <input type="hidden" name="plan" value={plan.key} />
                 <button
                   type="submit"
