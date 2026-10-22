@@ -276,3 +276,12 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - [Google Maps Platform koşulları](https://cloud.google.com/maps-platform/terms)
 
 **Sınır:** Bu çalışma hedefli bir teknik ve ürün incelemesidir; bağımsız sızma testi veya hukuki uygunluk sertifikası değildir. Doğrulanmamış maddeler satış için tamamlandı kabul edilmemelidir.
+
+## 22 Ekim — bakım izlemesi ve doğrulanmış operasyon durumu
+- PR #58 main'e birleştirildi ve production yayını Ready: kesilen hesap silme kurtarması canlıda.
+- UptimeRobot test bildiriminin Hotmail'e teslimini kullanıcı doğruladı.
+- İki günlük bakım işinin kalıcı durum tablosu production'a eklendi; kısıtlı runtime erişimi doğrulandı.
+- Başarısızlık, yeniden deneme, eşzamanlı çalışmayı reddetme, yarım kalan iş ve kaçırılan zamanlama testleri izole Neon dalında geçti.
+- Bu kayıt hazırlanırken bakım izleme kodunun yayını ve production görevlerinin yeniden çalıştırılması henüz tamamlanmadı.
+- Geliştirme araçlarında braces CVE-2026-93687 için yama yayımlanmamıştı; üretim bağımlılık taraması temizdi. Lint sürümünü zorla düşürmek çözüm olarak uygulanmadı.
+- Düzenli cihaz dışı yedek, bağımsız Auth kurtarması, doğrulanmış destek/gönderici adresi ve gerçek sağlayıcılarla kalan uçtan uca testler açık; genel satış hazır onayı verilmedi.

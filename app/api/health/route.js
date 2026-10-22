@@ -1,4 +1,5 @@
 import { queryOne } from "@/lib/db";
+import { MAINTENANCE_HEALTH_SQL } from "@/lib/maintenance-health";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ export async function GET() {
       LEFT JOIN public.widgets w ON w.user_id=u.id
       LEFT JOIN public.account_deletions d ON false
       LIMIT 0`);
+    const maintenance = await queryOne(MAINTENANCE_HEALTH_SQL);
+    if (!maintenance?.healthy) throw new Error("Maintenance needs attention");
     return Response.json({ status: "ok" }, {
       headers: { "Cache-Control": "no-store" },
     });
