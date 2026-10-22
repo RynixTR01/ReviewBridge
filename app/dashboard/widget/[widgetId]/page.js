@@ -61,6 +61,7 @@ export default async function WidgetPage({ params }) {
     [widget.id]
   );
   const moderation = Object.fromEntries((moderationRows || []).map((item) => [item.review_id, item.state]));
+  const embedOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || "https://review-bridge.vercel.app").origin;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -88,6 +89,7 @@ export default async function WidgetPage({ params }) {
         reviews={reviews || []} 
         planLimits={limits} 
         moderation={moderation}
+        embedOrigin={embedOrigin}
       />
     </div>
   );
