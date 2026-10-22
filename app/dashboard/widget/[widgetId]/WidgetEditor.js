@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import { contrastRatio } from "@/lib/plans";
 import { filterWidgetPreviewReviews } from "@/lib/widget-preview";
 
-export default function WidgetEditor({ widget, source, reviews, planLimits, moderation: initialModeration }) {
+export default function WidgetEditor({ widget, source, reviews, planLimits, moderation: initialModeration, embedOrigin }) {
   const locale = useLocale();
   const [theme, setTheme] = useState(widget.theme);
   const [maxReviews, setMaxReviews] = useState(widget.max_reviews);
@@ -41,11 +41,7 @@ export default function WidgetEditor({ widget, source, reviews, planLimits, mode
   const [isPending, startTransition] = useTransition();
   const [saveMessage, setSaveMessage] = useState("");
 
-  const embedUrl = `https://yourdomain.com/api/widget/${widget.embed_token}`;
-  
-  // Real origin for local testing display could be window.location.origin but we'll use placeholder or absolute if available
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-  const displayEmbedUrl = `${origin}/api/widget/${widget.embed_token}`;
+  const displayEmbedUrl = `${embedOrigin}/api/widget/${widget.embed_token}`;
   const embedCode = `<script src="${displayEmbedUrl}"></script>`;
 
   const copyToClipboard = () => {

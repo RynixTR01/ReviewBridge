@@ -74,14 +74,12 @@ export default async function DashboardLayout({ children }) {
             </Link>
           )}
           {(plan === "pro" || plan === "agency") && (
-            <a
-              href="https://app.lemonsqueezy.com/my-orders"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/dashboard/upgrade"
               className="w-full mt-3 block text-center text-xs text-muted hover:text-foreground transition-colors"
             >
               {t(locale, "Aboneliği yönet →", "Manage subscription →")}
-            </a>
+            </Link>
           )}
         </div>
         

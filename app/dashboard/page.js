@@ -173,14 +173,12 @@ export default async function DashboardPage() {
             </Link>
           )}
           {(userPlan === "pro" || userPlan === "agency") && (
-            <a
-              href="https://reviewbridge.lemonsqueezy.com/billing"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/dashboard/upgrade"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-muted border border-border px-3 py-2 rounded-lg hover:bg-muted-bg hover:text-foreground transition-colors"
             >
               {t(locale, "Aboneliği yönet", "Manage subscription")}
-            </a>
+            </Link>
           )}
           <Link
             href="/dashboard/add-source"

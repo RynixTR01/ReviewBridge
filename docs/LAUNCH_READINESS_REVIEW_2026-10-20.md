@@ -289,5 +289,6 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 ## 22 Ekim — gerçek test müşteri yolculuğu
 - `semihayan01@hotmail.com` hesabıyla Lemon test modunda sahte kart kullanılarak Pro aboneliği oluşturuldu. Lemon abonelik `2629524` aktif/test modunda; Neon'daki aynı kullanıcı Pro ve aktif olarak güncellendi. Bu, checkout → webhook → hak verme zincirini canlı ortamda doğruladı; gerçek ücret alınmadı.
 - Google Haritalar paylaşım kısa bağlantısı `maps.app.goo.gl/ipj9aHNcB55RUx5g9` kaynak ekleme ekranından işlendi. “Ella Estetik Ve Güzellik” kaynağının eşitlemesi tamamlandı; 20 yorum Neon'da görüldü.
-- Test mağazası etkinleşmediği için Lemon müşteri portalı “This store has not been activated” hatası verdi. Uygulama içinde yenileme iptal yolu ekleniyor; yayın ve gerçek test iptali ayrıca doğrulanacak.
+- Test mağazası etkinleşmediği için Lemon müşteri portalı “This store has not been activated” hatası verdi. PR #61 ile uygulama içi iki aşamalı yenileme iptali production'a çıktı. Gerçek test aboneliğinde iptal yapıldı: Lemon ve Neon `cancelled`, bitiş tarihi 22 Kasım 2026; hesap bu tarihe kadar Pro kaldı.
+- Canlı widget düzenleyicide yerleştirme kodunun `localhost:3000` adresi gösterebildiği görüldü. PR #62 sunucudan aynı kanonik adresi geçirerek bunu düzeltiyor; canlı yayın sonrası tekrar doğrulanacak.
 - Test aboneliklerinin canlı moda geçildiğinde ücretli hak olarak kalmaması için açık bir geçiş kapısı var. Live anahtarları/ürünleri açmadan önce bu ayrım ve test kayıtlarının dönüşümü doğrulanmalı.
