@@ -21,7 +21,7 @@ jobs:
         env:
           NEON_AUTH_COOKIE_SECRET: local-ci-only-cookie-secret-value-0123456789
           NEON_AUTH_BASE_URL: http://localhost:3000
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
