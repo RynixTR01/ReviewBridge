@@ -285,3 +285,9 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - PR #59 main'e birleştirildi; GitHub CI ve Vercel production yayını başarılı. İki görevin Vercel Cron Jobs üzerinden elle çalıştırılması Neon'da `success` ve yeni `succeeded_at` kaydı oluşturdu. Canlı `/api/health` HTTP 200 döndü. Bu bir kerelik doğrulama, gelecekteki günlük çalışmaların yerini tutmaz; UptimeRobot alarmı onları izleyecek.
 - Geliştirme araçlarında braces CVE-2026-93687 için yama yayımlanmamıştı; üretim bağımlılık taraması temizdi. Lint sürümünü zorla düşürmek çözüm olarak uygulanmadı.
 - Düzenli cihaz dışı yedek, bağımsız Auth kurtarması, doğrulanmış destek/gönderici adresi ve gerçek sağlayıcılarla kalan uçtan uca testler açık; genel satış hazır onayı verilmedi.
+
+## 22 Ekim — gerçek test müşteri yolculuğu
+- `semihayan01@hotmail.com` hesabıyla Lemon test modunda sahte kart kullanılarak Pro aboneliği oluşturuldu. Lemon abonelik `2629524` aktif/test modunda; Neon'daki aynı kullanıcı Pro ve aktif olarak güncellendi. Bu, checkout → webhook → hak verme zincirini canlı ortamda doğruladı; gerçek ücret alınmadı.
+- Google Haritalar paylaşım kısa bağlantısı `maps.app.goo.gl/ipj9aHNcB55RUx5g9` kaynak ekleme ekranından işlendi. “Ella Estetik Ve Güzellik” kaynağının eşitlemesi tamamlandı; 20 yorum Neon'da görüldü.
+- Test mağazası etkinleşmediği için Lemon müşteri portalı “This store has not been activated” hatası verdi. Uygulama içinde yenileme iptal yolu ekleniyor; yayın ve gerçek test iptali ayrıca doğrulanacak.
+- Test aboneliklerinin canlı moda geçildiğinde ücretli hak olarak kalmaması için açık bir geçiş kapısı var. Live anahtarları/ürünleri açmadan önce bu ayrım ve test kayıtlarının dönüşümü doğrulanmalı.
