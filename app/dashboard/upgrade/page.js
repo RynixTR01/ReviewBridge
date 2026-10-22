@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { PLAN_LIMITS, PLAN_PRICES_USD } from "@/lib/plans";
-import { manageSubscriptionAction, refreshSubscriptionAction, startCheckoutAction } from "@/app/actions/billing";
+import { cancelSubscriptionAction, manageSubscriptionAction, refreshSubscriptionAction, startCheckoutAction } from "@/app/actions/billing";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -51,6 +51,7 @@ export default async function UpgradePage({ searchParams }) {
     && process.env.LEMONSQUEEZY_WEBHOOK_SECRET && process.env.LEMONSQUEEZY_PRO_VARIANT_ID && process.env.LEMONSQUEEZY_AGENCY_VARIANT_ID);
   const billingNotice = (await searchParams)?.billing;
   const notice = {
+    cancelled: t(locale, "Yenileme durduruldu. Pro/Ajans erişiminiz gösterilen bitiş tarihine kadar sürer.", "Renewal was cancelled. Your paid access continues until the displayed end date."),
     unavailable: t(locale, "Abonelik hizmetine şu an ulaşılamıyor. İşlem tamamlanmadı; lütfen tekrar deneyin.", "Billing is currently unavailable. The operation was not completed; please try again."),
     busy: t(locale, "Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.", "Too many requests. Please try again later."),
     return: t(locale, "Ödeme sonucunun hesabınıza ulaşması biraz sürebilir. Aşağıdaki düğmeyle abonelik durumunu yenileyebilirsiniz.", "It may take a moment for your account to receive the payment result. You can refresh your subscription status below."),
@@ -130,7 +131,9 @@ export default async function UpgradePage({ searchParams }) {
     { q: t(locale, "Hemen ücret alınır mı?", "Will I be charged immediately?"), a: billingTestMode
       ? t(locale, "Hayır. Ödeme sistemi şu anda test modunda; gerçek ücret alınmaz.", "No. Payments are currently in test mode; no real charge is made.")
       : t(locale, "Evet. Yükseltme sonrası faturalandırma başlar ve özelliklere hemen erişirsiniz.", "Yes. Billing starts after you upgrade and features become available immediately.") },
-    { q: t(locale, "Planımı değiştirebilir miyim?", "Can I change my plan?"), a: t(locale, "Aboneliği yönet düğmesiyle müşteri portalını açın. Plan değişikliği, iptal, fatura ve ödeme yöntemi işlemlerini oradan yapabilirsiniz.", "Open the customer portal with Manage subscription for plan changes, cancellation, invoices, and payment methods.") },
+    { q: t(locale, "Planımı değiştirebilir miyim?", "Can I change my plan?"), a: billingTestMode
+      ? t(locale, "Test modunda yenilemeyi bu sayfadan durdurabilirsiniz. Mağaza etkinleştirilene kadar Lemon müşteri portalı kullanılamayabilir.", "In test mode, you can cancel renewal on this page. Lemon's customer portal may be unavailable until the store is activated.")
+      : t(locale, "Aboneliği yönet düğmesiyle müşteri portalını açın. Plan değişikliği, iptal, fatura ve ödeme yöntemi işlemlerini oradan yapabilirsiniz.", "Open the customer portal with Manage subscription for plan changes, cancellation, invoices, and payment methods.") },
     { q: t(locale, "Ödeme başarısız olursa ne olur?", "What happens if a payment fails?"), a: t(locale, "Yenileme denemeleri sırasında en fazla 14 gün erişim korunur. Tahsilat tamamlanamazsa Ücretsiz plan sınırları uygulanır; kaynaklarınız ve yorumlarınız silinmez.", "Access continues for up to 14 days during payment recovery. If payment cannot be collected, Free limits apply; your sources and reviews are preserved.") },
   ];
 
@@ -164,7 +167,7 @@ export default async function UpgradePage({ searchParams }) {
           {!profile?.billing_ends_at && profile?.billing_renews_at && <p>{t(locale, "Sonraki ödeme: ", "Next payment: ")}
             {new Date(profile.billing_renews_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US")}</p>}
           <div className="flex flex-wrap gap-3">
-            {hasSubscription && <form action={manageSubscriptionAction}>
+            {hasSubscription && !billingTestMode && <form action={manageSubscriptionAction}>
               <button disabled={!billingConfigured} className="rounded-lg bg-primary text-white px-4 py-2 disabled:opacity-50">
                 {t(locale, "Aboneliği yönet", "Manage subscription")}
               </button>
@@ -175,6 +178,17 @@ export default async function UpgradePage({ searchParams }) {
               </button>
             </form>
           </div>
+          {hasSubscription && !["cancelled", "expired"].includes(profile.billing_status) && (
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted">{t(locale, "Yenilemeyi durdur", "Cancel renewal")}</summary>
+              <p className="mt-2 text-muted">{t(locale, "Aboneliğiniz dönem sonuna kadar kullanılabilir; sonraki ödeme alınmaz.", "Your subscription remains available until the end of this period; no next payment will be collected.")}</p>
+              <form action={cancelSubscriptionAction} className="mt-2">
+                <button disabled={!billingConfigured} className="rounded-lg border border-border px-4 py-2 disabled:opacity-50">
+                  {t(locale, "Yenilemeyi durdurmayı onayla", "Confirm cancellation")}
+                </button>
+              </form>
+            </details>
+          )}
         </div>
       )}
 
@@ -232,12 +246,13 @@ export default async function UpgradePage({ searchParams }) {
               </ul>
 
               {/* CTA Button */}
-              {plan.ctaDisabled || !billingConfigured ? (
+              {plan.ctaDisabled || !billingConfigured || (billingTestMode && hasSubscription) ? (
                 <button
                   disabled
                   className="w-full py-3 rounded-xl text-sm font-semibold bg-muted-bg text-muted border border-border cursor-not-allowed"
                 >
-                  {plan.cta}
+                  {billingTestMode && hasSubscription && !plan.ctaDisabled
+                    ? t(locale, "Mağaza etkinleşince kullanılabilir", "Available when the store is activated") : plan.cta}
                 </button>
               ) : (
                 <form action={hasSubscription ? manageSubscriptionAction : startCheckoutAction}>
