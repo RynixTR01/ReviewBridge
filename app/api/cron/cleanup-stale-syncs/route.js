@@ -1,4 +1,5 @@
-import { query } from "@/lib/db";
+import { getNeonClient, query } from "@/lib/db";
+import { runMonitoredMaintenance } from "@/lib/maintenance-health";
 import { finishSyncHistory } from "@/lib/sync-history";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { deliverSyncFailureAlerts } from "@/lib/sync-alerts";
@@ -8,6 +9,13 @@ import { EXPIRE_BILLING_SQL } from "@/lib/billing-state";
 export const maxDuration = 60;
 
 export async function GET(request) {
+  if (!process.env.CRON_SECRET || request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return runMonitoredMaintenance(getNeonClient(), 'cleanup-stale-syncs', () => runCleanup(request));
+}
+
+async function runCleanup(request) {
   const deadline = Date.now() + 50_000;
   try {
     // We only allow GET requests. In Vercel, cron jobs hit the endpoint via GET.

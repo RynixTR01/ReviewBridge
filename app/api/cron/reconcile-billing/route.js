@@ -1,4 +1,5 @@
-import { query } from "@/lib/db";
+import { getNeonClient, query } from "@/lib/db";
+import { runMonitoredMaintenance } from "@/lib/maintenance-health";
 import { EXPIRE_BILLING_SQL } from "@/lib/billing-state";
 import { refreshSubscription } from "@/lib/billing";
 
@@ -8,6 +9,10 @@ export async function GET(request) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
+  return runMonitoredMaintenance(getNeonClient(), 'reconcile-billing', runReconciliation);
+}
+
+async function runReconciliation() {
   if (!process.env.LEMONSQUEEZY_API_KEY || !process.env.LEMONSQUEEZY_STORE_ID) {
     return Response.json({ error: "Billing reconciliation is not configured" }, { status: 503 });
   }

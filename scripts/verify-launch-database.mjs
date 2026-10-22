@@ -9,6 +9,7 @@ import { accountExportChunks } from "../lib/account-export.js";
 import { EDITABLE_SOURCE_SQL, EDITABLE_WIDGET_SQL } from "../lib/agency-access-queries.js";
 import { effectivePlanSql } from "../lib/billing-entitlement.js";
 import { deleteApplicationAccount, deletionIdentityHash, finishIdentityDeletion, getAccountDeletion } from "../lib/account-deletion.js";
+import { MAINTENANCE_HEALTH_SQL, runMonitoredMaintenance } from "../lib/maintenance-health.js";
 
 const expectedHost = process.argv[2];
 const url = process.env.DATABASE_URL;
@@ -18,7 +19,7 @@ if (!url || !expectedHost || new URL(url).hostname !== expectedHost
   throw new Error("Explicit isolated audit branch connection required.");
 }
 const database = neon(url);
-for (const name of ["20261020_01_billing_state.sql", "20261020_02_identity_binding.sql", "20261021_02_account_deletion.sql"]) {
+for (const name of ["20261020_01_billing_state.sql", "20261020_02_identity_binding.sql", "20261021_02_account_deletion.sql", "20261021_03_maintenance_health.sql"]) {
   const statements = readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8")
     .split(";").map(s => s.trim()).filter(Boolean);
   await database.transaction(statements.map(s => database.query(s)));
@@ -183,7 +184,29 @@ try {
   assert.ok((await getAccountDeletion(database, identity.id)).identity_deleted_at);
   assert.equal(await resolveApplicationProfile(database, identity), null);
   console.log("PASS durable deletion, other-account rejection, provider failure/retry, verification distinction and resurrection prevention");
+  await database.query("UPDATE public.maintenance_job_health SET status='waiting',created_at=now(),succeeded_at=NULL,started_at=NULL");
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, true);
+  await runMonitoredMaintenance(database, 'reconcile-billing', async () => new Response(null, { status: 503 }));
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, false);
+  await runMonitoredMaintenance(database, 'reconcile-billing', async () => new Response(null, { status: 200 }));
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, true);
+  const thrown = await runMonitoredMaintenance(database, 'cleanup-stale-syncs', async () => { throw new Error('provider failed'); });
+  assert.equal(thrown.status, 503);
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, false);
+  await database.query("UPDATE public.maintenance_job_health SET status='running',started_at=now() WHERE job_name='cleanup-stale-syncs'");
+  let unexpectedRun = false;
+  const overlap = await runMonitoredMaintenance(database, 'cleanup-stale-syncs', async () => { unexpectedRun = true; return new Response(); });
+  assert.equal(overlap.status, 503);
+  assert.equal(unexpectedRun, false);
+  await database.query("UPDATE public.maintenance_job_health SET started_at=now()-interval '6 minutes' WHERE job_name='cleanup-stale-syncs'");
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, false);
+  await runMonitoredMaintenance(database, 'cleanup-stale-syncs', async () => new Response());
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, true);
+  await database.query("UPDATE public.maintenance_job_health SET succeeded_at=now()-interval '37 hours' WHERE job_name='cleanup-stale-syncs'");
+  assert.equal((await database.query(MAINTENANCE_HEALTH_SQL))[0].healthy, false);
+  console.log("PASS maintenance failure, recovery, overlap rejection, killed run and missed-schedule detection");
 } finally {
+  await database.query("UPDATE public.maintenance_job_health SET status='waiting',created_at=now(),succeeded_at=NULL,started_at=NULL");
   await database.query("DELETE FROM public.account_deletions WHERE identity_hash=$1", [deletionIdentityHash(`${prefix}-auth`)]);
   await database.query("DELETE FROM public.lemonsqueezy_webhook_events WHERE user_key = ANY($1::text[])", [ids]);
   await database.query("DELETE FROM public.users WHERE id = ANY($1::uuid[])", [ids]);

@@ -55,6 +55,17 @@ Sağlayıcı hesabı sildikten sonra yanıt veya son DB yazması kaybolursa gün
 belirsiz kalabilir. Operatör kimliğin gerçekten bulunmadığını doğrulamadan
 günlüğü tamamlandı işaretlememelidir. Bu durum otomatik başarı olarak sunulmaz.
 
+## Bakım işi alarmları
+
+`maintenance_job_health` iki günlük görevin gerçek sonucunu saklar. Başarısız
+yanıt, beş dakikayı aşan takılı çalışma veya 36 saattir başarılı çalışmama
+`/api/health` yanıtını 503 yapar. UptimeRobot bu adresi beş dakikada bir izler.
+İlk kurulumda 36 saat başlangıç payı vardır; bu, görevin çalıştığının kanıtı değildir.
+Alarmda Vercel Cron Jobs üzerinden ilgili çalışmanın logunu incele, nedenini
+düzeltip görevi yeniden çalıştır. Tabloyu elle başarılıya çevirme.
+İki görevin `succeeded_at` değerini ve health yanıtını doğrula.
+22 Ekim kaydı: kullanıcı UptimeRobot test e-postasının ulaştığını doğruladı.
+
 ## Açık operasyon işleri
 
 - Düzenli, cihaz dışı şifreli yedek ve bağımsız kurtarma anahtarı saklama.
