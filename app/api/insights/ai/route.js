@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/server";
 import { getNeonClient, query, queryOne } from "@/lib/db";
 import { isRateLimited } from "@/lib/rate-limit";
+import { aiDailyLimitReached } from "@/lib/provider-budget";
 import { getSourcePlanStatus } from "@/lib/source-plan-guard";
 import { buildReviewAnalysisPrompt, parseReviewAnalysisResponse, reviewInsightError, reviewInsightGeminiErrorCode } from "@/lib/ai-review-insights";
 
@@ -78,6 +79,7 @@ export async function POST(request) {
   if (await isRateLimited(request, `ai-review-insights:${user.id}`, {
     limit: 5, windowMs: 60 * 60 * 1000, scope: "account", failClosed: true,
   })) return fail("rate_limit", 429);
+  if (await aiDailyLimitReached()) return fail("daily_capacity", 429);
 
   try {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";

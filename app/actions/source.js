@@ -17,7 +17,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { isConnectedReviewSource } from "@/lib/review-source-catalog";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
 import { createSourceWithinPlanLimit, getSourcePlanStatus } from "@/lib/source-plan-guard";
-import { providerAttemptLimited } from "@/lib/provider-budget";
+import { providerAttemptLimit } from "@/lib/provider-budget";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -91,8 +91,11 @@ export async function addSourceAction(prevState, formData) {
   let totalReviewsCount = null;
   
   const startsAsyncSync = Boolean(process.env.APIFY_API_TOKEN) && (platform === "google" || platform === "trustpilot");
-  if (startsAsyncSync && await providerAttemptLimited(user.id, user.plan)) {
-    return { error: "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." };
+  const attemptLimit = startsAsyncSync ? await providerAttemptLimit(user.id, user.plan) : null;
+  if (attemptLimit) {
+    return { error: attemptLimit === "site"
+      ? "Günlük tarama kapasitesine ulaşıldı. Yarın tekrar deneyin."
+      : "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." };
   }
 
 

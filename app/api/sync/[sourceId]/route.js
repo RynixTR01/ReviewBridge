@@ -8,7 +8,7 @@ import { createStableReviewId } from "@/lib/review-id";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { normalizeReviewRating } from "@/lib/review-rating";
 import { getSourcePlanStatus } from "@/lib/source-plan-guard";
-import { providerAttemptLimited } from "@/lib/provider-budget";
+import { providerAttemptLimit } from "@/lib/provider-budget";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -87,9 +87,12 @@ export async function POST(request, { params }) {
       }
     }
     // --- End Rate Limiting ---
-    if (await providerAttemptLimited(userId, userPlan)) {
-      return Response.json({ error: "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." }, {
-        status: 429, headers: { "Retry-After": "3600", "Cache-Control": "no-store" },
+    const attemptLimit = await providerAttemptLimit(userId, userPlan);
+    if (attemptLimit) {
+      return Response.json({ error: attemptLimit === "site"
+        ? "Günlük tarama kapasitesine ulaşıldı. Yarın tekrar deneyin."
+        : "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." }, {
+        status: 429, headers: { "Retry-After": attemptLimit === "site" ? "86400" : "3600", "Cache-Control": "no-store" },
       });
     }
 
