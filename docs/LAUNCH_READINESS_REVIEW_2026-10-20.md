@@ -172,17 +172,17 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 **Kanıt:** Canlı form/gelen kutusu denemesi, `app/contact`, `app/dashboard/support`, `docs/OPERATIONS.md`, `app/actions/surveys.js`.
 
 ### 12. Kullanım kotası ve maliyetin kontrol altında tutulması
-**Öncelik:** Satış öncesi · **Durum:** Ürün sınırları kısmen tanımlı
+**Öncelik:** Satış öncesi · **Durum:** Hesap ve site geneli çağrı sınırları var; para bazlı alarm açık
 
-**Bulgum:** Ajans kaynak sayısı sınırsız. AI ve anket oluşturma akışlarında ücretli planı zorunlu kılan kontrol görülmedi; bunların tüm planlara açık olması isteniyorsa açıkça yazılmalı. AI hız sınırı hesap+IP bileşimine bağlı, aylık hesap kotası değil. Davetlerde tek kampanya sınırı var ama dönem bütçesi farklı bir ihtiyaç.
+**Bulgum:** Ajans kaynak sayısı ürün gereği sınırsız; sağlayıcı çağrısı yine maliyetlidir. Hesap başına saatlik tarama/AI sınırları ve tüm hesaplarca paylaşılan günlük Apify/AI sınırları vardır. Bu sınırlar istek adedini kontrol eder; sağlayıcı faturası, aylık bütçe ve maliyet alarmı henüz ölçülüp bağlanmadı.
 
 **Müşteriye/işletmeye etkisi:** Tek yoğun müşteri veya çok sayıda ücretsiz hesap, Apify/AI/e-posta/veritabanı maliyetini gelirin üzerine çıkarabilir.
 
-**Yapılacak iş:** Her plan için kaynak, tarama, alınan yorum, gösterilen yorum, AI isteği, davet, ekip üyesi ve trafik sınırlarını tek tabloda tanımla. Hesap bazlı dönem kotası ve servis bütçe alarmları ekle. Ücretli dış çağrılarda ortak limit servisi bozulursa güvenli durma politikasını belirle.
+**Yapılacak iş:** Apify, Gemini, Neon ve Vercel gerçek birim maliyetleriyle 10/100 müşterilik dönem bütçesi çıkar; sağlayıcı bütçe alarmlarını kur. Günlük istek sınırlarını gerçek kullanıma göre ayarla. Ortak limit veritabanı bozulursa dış çağrılar güvenli biçimde durur.
 
 **Kapanış ölçütü:** Kota eşzamanlı isteklerle ve IP değişimiyle aşılamaz. Başarısız iş haksız kota tüketmez. 10/100 müşteri için ölçülen kullanım üzerinden maliyet hesabı yapılır; temelsiz sınırsız vaadi verilmez.
 
-**Kanıt:** lib/plans.js; lib/rate-limit.js; app/api/insights/ai/route.js; app/actions/surveys.js.
+**Kanıt:** `lib/provider-budget.js`, `lib/rate-limit.js`, `app/api/insights/ai/route.js`, `app/actions/surveys.js` ve ilgili testler.
 
 ### 13. Gizlilik, AI'ya veri aktarımı ve veri yaşam döngüsü
 **Öncelik:** Satış öncesi · **Durum:** Kısmi koruma; sözleşme ve uçtan uca kontrol gerekli
@@ -306,3 +306,4 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - Ardından `public` + `neon_auth` şemalarının birlikte şifreli yedeği alındı ve geçici dalda boş veritabanına geri yüklendi; COPY satırları/sequence değerleri ve 3 kimlik, 12 oturum, 9 kaynak, 340 yorum sayımı eşleşti. Anahtar Windows profiline bağlı olduğundan cihaz dışı bağımsız yedek ve yeni makinede kurtarma hâlâ açık.
 - PR #64 başarılı CI ve Vercel önizlemesinden sonra `main` dalına birleştirildi (`b91c674`). Production'a yalnızca destek tablosu eklendi. Canlı `/contact` formuna sentetik bir talep gönderildi; sahip hesabındaki `/dashboard/support` gelen kutusunda görüldü ve çözüldü işaretlenince açık listeden çıktı. Canlı widget yanıtında doğru ReviewBridge bağlantısı var; eski `reviewbridge.com` yok. Gerçek bir müşteriyle yanıt e-postasının teslimi henüz denenmedi.
 - Aynı gün Vercel proje panelindeki takım rozeti **Hobby** olarak doğrulandı. Bu plan gerçek ücretli hizmet için uygun değil; ücretli Pro/Enterprise veya koşulları uygun farklı bir barındırma çözümü satıştan önce seçilmeli. Bu çalışmada ücretli plan satın alınmadı.
+- Apify tarama başlatmaları ve AI özetleri için bütün hesapların paylaştığı günlük 100'er istek üst sınırı eklendi (ortam değişkeniyle azaltılabilir/artırılabilir). Hesap başına saatlik sınırlar korunur; Neon'daki ortak sayaç erişilemezse ücretli dış istek başlatılmaz. Sağlayıcı faturası için parasal alarm ayrı bir iştir.

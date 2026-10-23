@@ -9,6 +9,7 @@ Set these for the Production environment and redeploy after changing them:
 - `DATABASE_URL` — Neon production connection string.
 - `NEON_AUTH_BASE_URL` and `NEON_AUTH_COOKIE_SECRET` — Neon Auth configuration.
 - `APIFY_API_TOKEN` and `APIFY_WEBHOOK_SECRET` — review collection and signed Apify callbacks.
+- `APIFY_DAILY_ATTEMPT_LIMIT` — optional shared daily start-attempt cap across all accounts and scheduled syncs; defaults to 100. Per-account hourly limits still apply. An invalid override falls back to 100; the shared limiter fails closed if its database is unavailable.
 - `CRON_SECRET` — protects the daily maintenance and opt-in automatic-sync job.
 - `NEXT_PUBLIC_APP_URL` — canonical production URL used in callbacks and email links. `VERCEL_URL` is a fallback for the automatic-sync dispatcher.
 - `LEMONSQUEEZY_WEBHOOK_SECRET` — required; the webhook rejects requests when it is absent.
@@ -19,7 +20,7 @@ Set these for the Production environment and redeploy after changing them:
 - `RESEND_FROM_EMAIL` — verified sender address for opt-in sync failure and source-limit alerts. If unset, emails are skipped; dashboard states remain available.
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are also required for scheduled survey invitations. The sender address must be verified in Resend before any invitation can be delivered.
 - `/dashboard/support` is restricted to the verified owner account by a server-side email digest check. The contact form stores tickets in Neon; it does not send notification emails. Check this inbox regularly and reply manually until a verified sending domain is configured. Change the owner digest in `lib/support-tickets.js` if the owner account changes.
-- `GEMINI_API_KEY` — Google Gemini API key, kept server-only; never prefix it with `NEXT_PUBLIC_`. `GEMINI_MODEL` is optional and defaults to `gemini-3.8-flash`.
+- `GEMINI_API_KEY` — Google Gemini API key, kept server-only; never prefix it with `NEXT_PUBLIC_`. `GEMINI_MODEL` is optional and defaults to `gemini-3.5-flash-lite`. `GEMINI_DAILY_SUMMARY_LIMIT` is an optional shared daily request cap, default 100; per-account hourly limits remain in force.
 - Source-limit email notices are opt-in in Settings and sent at most once per account every 30 days. They require the same verified Resend sender configuration.
 
 ## Verified production state
