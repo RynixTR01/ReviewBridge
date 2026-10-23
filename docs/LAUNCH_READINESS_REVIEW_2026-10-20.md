@@ -146,9 +146,9 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 **Kanıt:** docs/OPERATIONS.md; Vercel güncel Hobby ve Fair Use belgeleri; Google Maps şartları.
 
 ### 10. Yedek, geri yükleme ve başarısız yayın provası
-**Öncelik:** Satış öncesi · **Durum:** Başarı kanıtı eksik
+**Öncelik:** Satış öncesi · **Durum:** Yerel tam şema provası geçti; bağımsız cihaz dışı kurtarma açık
 
-**Bulgum:** Önceki kontrol kısa bir Neon geri dönüş penceresi ve planlı snapshot bulunmadığını kaydetmişti. Bu turda geri yükleme yapılmadı; müşteri verisinin gerçekten kurtarıldığını gösteren prova kaydı yok.
+**Bulgum:** 21 Ekim'de yalnız `public`, 23 Ekim'de `public` ve `neon_auth` birlikte şifreli yedeklenip ayrı Neon dalındaki boş veritabanına geri yüklendi. COPY satırları ve sequence değerleri eşleşti. Anahtar Windows kullanıcı profiline bağlı; bağımsız cihaz dışı kopya ve farklı makinede kimlik/oturum kurtarması yok.
 
 **Müşteriye/işletmeye etkisi:** Yanlış silme veya hatalı yayın sonrasında kayıp veriyi kurtaramazsan müşteriye hizmeti geri veremezsin.
 
@@ -156,20 +156,20 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 
 **Kapanış ölçütü:** Üretim verisini bozmadan geri yükleme provası geçer; süre ve sonuç kaydedilir. Migration ve uygulama geri alma adımları birlikte çalışır.
 
-**Kanıt:** Önceki Neon envanteri; bu incelemede yeni yedek veya kurtarma işlemi yapılmadı.
+**Kanıt:** `docs/RECOVERY_RUNBOOK.md`; kanıtlı yerel şifreli yedek ve geri yükleme kaydı.
 
 ### 11. Gerçek destek kanalı ve çalışan e-posta özellikleri
-**Öncelik:** Satış öncesi · **Durum:** Dış kurulum ve teslim testi bekliyor
+**Öncelik:** Satış öncesi · **Durum:** Gelen destek talebi doğrulandı; e-posta gönderimi eksik
 
-**Bulgum:** Sitede support@reviewbridge.app yazıyor; bu adresin sana ait ve alıcı olduğuna dair doğrulama yok. Operasyon notlarında Resend gönderici alanı/anahtarı eksik ve e-posta davetlerinin kapalı olduğu yazıyor. Güncel teslim testi bu turda yapılmadı.
+**Bulgum:** Doğrulanmamış destek e-postası bağlantıları kaldırıldı. Canlı `/contact` formu talebi Neon'a kaydetti; sahip hesabının özel gelen kutusunda göründü ve kapatıldı. Yanıt hâlâ e-posta istemcisinden elle gönderilir; Resend gönderici alanı/anahtarı eksik olduğu için davet ve otomatik hizmet e-postaları kapalıdır.
 
 **Müşteriye/işletmeye etkisi:** Ücret ödeyen müşteri destek alamayabilir; satıldığı düşünülen davet/bildirim özelliği çalışmayabilir.
 
-**Yapılacak iş:** Sahip olduğun çalışan destek adresini yayınla ve gidiş-dönüş teslimi doğrula. E-posta özelliği satılacaksa doğrulanmış gönderici ve yalnızca gönderim yetkili anahtar kur; bounce/şikâyet/vazgeçme davranışını test et. Etkin olmayan özellikleri satış vaadinden çıkar.
+**Yapılacak iş:** Sahip hesabından gerçek müşteriye bir yanıtın teslimini doğrula; gelen kutusunu düzenli takip et. E-posta özelliği satılacaksa doğrulanmış gönderici ve yalnızca gönderim yetkili anahtar kur; bounce/şikâyet/vazgeçme davranışını test et. Etkin olmayan özellikleri satış vaadinden çıkar.
 
 **Kapanış ölçütü:** Destek mesajı gerçek gelen kutusuna ulaşır ve yanıtlanabilir. Davet gönderimi, vazgeçme ve tekrar göndermeme çalışır. Site alan adını değiştirmek bu iş için zorunlu değildir; gönderici alanı ayrı olabilir.
 
-**Kanıt:** Ana sayfa, yardım, gizlilik ve koşullar metinleri; docs/OPERATIONS.md; app/actions/surveys.js.
+**Kanıt:** Canlı form/gelen kutusu denemesi, `app/contact`, `app/dashboard/support`, `docs/OPERATIONS.md`, `app/actions/surveys.js`.
 
 ### 12. Kullanım kotası ve maliyetin kontrol altında tutulması
 **Öncelik:** Satış öncesi · **Durum:** Ürün sınırları kısmen tanımlı
