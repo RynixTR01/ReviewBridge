@@ -91,13 +91,6 @@ export async function addSourceAction(prevState, formData) {
   let totalReviewsCount = null;
   
   const startsAsyncSync = Boolean(process.env.APIFY_API_TOKEN) && (platform === "google" || platform === "trustpilot");
-  const attemptLimit = startsAsyncSync ? await providerAttemptLimit(user.id, user.plan) : null;
-  if (attemptLimit) {
-    return { error: attemptLimit === "site"
-      ? "Günlük tarama kapasitesine ulaşıldı. Yarın tekrar deneyin."
-      : "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." };
-  }
-
 
   try {
     if (process.env.APIFY_API_TOKEN) {
@@ -163,6 +156,37 @@ export async function addSourceAction(prevState, formData) {
   const newSource = admission.source;
   const plan = admission.plan;
   const reviewsToFetch = plan === "pro" || plan === "agency" ? 40 : 20;
+
+  // A rejected duplicate or full plan must not spend the shared Apify budget.
+  // Reserve only after the serialized admission says a source was created, but
+  // still before starting the billable actor. If capacity is gone, undo this
+  // new source before its history/widget can be created.
+  const attemptLimit = startsAsyncSync ? await providerAttemptLimit(user.id, plan) : null;
+  if (attemptLimit) {
+    try {
+      const removed = await queryOne(
+        `DELETE FROM public.sources
+         WHERE id=$1 AND user_id=$2 AND sync_status='pending' AND apify_run_id IS NULL
+         RETURNING id`,
+        [newSource.id, user.id],
+      );
+      if (!removed) throw new Error("New source could not be rolled back.");
+    } catch (error) {
+      console.error("Could not roll back a source blocked by provider capacity.", { code: error?.code });
+      try {
+        await query(
+          `UPDATE public.sources SET sync_status='error', sync_started_at=NULL,
+           last_sync_error='Tarama kapasitesi dolu; daha sonra yeniden deneyin.'
+           WHERE id=$1 AND user_id=$2 AND apify_run_id IS NULL`,
+          [newSource.id, user.id],
+        );
+      } catch { /* the source remains visible for manual recovery */ }
+      return { error: "Tarama kapasitesi dolu. Kaynak kaydedilmiş olabilir; panelden kontrol edip daha sonra yeniden eşitleyin." };
+    }
+    return { error: attemptLimit === "site"
+      ? "Günlük tarama kapasitesine ulaşıldı. Yarın tekrar deneyin."
+      : "Bu hesap için tarama deneme sınırına ulaşıldı. Bir saat sonra yeniden deneyin." };
+  }
 
   const historyId = await startSyncHistory(newSource.id);
   // Start Apify after creating the source so slow review collection stays out of the form request.
