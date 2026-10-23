@@ -135,7 +135,7 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 ### 09. Ticari barındırma ve veri sağlayıcılarının koşulları
 **Öncelik:** Satış öncesi doğrulama · **Durum:** Dış hizmet doğrulaması gerekli
 
-**Bulgum:** Operasyon notları Vercel Hobby kullanımını kaydediyor; güncel hesap planı bu incelemede yeniden açılmadı. Vercel Hobby ticari kullanıma uygun değil. Google/Trustpilot yetkili ticari API erişimi için önceki notlarda tamamlanmamış başvurular bulunuyor.
+**Bulgum:** 23 Ekim'de Vercel hesabı yeniden açıldı ve proje ekibi hâlâ **Hobby** göründü. [Vercel'in güncel koşulları](https://vercel.com/legal/terms) Hobby kullanımını kişisel/ticari olmayan faaliyetle sınırlıyor. Google/Trustpilot yetkili ticari API erişimi için önceki notlarda tamamlanmamış başvurular bulunuyor.
 
 **Müşteriye/işletmeye etkisi:** Satış başlatmak teknik olarak mümkün olsa bile barındırma veya yorumların yeniden kullanım koşulları iş modelini engelleyebilir.
 
@@ -305,3 +305,4 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - Neon Auth verilerinin `neon_auth` şemasında aynı Postgres dalında olduğu doğrulandı. Mevcut `public` yedeği bu verileri kapsamaz; düzenli cihaz dışı şifreli yedek ve bağımsız Auth geri yükleme provası hâlâ açık satış kapısıdır.
 - Ardından `public` + `neon_auth` şemalarının birlikte şifreli yedeği alındı ve geçici dalda boş veritabanına geri yüklendi; COPY satırları/sequence değerleri ve 3 kimlik, 12 oturum, 9 kaynak, 340 yorum sayımı eşleşti. Anahtar Windows profiline bağlı olduğundan cihaz dışı bağımsız yedek ve yeni makinede kurtarma hâlâ açık.
 - PR #64 başarılı CI ve Vercel önizlemesinden sonra `main` dalına birleştirildi (`b91c674`). Production'a yalnızca destek tablosu eklendi. Canlı `/contact` formuna sentetik bir talep gönderildi; sahip hesabındaki `/dashboard/support` gelen kutusunda görüldü ve çözüldü işaretlenince açık listeden çıktı. Canlı widget yanıtında doğru ReviewBridge bağlantısı var; eski `reviewbridge.com` yok. Gerçek bir müşteriyle yanıt e-postasının teslimi henüz denenmedi.
+- Aynı gün Vercel proje panelindeki takım rozeti **Hobby** olarak doğrulandı. Bu plan gerçek ücretli hizmet için uygun değil; ücretli Pro/Enterprise veya koşulları uygun farklı bir barındırma çözümü satıştan önce seçilmeli. Bu çalışmada ücretli plan satın alınmadı.
