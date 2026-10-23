@@ -135,7 +135,7 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 ### 09. Ticari barındırma ve veri sağlayıcılarının koşulları
 **Öncelik:** Satış öncesi doğrulama · **Durum:** Dış hizmet doğrulaması gerekli
 
-**Bulgum:** Operasyon notları Vercel Hobby kullanımını kaydediyor; güncel hesap planı bu incelemede yeniden açılmadı. Vercel Hobby ticari kullanıma uygun değil. Google/Trustpilot yetkili ticari API erişimi için önceki notlarda tamamlanmamış başvurular bulunuyor.
+**Bulgum:** 23 Ekim'de Vercel hesabı yeniden açıldı ve proje ekibi hâlâ **Hobby** göründü. [Vercel'in güncel koşulları](https://vercel.com/legal/terms) Hobby kullanımını kişisel/ticari olmayan faaliyetle sınırlıyor. Google/Trustpilot yetkili ticari API erişimi için önceki notlarda tamamlanmamış başvurular bulunuyor.
 
 **Müşteriye/işletmeye etkisi:** Satış başlatmak teknik olarak mümkün olsa bile barındırma veya yorumların yeniden kullanım koşulları iş modelini engelleyebilir.
 
@@ -146,9 +146,9 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 **Kanıt:** docs/OPERATIONS.md; Vercel güncel Hobby ve Fair Use belgeleri; Google Maps şartları.
 
 ### 10. Yedek, geri yükleme ve başarısız yayın provası
-**Öncelik:** Satış öncesi · **Durum:** Başarı kanıtı eksik
+**Öncelik:** Satış öncesi · **Durum:** Yerel tam şema provası geçti; bağımsız cihaz dışı kurtarma açık
 
-**Bulgum:** Önceki kontrol kısa bir Neon geri dönüş penceresi ve planlı snapshot bulunmadığını kaydetmişti. Bu turda geri yükleme yapılmadı; müşteri verisinin gerçekten kurtarıldığını gösteren prova kaydı yok.
+**Bulgum:** 21 Ekim'de yalnız `public`, 23 Ekim'de `public` ve `neon_auth` birlikte şifreli yedeklenip ayrı Neon dalındaki boş veritabanına geri yüklendi. COPY satırları ve sequence değerleri eşleşti. Anahtar Windows kullanıcı profiline bağlı; bağımsız cihaz dışı kopya ve farklı makinede kimlik/oturum kurtarması yok.
 
 **Müşteriye/işletmeye etkisi:** Yanlış silme veya hatalı yayın sonrasında kayıp veriyi kurtaramazsan müşteriye hizmeti geri veremezsin.
 
@@ -156,20 +156,20 @@ Lemon Squeezy'nin iptal/sona erme ayrımı için: [abonelik nesnesi](https://doc
 
 **Kapanış ölçütü:** Üretim verisini bozmadan geri yükleme provası geçer; süre ve sonuç kaydedilir. Migration ve uygulama geri alma adımları birlikte çalışır.
 
-**Kanıt:** Önceki Neon envanteri; bu incelemede yeni yedek veya kurtarma işlemi yapılmadı.
+**Kanıt:** `docs/RECOVERY_RUNBOOK.md`; kanıtlı yerel şifreli yedek ve geri yükleme kaydı.
 
 ### 11. Gerçek destek kanalı ve çalışan e-posta özellikleri
-**Öncelik:** Satış öncesi · **Durum:** Dış kurulum ve teslim testi bekliyor
+**Öncelik:** Satış öncesi · **Durum:** Gelen destek talebi doğrulandı; e-posta gönderimi eksik
 
-**Bulgum:** Sitede support@reviewbridge.app yazıyor; bu adresin sana ait ve alıcı olduğuna dair doğrulama yok. Operasyon notlarında Resend gönderici alanı/anahtarı eksik ve e-posta davetlerinin kapalı olduğu yazıyor. Güncel teslim testi bu turda yapılmadı.
+**Bulgum:** Doğrulanmamış destek e-postası bağlantıları kaldırıldı. Canlı `/contact` formu talebi Neon'a kaydetti; sahip hesabının özel gelen kutusunda göründü ve kapatıldı. Yanıt hâlâ e-posta istemcisinden elle gönderilir; Resend gönderici alanı/anahtarı eksik olduğu için davet ve otomatik hizmet e-postaları kapalıdır.
 
 **Müşteriye/işletmeye etkisi:** Ücret ödeyen müşteri destek alamayabilir; satıldığı düşünülen davet/bildirim özelliği çalışmayabilir.
 
-**Yapılacak iş:** Sahip olduğun çalışan destek adresini yayınla ve gidiş-dönüş teslimi doğrula. E-posta özelliği satılacaksa doğrulanmış gönderici ve yalnızca gönderim yetkili anahtar kur; bounce/şikâyet/vazgeçme davranışını test et. Etkin olmayan özellikleri satış vaadinden çıkar.
+**Yapılacak iş:** Sahip hesabından gerçek müşteriye bir yanıtın teslimini doğrula; gelen kutusunu düzenli takip et. E-posta özelliği satılacaksa doğrulanmış gönderici ve yalnızca gönderim yetkili anahtar kur; bounce/şikâyet/vazgeçme davranışını test et. Etkin olmayan özellikleri satış vaadinden çıkar.
 
 **Kapanış ölçütü:** Destek mesajı gerçek gelen kutusuna ulaşır ve yanıtlanabilir. Davet gönderimi, vazgeçme ve tekrar göndermeme çalışır. Site alan adını değiştirmek bu iş için zorunlu değildir; gönderici alanı ayrı olabilir.
 
-**Kanıt:** Ana sayfa, yardım, gizlilik ve koşullar metinleri; docs/OPERATIONS.md; app/actions/surveys.js.
+**Kanıt:** Canlı form/gelen kutusu denemesi, `app/contact`, `app/dashboard/support`, `docs/OPERATIONS.md`, `app/actions/surveys.js`.
 
 ### 12. Kullanım kotası ve maliyetin kontrol altında tutulması
 **Öncelik:** Satış öncesi · **Durum:** Ürün sınırları kısmen tanımlı
@@ -303,3 +303,6 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - PR #63 başarılı CI/Vercel kontrollerinden sonra `main` dalına birleştirildi (`9e7c24d`). Vercel production yayını başarılı ve `/api/health` HTTP 200. Lemon test modunda kaldı. İzole dalda ayrıca canlı mod/test aboneliği uyuşmazlığında okuma anındaki hakkın Free olduğu, saklanan planın Free'ye indiği ve geçmiş abonelik kimliğinin otomatik silinmediği doğrulandı.
 - Üretim widget rozetindeki `reviewbridge.com` bağlantısı gerçek yayın adresine düzeltildi; doğrulanmamış `support@reviewbridge.app` bağlantıları için Neon'da kayıt tutan iletişim formu ve yalnızca doğrulanmış sahip hesabına açık destek gelen kutusu geliştirildi. Migration izole dalda kısıtlı runtime rolüyle test edildi. **Bu bölümün canlı yayını ve uçtan uca mesaj/yanıt testi ayrıca doğrulanmalıdır.**
 - Neon Auth verilerinin `neon_auth` şemasında aynı Postgres dalında olduğu doğrulandı. Mevcut `public` yedeği bu verileri kapsamaz; düzenli cihaz dışı şifreli yedek ve bağımsız Auth geri yükleme provası hâlâ açık satış kapısıdır.
+- Ardından `public` + `neon_auth` şemalarının birlikte şifreli yedeği alındı ve geçici dalda boş veritabanına geri yüklendi; COPY satırları/sequence değerleri ve 3 kimlik, 12 oturum, 9 kaynak, 340 yorum sayımı eşleşti. Anahtar Windows profiline bağlı olduğundan cihaz dışı bağımsız yedek ve yeni makinede kurtarma hâlâ açık.
+- PR #64 başarılı CI ve Vercel önizlemesinden sonra `main` dalına birleştirildi (`b91c674`). Production'a yalnızca destek tablosu eklendi. Canlı `/contact` formuna sentetik bir talep gönderildi; sahip hesabındaki `/dashboard/support` gelen kutusunda görüldü ve çözüldü işaretlenince açık listeden çıktı. Canlı widget yanıtında doğru ReviewBridge bağlantısı var; eski `reviewbridge.com` yok. Gerçek bir müşteriyle yanıt e-postasının teslimi henüz denenmedi.
+- Aynı gün Vercel proje panelindeki takım rozeti **Hobby** olarak doğrulandı. Bu plan gerçek ücretli hizmet için uygun değil; ücretli Pro/Enterprise veya koşulları uygun farklı bir barındırma çözümü satıştan önce seçilmeli. Bu çalışmada ücretli plan satın alınmadı.

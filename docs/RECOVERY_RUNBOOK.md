@@ -21,9 +21,47 @@ cihaz dışı felaket yedeği değildir. DPAPI aynı Windows kullanıcı profili
 gerektirir; bilgisayar/profil kaybolursa bu kopya tek başına yeterli olmaz.
 Neon Auth kimlikleri aynı veritabanının `neon_auth` şemasındadır ve bu
 `--schema=public` yedeğine dahil değildir. Production sahibi rolünün bu şemaya
-okuma erişimi doğrulandı; fakat bağımsız, şifreli `neon_auth` dışa aktarımı ve
-geri yükleme provası yapılmadı. Neon dalı/snapshot'ı kimlik verisini kopyalasa
+okuma erişimi doğrulandı; 21 Ekim'deki provada `neon_auth` dışa aktarımı ve
+geri yükleme yapılmadı. Neon dalı/snapshot'ı kimlik verisini kopyalasa
 bile sağlayıcıdan bağımsız bir felaket yedeği sayılmaz.
+
+## 23 Ekim 2026 tam şema provası
+
+`scripts/backup-neon-full.mjs` PostgreSQL 18.6 araçlarıyla production'ın
+`public` ve `neon_auth` şemalarını yalnızca bellekte custom-format arşive aldı.
+Arşiv AES-256-GCM ile şifrelendi; rastgele anahtar aynı Windows kullanıcı
+profiline bağlı DPAPI dosyasına sarıldı. **Düz metin arşiv diske yazılmadı.**
+Şifreli kopya açılarak production'dan türetilmiş geçici dalın boş
+`rb_restore_1792741141028` veritabanına geri yüklendi. Bütün COPY satırları ve
+sequence değerleri eşleşti. Ayrıca kaynak/hedef sayımları: `neon_auth.user` 3,
+`neon_auth.session` 12, `neon_auth.account` 3, `public.sources` 9,
+`public.reviews` 340 — tamamı eşleşti.
+
+- Kanıt zamanı: 2026-10-23T07:39:26Z.
+- Geçerli şifreli kopya: `backups/neon-20261023-full/full-2026-10-23T07-37-51-540Z.rbbackup`
+  (proje üst klasöründe; Git'e eklenmez).
+- Anahtar dosyası: aynı ad + `.key.dpapi`.
+- SHA-256: `16e6e89f117ab29888b06f51ccdb9f75fc0872011bd9ac9020e703be2b386144`.
+- Makinece okunur kanıt: aynı ad + `.proof.json`.
+- Geçici dal `br-calm-hall-ba5pfw3x` 23 Ekim 21:00 UTC'de sona erer.
+- Bu klasörde önceki başarısız denemelerden kalan iki **şifreli ama doğrulanmamış**
+  kopya da vardır; kurtarma için yalnız yukarıdaki kanıtlı dosyayı kullan.
+
+Bu, Neon Auth verisinin **veritabanı düzeyinde** kurtarılabildiğini kanıtlar;
+Neon Auth servis ayarları/OAuth yönlendirmeleri, oturum geçersizleştirme ve
+uygulama URL'leri yeni ortamda ayrıca doğrulanmalıdır. DPAPI dosyası aynı
+Windows profili olmadan açılamaz. **Cihaz dışı bağımsız yedek hâlâ yoktur.**
+Sonraki adım şifreli kopyayı ve bağımsız kurtarma anahtarını ayrı, güvenli
+yerlerde saklayıp başka bilgisayarda periyodik geri yükleme provası yapmaktır.
+
+Tekrarlama: PostgreSQL'in resmî Windows `pg_dump.exe`/`pg_restore.exe`
+araçlarını kur; production'dan türetilmiş, süreli ve yalıtılmış bir Neon dalı
+oluştur. `RB_BACKUP_SOURCE_URL`, `RB_BACKUP_AUDIT_URL`,
+`RB_BACKUP_AUDIT_HOST`, `RB_BACKUP_AUDIT_BRANCH`, `RB_POSTGRES_BIN` ve
+`RB_BACKUP_OUTPUT_DIR` değişkenlerini yalnızca yerel işlem ortamında ayarla,
+sonra `node scripts/backup-neon-full.mjs` çalıştır. Araç production'a
+geri yükleme yapmayı reddeder ve yeni boş veritabanı oluşturur. Var olan
+şifreli kopyayı aynı dalda tekrar sınamak için `RB_BACKUP_RESUME_PATH` ayarlanır.
 
 ## Gerçek kurtarma öncesi
 
@@ -76,6 +114,7 @@ düzeltip görevi yeniden çalıştır. Tabloyu elle başarılıya çevirme.
 
 - Düzenli, cihaz dışı şifreli yedek ve bağımsız kurtarma anahtarı saklama.
 - Yedek saklama süresi, sahipliği ve dönemsel prova takvimi.
-- Kimlik servisi dahil felaket kurtarma ve güncel silme günlüğünün ayrı kopyası.
+- Kimlik servisi dahil geri yükleme provası geçti; oturum/OAuth ayarları ve
+  güncel silme günlüğünün ayrı kopyasıyla tam felaket kurtarma henüz test edilmedi.
 - Kesintiyle kalan yerel düz metin dosyalarının temizliği: otomatik onay denetimi
   temizlik komutunu engelledi; temizlenmiş kabul edilmemelidir.
