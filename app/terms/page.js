@@ -94,7 +94,7 @@ export default async function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "11. İletişim", "11. Contact Us")}</h2>
-            <p>{t(locale, "Bu koşullarla ilgili sorularınız için ", "If you have any questions about these terms, please contact us at ")}<a href="mailto:support@reviewbridge.app" className="text-primary hover:underline">support@reviewbridge.app</a>.</p>
+            <p>{t(locale, "Bu koşullarla ilgili sorularınız için ", "If you have any questions about these terms, please contact us at ")}<Link href="/contact" className="text-primary hover:underline">{t(locale, "iletişim formunu kullanın", "use the contact form")}</Link>.</p>
           </section>
         </div>
       </main>

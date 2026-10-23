@@ -19,7 +19,11 @@ karşılaştırıldı: eşleşti. İndeks/constraint oluşturma hatasında resto
 Bu bir **yerel, sağlayıcıdan bağımsız geri yükleme provasıdır**. Otomatik,
 cihaz dışı felaket yedeği değildir. DPAPI aynı Windows kullanıcı profilini
 gerektirir; bilgisayar/profil kaybolursa bu kopya tek başına yeterli olmaz.
-Neon Auth kimlikleri bu public şema yedeğine dahil değildir.
+Neon Auth kimlikleri aynı veritabanının `neon_auth` şemasındadır ve bu
+`--schema=public` yedeğine dahil değildir. Production sahibi rolünün bu şemaya
+okuma erişimi doğrulandı; fakat bağımsız, şifreli `neon_auth` dışa aktarımı ve
+geri yükleme provası yapılmadı. Neon dalı/snapshot'ı kimlik verisini kopyalasa
+bile sağlayıcıdan bağımsız bir felaket yedeği sayılmaz.
 
 ## Gerçek kurtarma öncesi
 
@@ -33,9 +37,11 @@ Neon Auth kimlikleri bu public şema yedeğine dahil değildir.
    `sha256('reviewbridge:deletion:' || auth_user_id)` değeri günlükte olan
    kullanıcıların geri gelmiş uygulama verilerini kaldır. Bunu yazmalar
    açılmadan, ayrı hedef üzerinde yap. Yarım kalan kimlik silmelerini koru.
-5. Neon Auth ayrı yönetilir: eski kimlik/oturum yedeğini körlemesine geri yükleme.
-   Oturumları geçersizleştirme ve kimlik tutarlılığı için sağlayıcı prosedürünü
-   uygula. Eski doğrulanmış e-posta tek başına yeni kimliği eski veriye bağlamaz.
+5. `neon_auth` şeması aynı Postgres dalında yer alır. `public` tek başına
+   kurtarılırsa kimlikler ve kullanıcı kayıtları ayrışabilir; girişleri açma.
+   Kimlik verisini eşzamanlı güvenli yedekten ayrı hedefe geri yükleyip
+   sağlayıcının oturum geçersizleştirme prosedürünü uygula. Eski oturumları
+   körlemesine etkinleştirme; yalnız e-posta eşleşmesi eski hesabı bağlamaz.
 6. Lemon aboneliklerini sağlayıcıdan yeniden karşılaştır; eski ücretli hakları
    doğrudan güvenilir kabul etme. Checkout linklerini/rezervasyonlarını geçersiz
    kıl; iptal edilmiş aboneliği yeniden etkinleştirme.
