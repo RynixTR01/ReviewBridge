@@ -52,6 +52,7 @@ async function runCleanup(request) {
     await query("DELETE FROM public.customer_survey_daily_limits WHERE response_day < CURRENT_DATE - INTERVAL '2 days'");
     await query("DELETE FROM public.customer_survey_responses WHERE created_at < NOW() - INTERVAL '365 days'");
     await query("DELETE FROM public.user_notifications WHERE created_at < NOW() - INTERVAL '180 days'");
+    await query("DELETE FROM public.support_tickets WHERE status = 'resolved' AND resolved_at < NOW() - INTERVAL '180 days'");
     await query(
       `UPDATE public.survey_invitations
        SET status = 'failed', attempt_count = LEAST(attempt_count + 1, 3),

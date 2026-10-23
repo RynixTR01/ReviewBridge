@@ -425,7 +425,7 @@ function Footer({ locale }) {
             <Link href="/privacy" className="hover:text-white transition-colors">{t(locale, "Gizlilik Politikası", "Privacy Policy")}</Link>
             <Link href="/status" className="hover:text-white transition-colors">{t(locale, "Sistem durumu", "System status")}</Link>
             <Link href="/terms" className="hover:text-white transition-colors">{t(locale, "Kullanım Koşulları", "Terms of Service")}</Link>
-            <a href="mailto:support@reviewbridge.app" className="hover:text-white transition-colors">support@reviewbridge.app</a>
+            <Link href="/contact" className="hover:text-white transition-colors">{t(locale, "İletişim", "Contact")}</Link>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-white/10 text-center text-sm">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import FaqAccordion from "./FaqAccordion";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { isSupportAdmin } from "@/lib/support-tickets";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -82,8 +83,8 @@ export default async function YardımPage() {
             <p className="text-xs text-muted">{t(locale, "Planları karşılaştırın ve yükseltin.", "Compare plans and upgrade.")}</p>
           </Link>
 
-          <a
-            href="mailto:support@reviewbridge.app"
+          <Link
+            href="/contact"
             className="bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/20 transition-all group"
           >
             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-green-100 transition-colors">
@@ -92,9 +93,10 @@ export default async function YardımPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-foreground text-sm mb-1">{t(locale, "Destekle iletişime geçin", "Contact support")}</h3>
-            <p className="text-xs text-muted">{t(locale, "24 saat içinde yanıt veririz.", "We respond within 24 hours.")}</p>
-          </a>
+            <p className="text-xs text-muted">{t(locale, "İletişim formundan talep gönderin.", "Send a request through the contact form.")}</p>
+          </Link>
         </div>
+        {isSupportAdmin(user) && <Link href="/dashboard/support" className="mt-4 inline-block text-sm font-medium text-primary underline">{t(locale, "Destek taleplerini görüntüle", "View support requests")}</Link>}
       </div>
     </div>
   );

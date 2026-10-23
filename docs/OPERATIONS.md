@@ -18,6 +18,7 @@ Set these for the Production environment and redeploy after changing them:
 - `RESEND_API_KEY` — optional welcome email delivery, sync failure alerts, and source-limit notices.
 - `RESEND_FROM_EMAIL` — verified sender address for opt-in sync failure and source-limit alerts. If unset, emails are skipped; dashboard states remain available.
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are also required for scheduled survey invitations. The sender address must be verified in Resend before any invitation can be delivered.
+- `/dashboard/support` is restricted to the verified owner account by a server-side email digest check. The contact form stores tickets in Neon; it does not send notification emails. Check this inbox regularly and reply manually until a verified sending domain is configured. Change the owner digest in `lib/support-tickets.js` if the owner account changes.
 - `GEMINI_API_KEY` — Google Gemini API key, kept server-only; never prefix it with `NEXT_PUBLIC_`. `GEMINI_MODEL` is optional and defaults to `gemini-3.8-flash`.
 - Source-limit email notices are opt-in in Settings and sent at most once per account every 30 days. They require the same verified Resend sender configuration.
 

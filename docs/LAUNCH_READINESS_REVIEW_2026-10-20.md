@@ -297,3 +297,9 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - Canlı mod ile veritabanındaki `billing_test_mode` uyuşmazsa, oturum açan kullanıcı ve halka açık widget hakları Free olarak değerlendirilir. Canlı modda test aboneliği kimliği kalmışsa `/api/health` 503 vererek geçişin eksik olduğunu bildirir. Bu korumalar test modundaki mevcut hakları değiştirmez.
 - `docs/LIVE_BILLING_CUTOVER.md`, gerçek satış günü uygulanacak sıralı işlemleri ve test aboneliklerini veri kaybetmeden sıfırlayan tek atomik SQL ifadesini içerir. **Production'da bu ifade henüz çalıştırılmadı; Lemon hâlâ test modunda.**
 - Geçici Neon dalı `billing-live-cutover-audit` üzerinde aynı ifade denendi: 1 test aboneliği/ücretli test kullanıcısı 0'a düştü; 9 kaynak, 340 yorum ve 10 widget aynen kaldı. 1 widget'ın plan önbelleği Free'ye döndü. Dal 23 Ekim'de otomatik sona erecek.
+
+## 23 Ekim — yayın ve destek kanalı çalışması
+
+- PR #63 başarılı CI/Vercel kontrollerinden sonra `main` dalına birleştirildi (`9e7c24d`). Vercel production yayını başarılı ve `/api/health` HTTP 200. Lemon test modunda kaldı. İzole dalda ayrıca canlı mod/test aboneliği uyuşmazlığında okuma anındaki hakkın Free olduğu, saklanan planın Free'ye indiği ve geçmiş abonelik kimliğinin otomatik silinmediği doğrulandı.
+- Üretim widget rozetindeki `reviewbridge.com` bağlantısı gerçek yayın adresine düzeltildi; doğrulanmamış `support@reviewbridge.app` bağlantıları için Neon'da kayıt tutan iletişim formu ve yalnızca doğrulanmış sahip hesabına açık destek gelen kutusu geliştirildi. Migration izole dalda kısıtlı runtime rolüyle test edildi. **Bu bölümün canlı yayını ve uçtan uca mesaj/yanıt testi ayrıca doğrulanmalıdır.**
+- Neon Auth verilerinin `neon_auth` şemasında aynı Postgres dalında olduğu doğrulandı. Mevcut `public` yedeği bu verileri kapsamaz; düzenli cihaz dışı şifreli yedek ve bağımsız Auth geri yükleme provası hâlâ açık satış kapısıdır.

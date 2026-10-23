@@ -27,7 +27,7 @@ function getFaqItems(locale) { return [
   },
   {
     question: t(locale, "Destek ekibine nasıl ulaşırım?", "How do I contact support?"),
-    answer: t(locale, "support@reviewbridge.app adresine e-posta gönderin; genellikle 24 saat içinde yanıt veririz.", "Email support@reviewbridge.app; we usually respond within 24 hours."),
+    answer: t(locale, "Yardım sayfasındaki İletişim bağlantısından destek talebi gönderebilirsiniz. Yanıtı belirttiğiniz e-posta adresine iletiriz.", "Use the Contact link on the Help page to send a support request. We reply to the email address you provide."),
   },
 ]; }
 
