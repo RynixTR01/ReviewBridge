@@ -7,7 +7,7 @@
 Bu rapor 14 çalışma başlığı içerir; bunlar 14 ayrı güvenlik açığı demek değildir. Doğrulanmış hatalar, henüz yayınlanmamış düzeltmeler, gerekli operasyon kontrolleri ve karar verilmesi gereken ürün kuralları ayrı belirtilmiştir. İnceleme kapsamı dışındaki her sistemin kusursuz olduğunu iddia etmez.
 
 ## İlk incelemenin tarihsel durumu — 20 Ekim
-Bu bölüm ilk inceleme anını kaydeder; güncel uygulama ve yayın bilgileri aşağıdaki 21 Ekim kaydındadır.
+Bu bölüm ilk inceleme anını kaydeder; güncel uygulama ve yayın bilgileri belgenin sonundaki tarihli kayıtlardadır.
 - GitHub main: `4c0bab38279d303ebd38b638a9e123b6a1d89cf1`. Çalışma dalı: `codex/security-plan-audit`; yerel güvenlik değişiklikleri commit edilmemiş ve main'e gitmemiş.
 - Yerel testler: **100 geçti, 0 başarısız**. Veritabanı ve ödeme sağlayıcısını taklit eden testlerin gerçek entegrasyon kanıtı olmadığı ayrıca dikkate alındı.
 - Canlı `/api/health`: **HTTP 200**, `{"status":"ok"}`. Bu uç nokta yalnızca basit veritabanı sorgusu yapıyor; giriş/ödeme/sync testinin yerine geçmez.
@@ -307,3 +307,5 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - PR #64 başarılı CI ve Vercel önizlemesinden sonra `main` dalına birleştirildi (`b91c674`). Production'a yalnızca destek tablosu eklendi. Canlı `/contact` formuna sentetik bir talep gönderildi; sahip hesabındaki `/dashboard/support` gelen kutusunda görüldü ve çözüldü işaretlenince açık listeden çıktı. Canlı widget yanıtında doğru ReviewBridge bağlantısı var; eski `reviewbridge.com` yok. Gerçek bir müşteriyle yanıt e-postasının teslimi henüz denenmedi.
 - Aynı gün Vercel proje panelindeki takım rozeti **Hobby** olarak doğrulandı. Bu plan gerçek ücretli hizmet için uygun değil; ücretli Pro/Enterprise veya koşulları uygun farklı bir barındırma çözümü satıştan önce seçilmeli. Bu çalışmada ücretli plan satın alınmadı.
 - Apify tarama başlatmaları ve AI özetleri için bütün hesapların paylaştığı günlük 100'er istek üst sınırı eklendi (ortam değişkeniyle azaltılabilir/artırılabilir). Hesap başına saatlik sınırlar korunur; Neon'daki ortak sayaç erişilemezse ücretli dış istek başlatılmaz. Sağlayıcı faturası için parasal alarm ayrı bir iştir.
+- PR #66 CI ve Vercel önizlemesi başarılıyken `main` dalına birleştirildi (`559e07b`); production yayını başarılı ve `/api/health` HTTP 200. Günlük sınırlar canlıda; gerçek sağlayıcı faturası için para bazlı alarm henüz kurulmadı.
+- Canlı yayın widget script'i bağımsız bir test sayfasından, gerçek yorumları olan bir widget ile masaüstü 1280 px ve mobil 390 px görünümde yüklendi. İkisinde de 3 yorum kartı göründü, yatay taşma veya başarısız ağ isteği olmadı. Google yorum bağlantısı tarayıcıda HTTP 200 açıldı; Google hesabıyla yorum gönderme akışı bu testin kapsamında değildi. Tekrar için `scripts/verify-live-widget.mjs` var. Müşterinin gerçek alan adındaki kurulum ayrıca doğrulanmalı.
