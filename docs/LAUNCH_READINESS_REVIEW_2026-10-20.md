@@ -292,3 +292,8 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - Test mağazası etkinleşmediği için Lemon müşteri portalı “This store has not been activated” hatası verdi. PR #61 ile uygulama içi iki aşamalı yenileme iptali production'a çıktı. Gerçek test aboneliğinde iptal yapıldı: Lemon ve Neon `cancelled`, bitiş tarihi 22 Kasım 2026; hesap bu tarihe kadar Pro kaldı.
 - Canlı widget düzenleyicide yerleştirme kodunun `localhost:3000` adresi gösterebildiği görüldü. PR #62 sunucudan aynı kanonik adresi geçirerek bunu düzeltiyor; canlı yayın sonrası tekrar doğrulanacak.
 - Test aboneliklerinin canlı moda geçildiğinde ücretli hak olarak kalmaması için açık bir geçiş kapısı var. Live anahtarları/ürünleri açmadan önce bu ayrım ve test kayıtlarının dönüşümü doğrulanmalı.
+
+## 22 Ekim — test/canlı abonelik ayrımı
+- Canlı mod ile veritabanındaki `billing_test_mode` uyuşmazsa, oturum açan kullanıcı ve halka açık widget hakları Free olarak değerlendirilir. Canlı modda test aboneliği kimliği kalmışsa `/api/health` 503 vererek geçişin eksik olduğunu bildirir. Bu korumalar test modundaki mevcut hakları değiştirmez.
+- `docs/LIVE_BILLING_CUTOVER.md`, gerçek satış günü uygulanacak sıralı işlemleri ve test aboneliklerini veri kaybetmeden sıfırlayan tek atomik SQL ifadesini içerir. **Production'da bu ifade henüz çalıştırılmadı; Lemon hâlâ test modunda.**
+- Geçici Neon dalı `billing-live-cutover-audit` üzerinde aynı ifade denendi: 1 test aboneliği/ücretli test kullanıcısı 0'a düştü; 9 kaynak, 340 yorum ve 10 widget aynen kaldı. 1 widget'ın plan önbelleği Free'ye döndü. Dal 23 Ekim'de otomatik sona erecek.

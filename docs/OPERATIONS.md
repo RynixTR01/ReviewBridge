@@ -74,5 +74,6 @@ Set these for the Production environment and redeploy after changing them:
 - New external source platforms still require a documented provider license and content lifecycle design. The first-party feedback form is a separate, consent-based source and does not grant rights to display Google/Trustpilot content.
 - A/B events and installation hosts are approximate observations, not verified users or proof of domain ownership. The public `/status` page shows the current health check and the last 7 days of scheduled GitHub checks in an hourly view; it is not a historical uptime SLA.
 - Lemon Squeezy remains in test mode; live checkout and sale-related work is intentionally deferred.
+- On 22 October, an actual fake-card Pro test checkout created subscription 2629524; the webhook upgraded the matching Neon user. In-app cancellation then changed both Lemon and Neon to `cancelled` with paid access until 22 November. A real Google Maps share short link also imported 20 reviews. `docs/LIVE_BILLING_CUTOVER.md` now documents how to clear test subscription entitlements when live payments are deliberately enabled. Production has **not** been switched to live billing.
 
 

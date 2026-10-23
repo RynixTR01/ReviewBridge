@@ -4,7 +4,7 @@ import { finishSyncHistory } from "@/lib/sync-history";
 import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { deliverSyncFailureAlerts } from "@/lib/sync-alerts";
 import { deliverDueSurveyInvitations } from "@/lib/survey-invitations";
-import { EXPIRE_BILLING_SQL } from "@/lib/billing-state";
+import { billingMode, EXPIRE_BILLING_SQL } from "@/lib/billing-state";
 
 export const maxDuration = 60;
 
@@ -24,7 +24,7 @@ async function runCleanup(request) {
     if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    await query(EXPIRE_BILLING_SQL, [null]);
+    await query(EXPIRE_BILLING_SQL, [null, billingMode() === "test"]);
 
     // Calculate the threshold time: 15 minutes ago
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
