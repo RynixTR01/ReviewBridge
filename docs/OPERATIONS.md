@@ -64,6 +64,18 @@ Set these for the Production environment and redeploy after changing them:
 8. For direct feedback, submit a disposable response and check pending → approved → unpublished. Do not publish test customer data. For agency access, verify one brand's viewer cannot edit and an editor cannot see another brand. For A/B experiments, compare only after meaningful traffic and confirm event counts on both variants.
 9. For opt-in email alerts, set `RESEND_FROM_EMAIL` to a verified sending address. Test sync failure alerts and source-limit notices with a disposable account in a non-production environment. Historical sync failures are marked as handled by the migration and do not trigger a backlog of email.
 
+### Live widget on an independent host
+
+Run `LIVE_WIDGET_TOKEN=<existing public embed token> node scripts/verify-live-widget.mjs`
+from a machine with Playwright Chromium installed. On PowerShell, set the variable
+with `$env:LIVE_WIDGET_TOKEN = '<token>'` for that shell first. The script serves
+only a synthetic page at `independent-widget-audit.example`; its widget script
+is fetched from the real production URL. It checks desktop and 390 px mobile
+rendering, real review cards, horizontal overflow, and failed network requests.
+Use a widget with at least one review and no domain allowlist. This smoke test
+does not verify a customer's own site, provider content rights, or Google
+review form completion.
+
 ## Current release constraints
 
 - Vercel Cron runs only on Production deployments. Preview deployments do not run the schedule.
