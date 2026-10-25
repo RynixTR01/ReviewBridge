@@ -322,3 +322,16 @@ Yeni domain/marka, yeni animasyonlar, tanıtım videosu, daha fazla widget temas
 - [Trustpilot işletme koşulları §14 ve §20](https://legal.trustpilot.com/for-businesses/terms-of-use-and-sale-for-businesses/1), yorum ve marka kullanımını özel izne veya işletme hesabından sağlanan tasarım/widget/işlevlere bağlıyor. [Resmî ürün sayfası](https://business.trustpilot.com/features/trustbox-widgets) özel gösterim için Display API seçeneğini belirtiyor. ReviewBridge'in kendi widget'ında scraper verisi göstermesine dair izin gösterilemedi.
 - Teknik alternatifler: Google için yalnızca doğrulanmış işletme konumlarının yorumlarını sağlayan [Business Profile Reviews API](https://developers.google.com/my-business/reference/rest/v4/accounts.locations.reviews/list) ve uygun OAuth/erişim onayı araştırılmalı; bunun da yeniden gösterim hakkını otomatik verdiği varsayılmamalı. Trustpilot için resmî TrustBox veya lisanslı Display API, ya da izin netleşene kadar yalnız birinci taraf geri bildirim özelliğini satış kapsamına almak değerlendirilmeli. Bu seçenekler ürün kapsamını ve maliyetini değiştirebilir.
 - **Satış kapısı:** Sağlayıcı bazında yazılı kullanım/yeniden gösterim hakkı ve gerekli atıflar doğrulanmadan Google/Trustpilot yorum tarama + ReviewBridge widget paketini ücretli müşteri vaadi sayma. Mevcut müşteri verileri ve yayın widget'ları için de saklama/gösterim kararı ayrıca alınmalı. Bu araştırma hukuki görüş değildir.
+
+## 25 Ekim — yedek güvenliği ilerlemesi
+
+- PR #73 ile yeni Neon tam yedeğinin arşiv anahtarı bağımsız kurtarma sırrıyla
+  taşınabilir biçimde sarılıyor. Production'dan `public + neon_auth` yedeği
+  alınıp izole dalda geri yüklendi; bütün satır ve sequence değerleri eşleşti.
+- Önceki başarısız denemelerden kalan dört düz metin dökümün şifreli kopyası
+  oluşturuldu, açılarak özgün hash'le karşılaştırıldı ve ardından yalnız dört
+  özgün dosya kaldırıldı. Ayrıntı `docs/RECOVERY_RUNBOOK.md` içindedir.
+- OneDrive klasöründeki şifreli kopyalar yerel olarak hash doğrulamasından
+  geçti. Buluttan bağımsız indirme, kurtarma sırrının ayrı cihaz dışı saklanması
+  ve başka bilgisayarda Auth/oturum geri yükleme provası hâlâ açık. Neon
+  production dalında otomatik snapshot programı bulunmadığı 25 Ekim'de görüldü.
