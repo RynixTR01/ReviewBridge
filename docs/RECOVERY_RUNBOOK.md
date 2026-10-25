@@ -54,11 +54,57 @@ Windows profili olmadan açılamaz. **Cihaz dışı bağımsız yedek hâlâ yok
 Sonraki adım şifreli kopyayı ve bağımsız kurtarma anahtarını ayrı, güvenli
 yerlerde saklayıp başka bilgisayarda periyodik geri yükleme provası yapmaktır.
 
+## Taşınabilir yeni yedek formatı
+
+Yeni tam yedekler artık `RB_BACKUP_PASSPHRASE_FILE` gerektirir. Dosyada en az
+32 karakterlik rastgele bir kurtarma sırrı bulunmalıdır; bir parola cümlesi
+yerine 32 rastgele baytın Base64 gösterimini kullan. Dosyayı proje klasörü,
+Git deposu, yedek klasörü ve aynı bulut hesabındaki yedek konumundan ayrı
+sakla. Sırrı komut satırı argümanına veya sohbet mesajına koyma. Bu dosya
+kaybolursa taşınabilir anahtar açılamaz.
+
+Yeni `.rbbackup` arşivindeki veri hâlâ AES-256-GCM ile şifrelidir. Yanına
+`.key.portable` (scrypt ile türetilmiş ayrı AES-256-GCM anahtarıyla sarılmış
+arşiv anahtarı) yazılır. Windows'ta ek olarak `.key.dpapi` üretilir. Başka
+bilgisayarda `.rbbackup`, `.key.portable` ve **ayrı saklanan** kurtarma sırrı
+gereklidir; DPAPI dosyası gerekli değildir. Geri yükleme provasını ayrı Neon
+dalında çalıştırırken `RB_BACKUP_RESUME_PATH` ve
+`RB_BACKUP_PASSPHRASE_FILE` ayarlanır. Betik mevcut production hostuna
+restore yapmayı reddeder.
+
+Her çalışmada `.proof.json` içindeki `all_copy_rows_and_sequences_match=true`
+ve arşiv SHA-256 değerini kaydet. Yedek ile taşınabilir anahtar dosyasını
+cihaz dışına **birlikte**, kurtarma sırrını ise farklı bir güvenli yere koy.
+Başka bilgisayarda arşiv ve anahtar dosyalarını açıp izole dalda geri yükleme
+provası geçmeden bunu felaket kurtarması tamamlandı sayma. Güncel hesap silme
+günlüğünün ayrı korunması ve oturum/OAuth doğrulaması hâlâ zorunludur.
+
+### 25 Ekim 2026 taşınabilir anahtar provası
+
+Production'dan `public` ve `neon_auth` birlikte alındı. Şifreli arşiv
+taşınabilir anahtarla açıldı; geçici `br-holy-voice-ba8ypy6p` Neon dalındaki
+boş `rb_restore_1792946555900` veritabanına yüklendi. Bütün COPY satırları
+ve sequence değerleri eşleşti. Dal 26 Ekim 2026 16:41 UTC'de sona erecek.
+
+- Arşiv: `backups/neon-20261025-portable/full-2026-10-25T16-42-35-841Z.rbbackup`
+  (Git deposunun üst klasöründe; Git'e eklenmez).
+- SHA-256: `d6adfe5c5e0dc878471dcc6bf4d8cabf860f1c2d728d2583877643a1edcb4fd4`.
+- Aynı adla `.key.portable`, `.key.dpapi` ve `.proof.json` dosyaları var.
+- Arşiv, `.key.portable` ve kanıt dosyasının kopyası yerel OneDrive klasörüne
+  alındı; üç dosyanın kopya hash'i kaynakla eşleşti. OneDrive işlemi çalışıyor,
+  fakat bulut hesabından indirilip açılması **henüz doğrulanmadı**.
+- Kurtarma sırrı proje ve OneDrive klasörü dışında, yalnız bu cihazdaki
+  `Documents/ReviewBridge-Recovery/portable-backup-passphrase.txt` dosyasında.
+  Dosyanın ACL'si yerel kullanıcıya okuma izni verecek şekilde sınırlandı.
+  Sırrın ayrı bir cihaz dışı güvenli saklama yeri ve ikinci makine provası
+  eksik olduğundan cihaz kaybı senaryosu kapandı sayılmaz.
+
 Tekrarlama: PostgreSQL'in resmî Windows `pg_dump.exe`/`pg_restore.exe`
 araçlarını kur; production'dan türetilmiş, süreli ve yalıtılmış bir Neon dalı
 oluştur. `RB_BACKUP_SOURCE_URL`, `RB_BACKUP_AUDIT_URL`,
-`RB_BACKUP_AUDIT_HOST`, `RB_BACKUP_AUDIT_BRANCH`, `RB_POSTGRES_BIN` ve
-`RB_BACKUP_OUTPUT_DIR` değişkenlerini yalnızca yerel işlem ortamında ayarla,
+`RB_BACKUP_AUDIT_HOST`, `RB_BACKUP_AUDIT_BRANCH`, `RB_POSTGRES_BIN`,
+`RB_BACKUP_OUTPUT_DIR` ve `RB_BACKUP_PASSPHRASE_FILE` değişkenlerini yalnızca
+yerel işlem ortamında ayarla,
 sonra `node scripts/backup-neon-full.mjs` çalıştır. Araç production'a
 geri yükleme yapmayı reddeder ve yeni boş veritabanı oluşturur. Var olan
 şifreli kopyayı aynı dalda tekrar sınamak için `RB_BACKUP_RESUME_PATH` ayarlanır.

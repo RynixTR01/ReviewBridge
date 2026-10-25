@@ -1,11 +1,12 @@
-// Windows-only, one-off disaster-recovery rehearsal. The Postgres archive and
-// Auth rows remain in memory; only AES-256-GCM ciphertext reaches the disk.
+// Isolated disaster-recovery rehearsal. The Postgres archive and Auth rows
+// remain in memory; only AES-256-GCM ciphertext reaches the disk.
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { readFile, writeFile, mkdir, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { neon } from "@neondatabase/serverless";
+import { openPortableKey, sealPortableKey } from "./portable-backup-key.mjs";
 
 const LIMIT = 256 * 1024 * 1024;
 const MAGIC = Buffer.from("RBNEON1\n");
@@ -73,7 +74,17 @@ function canonicalRows(sql) {
 }
 
 async function main() {
-  if (process.platform !== "win32") throw new Error("Windows DPAPI is required.");
+  const passphrasePath = process.env.RB_BACKUP_PASSPHRASE_FILE;
+  if (process.platform !== "win32" && !passphrasePath) {
+    throw new Error("A portable recovery passphrase file is required outside Windows.");
+  }
+  if (passphrasePath && resolve(passphrasePath).startsWith(resolve(process.cwd()) + sep)) {
+    throw new Error("Store the recovery passphrase file outside the project directory.");
+  }
+  const passphrase = passphrasePath && (await readFile(passphrasePath, "utf8")).trim();
+  if (passphrasePath && (!passphrase || passphrase.length < 32)) {
+    throw new Error("The recovery passphrase must contain at least 32 characters.");
+  }
   const sourceUrl = process.env.RB_BACKUP_SOURCE_URL;
   const auditUrl = process.env.RB_BACKUP_AUDIT_URL;
   const auditHost = process.env.RB_BACKUP_AUDIT_HOST;
@@ -92,7 +103,7 @@ async function main() {
     || source.username !== "neondb_owner" || audit.username !== "neondb_owner") {
     throw new Error("Unexpected production source or isolated audit destination.");
   }
-  const executable = (name) => join(bin, `${name}.exe`);
+  const executable = (name) => join(bin, `${name}${process.platform === "win32" ? ".exe" : ""}`);
   const schemas = ["--schema=public", "--schema=neon_auth"];
   const dumpArgs = [...schemas, "--format=custom", "--no-owner", "--no-acl"];
   await mkdir(outDir, { recursive: true });
@@ -102,6 +113,7 @@ async function main() {
     throw new Error("Resume backup must be inside the selected output directory.");
   }
   if (!backupPath) {
+    if (!passphrase) throw new Error("RB_BACKUP_PASSPHRASE_FILE is required for a portable new backup.");
     archive = await run(executable("pg_dump"), dumpArgs, { env: pgEnvironment(sourceUrl) });
     console.log("Postgres archive captured in memory.");
     if (!archive.subarray(0, 5).equals(Buffer.from("PGDMP"))) throw new Error("Invalid pg_dump archive.");
@@ -110,16 +122,19 @@ async function main() {
     const cipher = createCipheriv("aes-256-gcm", key, nonce);
     const ciphertext = Buffer.concat([cipher.update(archive), cipher.final()]);
     const envelope = Buffer.concat([MAGIC, nonce, cipher.getAuthTag(), ciphertext]);
-    const wrappedKey = await dpapi(key, "protect");
+    const wrappedKey = process.platform === "win32" && await dpapi(key, "protect");
+    const portableKey = sealPortableKey(key, passphrase);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     backupPath = join(outDir, `full-${stamp}.rbbackup`);
     await writeFile(backupPath, envelope, { flag: "wx" });
-    await writeFile(`${backupPath}.key.dpapi`, wrappedKey, { flag: "wx" });
+    await writeFile(`${backupPath}.key.portable`, portableKey, { flag: "wx" });
+    if (wrappedKey) await writeFile(`${backupPath}.key.dpapi`, wrappedKey, { flag: "wx" });
   }
-  const keyPath = `${backupPath}.key.dpapi`;
 
   const saved = await readFile(backupPath);
-  const unwrapped = await dpapi(await readFile(keyPath), "unprotect");
+  const unwrapped = passphrase
+    ? openPortableKey(await readFile(`${backupPath}.key.portable`), passphrase)
+    : await dpapi(await readFile(`${backupPath}.key.dpapi`), "unprotect");
   if (!saved.subarray(0, MAGIC.length).equals(MAGIC)) throw new Error("Invalid backup header.");
   const decrypt = createDecipheriv("aes-256-gcm", unwrapped,
     saved.subarray(MAGIC.length, MAGIC.length + 12));
@@ -127,7 +142,7 @@ async function main() {
   const recovered = Buffer.concat([decrypt.update(saved.subarray(MAGIC.length + 28)), decrypt.final()]);
   if (archive && !recovered.equals(archive)) throw new Error("Encrypted backup round trip differs.");
   archive ??= recovered;
-  console.log("DPAPI key and AES-GCM archive decrypted and verified.");
+  console.log("Recovery key and AES-GCM archive decrypted and verified.");
 
   const dbName = `rb_restore_${Date.now()}`;
   const auditSql = neon(auditUrl);
@@ -159,7 +174,7 @@ async function main() {
     restored_branch: auditBranch,
     restored_database: dbName,
     all_copy_rows_and_sequences_match: true,
-    limitation: "Backup and DPAPI-wrapped key are local to this Windows profile; this is not an off-device disaster backup.",
+    limitation: "Portable recovery requires the passphrase kept separately, an off-device copy, and a second-machine restore rehearsal.",
   };
   await writeFile(`${backupPath}.proof.json`, JSON.stringify(proof, null, 2));
   console.log(JSON.stringify({ ...proof, archive_bytes: archive.length }));
