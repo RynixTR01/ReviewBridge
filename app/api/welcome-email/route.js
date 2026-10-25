@@ -14,7 +14,8 @@ export async function POST(request) {
       return Response.json({ error: "Account email is unavailable" }, { status: 400 });
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    const from = process.env.RESEND_FROM_EMAIL?.trim();
+    if (!process.env.RESEND_API_KEY?.trim() || !from) {
       return Response.json({ success: true, skipped: true });
     }
 
@@ -42,7 +43,7 @@ export async function POST(request) {
 
     try {
       const { error } = await resend.emails.send({
-      from: "ReviewBridge <onboarding@resend.dev>",
+      from,
       to: email,
       subject: "Welcome to ReviewBridge! 🎉",
       html: `
@@ -62,7 +63,7 @@ export async function POST(request) {
             <li><strong>Embed</strong> it on your website with one line of code</li>
           </ol>
           <div style="text-align: center; margin-bottom: 32px;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://review-bridge.vercel.app'}/dashboard"
+            <a href="${appUrl}/dashboard"
                style="display: inline-block; padding: 14px 32px; background: #6366f1; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
               Go to Dashboard →
             </a>
