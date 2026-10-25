@@ -99,6 +99,25 @@ ve sequence değerleri eşleşti. Dal 26 Ekim 2026 16:41 UTC'de sona erecek.
   Sırrın ayrı bir cihaz dışı güvenli saklama yeri ve ikinci makine provası
   eksik olduğundan cihaz kaybı senaryosu kapandı sayılmaz.
 
+### 25 Ekim 2026 eski düz metin dökümlerinin korunması
+
+Eski Supabase public dökümü, şema SQL dosyası ve iki 21 Ekim Neon public
+dökümü `scripts/legacy-backup-vault.mjs seal` ile ayrı ayrı şifrelendi.
+Her `.rbsealed` dosyası bağımsız salt ve nonce kullanır; arşiv anahtarı aynı
+taşınabilir kurtarma sırrıyla sarılır. Ayrı `verify` çalışması her dosyayı
+yalnızca bellekte açıp özgün SHA-256 kanıtıyla karşılaştırdı. Dört şifreli
+dosya ve dört kanıt dosyası yerel OneDrive klasörüne kopyalandı; kopyaların
+SHA-256 değerleri eşleşti. **Bulut hesabından indirme henüz denenmedi.**
+
+Bu sekiz yerel ve sekiz OneDrive-klasörü dosyası doğrulandıktan sonra yalnızca
+dört özgün düz metin dosya kaldırıldı. `backups/` ağacındaki `.dump`, `.sql`,
+`.tmp` ve `.plain` uzantılı dosya sayısı sıfır olarak tekrar doğrulandı.
+Geri yükleme gerekirse `RB_BACKUP_VAULT_ROOT` ile yedek kökünü,
+`RB_BACKUP_PASSPHRASE_FILE` ile ayrı saklanan kurtarma sırrını ayarla; önce
+`node scripts/legacy-backup-vault.mjs verify <dosya.rbsealed>` çalıştır.
+Yalnızca bilinçli geri yükleme sırasında `restore <dosya.rbsealed>
+<açık-çıktı-yolu>` kullan; `restore` yeni bir düz metin dosya oluşturur.
+
 Tekrarlama: PostgreSQL'in resmî Windows `pg_dump.exe`/`pg_restore.exe`
 araçlarını kur; production'dan türetilmiş, süreli ve yalıtılmış bir Neon dalı
 oluştur. `RB_BACKUP_SOURCE_URL`, `RB_BACKUP_AUDIT_URL`,
@@ -162,5 +181,5 @@ düzeltip görevi yeniden çalıştır. Tabloyu elle başarılıya çevirme.
 - Yedek saklama süresi, sahipliği ve dönemsel prova takvimi.
 - Kimlik servisi dahil geri yükleme provası geçti; oturum/OAuth ayarları ve
   güncel silme günlüğünün ayrı kopyasıyla tam felaket kurtarma henüz test edilmedi.
-- Kesintiyle kalan yerel düz metin dosyalarının temizliği: otomatik onay denetimi
-  temizlik komutunu engelledi; temizlenmiş kabul edilmemelidir.
+- 25 Ekim'deki şifreli kopya ve hash doğrulaması sonrasında dört eski düz metin
+  döküm kaldırıldı. Yedek kökündeki düz metin döküm taraması sıfır sonuç verdi.
