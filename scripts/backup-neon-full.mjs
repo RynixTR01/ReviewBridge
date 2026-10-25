@@ -1,5 +1,5 @@
-// Windows-only, one-off disaster-recovery rehearsal. The Postgres archive and
-// Auth rows remain in memory; only AES-256-GCM ciphertext reaches the disk.
+// Isolated disaster-recovery rehearsal. The Postgres archive and Auth rows
+// remain in memory; only AES-256-GCM ciphertext reaches the disk.
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { readFile, writeFile, mkdir, unlink } from "node:fs/promises";
@@ -103,7 +103,7 @@ async function main() {
     || source.username !== "neondb_owner" || audit.username !== "neondb_owner") {
     throw new Error("Unexpected production source or isolated audit destination.");
   }
-  const executable = (name) => join(bin, `${name}.exe`);
+  const executable = (name) => join(bin, `${name}${process.platform === "win32" ? ".exe" : ""}`);
   const schemas = ["--schema=public", "--schema=neon_auth"];
   const dumpArgs = [...schemas, "--format=custom", "--no-owner", "--no-acl"];
   await mkdir(outDir, { recursive: true });
