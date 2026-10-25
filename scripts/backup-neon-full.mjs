@@ -82,7 +82,7 @@ async function main() {
     throw new Error("Store the recovery passphrase file outside the project directory.");
   }
   const passphrase = passphrasePath && (await readFile(passphrasePath, "utf8")).trim();
-  if (passphrase && passphrase.length < 32) {
+  if (passphrasePath && (!passphrase || passphrase.length < 32)) {
     throw new Error("The recovery passphrase must contain at least 32 characters.");
   }
   const sourceUrl = process.env.RB_BACKUP_SOURCE_URL;
