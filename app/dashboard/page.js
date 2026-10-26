@@ -8,6 +8,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createWidgetForSourceAction } from "@/app/actions/widget";
 import { setSourceAutoSyncAction } from "@/app/actions/source";
+import { isProviderReviewContentPaused } from "@/lib/provider-review-policy";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
        WHERE source.user_id = $1 OR (bm.user_id = $1 AND owner_profile.plan = 'agency')
      ), ranked_sources AS (
        SELECT visible_sources.*,
-              row_number() OVER (
+              sum(CASE WHEN visible_sources.platform = 'first_party' THEN 1 ELSE 0 END) OVER (
                 PARTITION BY visible_sources.user_id
                 ORDER BY visible_sources.created_at ASC, visible_sources.id ASC
               )::int AS owner_source_position
@@ -65,7 +66,7 @@ export default async function DashboardPage() {
   const userEmail = profile?.email || user.email || "";
 
   // Fetch review stats per source
-  const sourceIds = (sources || []).map((s) => s.id);
+  const sourceIds = (sources || []).filter((s) => !isProviderReviewContentPaused(s.platform)).map((s) => s.id);
   let reviewStats = {};
   let totalReviews = 0;
   let lastSyncDate = null;
@@ -117,6 +118,7 @@ export default async function DashboardPage() {
 
     // Get last sync date
     const syncDates = (sources || [])
+      .filter((s) => !isProviderReviewContentPaused(s.platform))
       .filter((s) => s.last_synced_at)
       .map((s) => new Date(s.last_synced_at));
     if (syncDates.length > 0) {
@@ -193,6 +195,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats bar */}
+      {(sources || []).some((source) => isProviderReviewContentPaused(source.platform)) && <div role="status" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        {t(locale, "Google ve Trustpilot yorum aktarımı ve gösterimi, içerik izinleri doğrulanana kadar duraklatıldı. Mevcut kayıtlar korunuyor. Doğrudan müşteri geri bildirimi toplamaya devam edebilirsiniz.", "Google and Trustpilot review imports and display are paused until content permissions are verified. Existing records are preserved. You can continue collecting direct customer feedback.")}
+        <Link href="/dashboard/feedback" className="ml-2 font-semibold underline">{t(locale, "Doğrudan geri bildirim oluştur", "Create direct feedback")}</Link>
+      </div>}
+
       {hasSources && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
@@ -228,8 +235,8 @@ export default async function DashboardPage() {
       {hasSources && (() => {
         const planLimits = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
         const maxSources = planLimits.maxSources;
-        const used = sources.filter((source) => source.user_id === user.id).length;
-        const paused = sources.filter((source) => source.user_id === user.id && source.owner_source_position > maxSources).length;
+        const used = sources.filter((source) => source.user_id === user.id && !isProviderReviewContentPaused(source.platform)).length;
+        const paused = sources.filter((source) => source.user_id === user.id && !isProviderReviewContentPaused(source.platform) && source.owner_source_position > maxSources).length;
         const isUnlimited = maxSources === Infinity;
         const pct = isUnlimited ? Math.min((used / 10) * 100, 100) : (used / maxSources) * 100;
         const barColor = pct >= 100 ? "bg-red-500" : userPlan === "free" ? "bg-amber-500" : "bg-primary";
@@ -273,7 +280,7 @@ export default async function DashboardPage() {
                 </svg>
               </div>
               <h3 className="font-semibold text-foreground mb-1">{t(locale, "İşletme profilinizi bağlayın", "Connect your business profile")}</h3>
-              <p className="text-sm text-muted">{t(locale, "Google Haritalar bağlantınızı yapıştırın", "Paste your Google Maps link")}</p>
+              <p className="text-sm text-muted">{t(locale, "Doğrudan geri bildirim bağlantısı oluşturun", "Create a direct feedback link")}</p>
             </div>
 
             {/* Step 2 */}
@@ -322,7 +329,8 @@ export default async function DashboardPage() {
             const isOwner = source.access_role === "owner";
             const canEdit = isOwner || source.access_role === "editor";
             const sourceOwnerPlan = PLAN_LIMITS[source.source_owner_plan] ? source.source_owner_plan : "free";
-            const sourcePausedByPlan = isOwner && source.owner_source_position > PLAN_LIMITS[sourceOwnerPlan].maxSources;
+            const providerPaused = isProviderReviewContentPaused(source.platform);
+            const sourcePausedByPlan = isOwner && !providerPaused && source.owner_source_position > PLAN_LIMITS[sourceOwnerPlan].maxSources;
             const widgetTheme = source.widgets?.[0]?.theme || "light";
             const isGoogle = source.platform === "google";
             const isFirstParty = source.platform === "first_party";
@@ -344,7 +352,9 @@ export default async function DashboardPage() {
               : syncedCount === 0
               ? "bg-amber-50 text-amber-700"
               : "bg-green-50 text-green-700";
-            const syncLabel = syncStatus === "pending"
+            const syncLabel = providerPaused
+              ? t(locale, "Dış kaynak duraklatıldı", "External source paused")
+              : syncStatus === "pending"
               ? t(locale, "Yorumlar alınıyor…", "Fetching reviews…")
               : syncStatus === "error"
               ? t(locale, "Eşitleme başarısız", "Sync failed")
@@ -377,13 +387,14 @@ export default async function DashboardPage() {
                       {source.brand_name && <p className="text-xs font-medium text-primary">{source.brand_name}</p>}
                       {sourcePausedByPlan && <p role="status" className="mt-1 text-xs font-medium text-amber-800">{t(locale, "Mevcut plan sınırı nedeniyle duraklatıldı · Veriler korunuyor", "Paused by the current plan limit · Data is preserved")}</p>}
                       {!isOwner && <p className="text-xs text-muted">{source.access_role === "editor" ? t(locale, "Paylaşılan · düzenleyici", "Shared · editor") : source.access_role === "client" ? t(locale, "Paylaşılan · müşteri", "Shared · client") : t(locale, "Paylaşılan · görüntüleyici", "Shared · viewer")}</p>}
+                      {providerPaused && <p className="mt-1 text-xs font-medium text-amber-800">{t(locale, "Bu kaynaktaki eski yorumlar gösterilmiyor; doğrudan geri bildirim kullanılabilir.", "Older reviews from this source are not displayed; direct feedback is available.")}</p>}
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-medium text-muted capitalize px-2 py-0.5 bg-muted-bg rounded-md">
                           {isFirstParty ? t(locale, "Doğrudan geri bildirim", "Direct feedback") : source.platform}
                         </span>
 
                         {/* Google rating badge */}
-                        {googleScore && (
+                        {!providerPaused && googleScore && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">
                             <StarIcon className="w-3.5 h-3.5 text-amber-400" />
                             {Number(googleScore).toFixed(1)}
@@ -391,7 +402,7 @@ export default async function DashboardPage() {
                         )}
 
                         {/* Google total reviews */}
-                        {!isFirstParty && googleTotal && (
+                        {!providerPaused && !isFirstParty && googleTotal && (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground px-2 py-0.5 bg-muted-bg rounded-md">
                             {googleTotal} {t(locale, "Google yorumu", "Google reviews")}
                           </span>
@@ -407,16 +418,16 @@ export default async function DashboardPage() {
                           {syncLabel}
                         </span>
 
-                        {!isFirstParty && <span className="text-xs text-muted">
+                        {!providerPaused && !isFirstParty && <span className="text-xs text-muted">
                           {t(locale, "Son başarılı eşitleme:", "Last successful sync:")} {source.last_synced_at ? new Date(source.last_synced_at).toLocaleDateString(locale === "tr" ? "tr-TR" : "en-US") : t(locale, "Henüz yok", "Not yet")}
                         </span>}
-                        {syncStatus === "error" && source.last_sync_error && (
+                        {!providerPaused && syncStatus === "error" && source.last_sync_error && (
                           <span className="text-xs text-red-600">{locale === "tr" ? source.last_sync_error : "The last sync failed. Try again or check the source link."}</span>
                         )}
-                        {syncStatus === "error" && source.sync_retry_after && Number(source.sync_retry_count) <= 3 && (
+                        {!providerPaused && syncStatus === "error" && source.sync_retry_after && Number(source.sync_retry_count) <= 3 && (
                           <span className="basis-full text-xs text-amber-700">{t(locale, "Otomatik yeniden deneme: ", "Automatic retry: ")}{new Date(source.sync_retry_after).toLocaleString(locale === "tr" ? "tr-TR" : "en-US")}</span>
                         )}
-                        {!isFirstParty && syncStatus === "done" && syncedCount === 0 && (
+                        {!providerPaused && !isFirstParty && syncStatus === "done" && syncedCount === 0 && (
                           <span className="text-xs text-amber-700">
                             {t(locale, "Profil bağlantısını kontrol edin veya ", "Check the profile link or ")}<Link href="/dashboard/help#google-maps-url" className="underline">{t(locale, "bağlantı kılavuzunu açın", "open the link guide")}</Link>.
                           </span>
@@ -434,8 +445,8 @@ export default async function DashboardPage() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Sync now button */}
-                    {isFirstParty ? (isOwner && <Link href="/dashboard/feedback" className="rounded-lg border border-border px-3 py-2 text-sm text-primary">{t(locale, "Yanıtları yönet", "Manage responses")}</Link>) : (canEdit && !sourcePausedByPlan && <SyncButton sourceId={source.id} />)}
-                    {!isFirstParty && isOwner && !sourcePausedByPlan && <form action={setSourceAutoSyncAction}>
+                    {isFirstParty ? (isOwner && <Link href="/dashboard/feedback" className="rounded-lg border border-border px-3 py-2 text-sm text-primary">{t(locale, "Yanıtları yönet", "Manage responses")}</Link>) : (!providerPaused && canEdit && !sourcePausedByPlan && <SyncButton sourceId={source.id} />)}
+                    {!providerPaused && !isFirstParty && isOwner && !sourcePausedByPlan && <form action={setSourceAutoSyncAction}>
                       <input type="hidden" name="sourceId" value={source.id} />
                       <input type="hidden" name="enabled" value={source.auto_sync_enabled ? "false" : "true"} />
                       <button type="submit" className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${source.auto_sync_enabled ? "border-green-200 bg-green-50 text-green-800" : "border-border text-muted hover:bg-muted-bg hover:text-foreground"}`} aria-label={source.auto_sync_enabled ? t(locale, "Günlük otomatik eşitlemeyi kapat", "Disable daily auto-sync") : t(locale, "Günlük otomatik eşitlemeyi aç", "Enable daily auto-sync")}>
@@ -447,7 +458,7 @@ export default async function DashboardPage() {
                     {isOwner && <DeleteSourceButton sourceId={source.id} />}
 
                     {/* Widget’ı özelleştirin */}
-                    {widgetId && (
+                    {widgetId && !providerPaused && (
                       <Link
                         href={canEdit ? `/dashboard/widget/${widgetId}` : `/preview/${source.widgets[0].embed_token}`}
                         className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-muted border border-border px-3 py-2 rounded-lg hover:bg-muted-bg hover:text-foreground transition-colors"
@@ -460,7 +471,7 @@ export default async function DashboardPage() {
                     )}
 
                     {/* Get embed code */}
-                    {widgetId && canEdit ? (
+                    {widgetId && canEdit && !providerPaused ? (
                       <Link
                         href={`/dashboard/widget/${widgetId}`}
                         className="inline-flex items-center justify-center gap-1.5 text-sm bg-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors"
@@ -470,7 +481,7 @@ export default async function DashboardPage() {
                         </svg>
                         {t(locale, "Yerleştirme kodu", "Embed code")}
                       </Link>
-                    ) : !widgetId ? (
+                    ) : !widgetId && !providerPaused ? (
                       <span className="text-sm text-danger font-medium">{t(locale, "Bileşen hazırlanıyor...", "Widget is being prepared...")}</span>
                     ) : null}
                   </div>
@@ -482,8 +493,8 @@ export default async function DashboardPage() {
                   <span>{engagementCtr}% CTR</span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                  {source.widgets.slice(1).map((widget, index) => <Link key={widget.id} href={canEdit ? `/dashboard/widget/${widget.id}` : `/preview/${widget.embed_token}`} className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:bg-muted-bg hover:text-foreground">{widget.title || `${t(locale, "Görünüm", "Widget")} ${index + 2}`}</Link>)}
-                  {canEdit && <form action={createWidgetForSourceAction}>
+                  {!providerPaused && source.widgets.slice(1).map((widget, index) => <Link key={widget.id} href={canEdit ? `/dashboard/widget/${widget.id}` : `/preview/${widget.embed_token}`} className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:bg-muted-bg hover:text-foreground">{widget.title || `${t(locale, "Görünüm", "Widget")} ${index + 2}`}</Link>)}
+                  {!providerPaused && canEdit && <form action={createWidgetForSourceAction}>
                     <input type="hidden" name="sourceId" value={source.id} />
                     <button type="submit" className="rounded-lg border border-dashed border-primary/50 px-3 py-2 text-xs font-medium text-primary hover:bg-primary-light">+ {t(locale, "Yeni görünüm oluştur", "Create another widget")}</button>
                   </form>}

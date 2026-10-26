@@ -18,6 +18,7 @@ import { isConnectedReviewSource } from "@/lib/review-source-catalog";
 import { isGoogleMapsShortUrl, resolveGoogleMapsShortUrl } from "@/app/lib/googleMapsShortUrl";
 import { createSourceWithinPlanLimit, getSourcePlanStatus } from "@/lib/source-plan-guard";
 import { providerAttemptLimit } from "@/lib/provider-budget";
+import { isProviderReviewContentPaused, providerReviewPauseMessage } from "@/lib/provider-review-policy";
 
 export async function addSourceAction(prevState, formData) {
   if (!formData) {
@@ -33,6 +34,9 @@ export async function addSourceAction(prevState, formData) {
   let mapsUrl = rawInput;
   if (!isConnectedReviewSource(platform)) {
     return { error: "Desteklenmeyen platform." };
+  }
+  if (isProviderReviewContentPaused(platform)) {
+    return { error: providerReviewPauseMessage() };
   }
   let identifier = platform === "google"
     ? extractPlaceId(rawInput)
@@ -315,6 +319,12 @@ export async function setSourceAutoSyncAction(formData) {
   const enabled = formData.get("enabled") === "true";
   const user = await getCurrentUser();
   if (!user || !sourceId) return { error: "Not authenticated" };
+
+  if (enabled) {
+    const source = await queryOne("SELECT platform FROM public.sources WHERE id = $1 AND user_id = $2", [sourceId, user.id]);
+    if (!source) return { error: "Source not found." };
+    if (isProviderReviewContentPaused(source.platform)) return { error: providerReviewPauseMessage() };
+  }
 
   if (enabled) {
     const entitlement = await getSourcePlanStatus(getNeonClient(), sourceId);

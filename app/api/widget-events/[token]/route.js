@@ -34,6 +34,7 @@ export async function POST(request, { params }) {
             ${effectivePlanSql('u')} AS user_plan,
             (SELECT count(*)::int + 1 FROM public.sources older
              WHERE older.user_id = s.user_id
+               AND (s.platform <> 'first_party' OR older.platform = 'first_party')
                AND (older.created_at < s.created_at
                  OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
      FROM public.widgets w

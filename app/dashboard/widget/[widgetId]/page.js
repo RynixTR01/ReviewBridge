@@ -6,6 +6,7 @@ import WidgetEditor from "./WidgetEditor";
 import { PLAN_LIMITS } from "@/lib/plans";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { isProviderReviewContentPaused } from "@/lib/provider-review-policy";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -37,6 +38,14 @@ export default async function WidgetPage({ params }) {
 
   if (!widget) {
     redirect("/dashboard");
+  }
+
+  if (isProviderReviewContentPaused(widget.sources.platform)) {
+    return <div className="max-w-2xl rounded-2xl border border-amber-200 bg-white p-7">
+      <h1 className="text-xl font-bold text-foreground">{t(locale, "Dış kaynak yorumları duraklatıldı", "External reviews are paused")}</h1>
+      <p className="mt-2 text-sm text-muted">{t(locale, "Google ve Trustpilot yorumlarını kendi bileşenimizde gösterme izni doğrulanana kadar bu bileşen düzenlenemez. Mevcut kayıtlar silinmedi; doğrudan geri bildirim kaynağı oluşturabilirsiniz.", "This widget cannot be edited until permission to display Google and Trustpilot reviews is verified. Existing records were not deleted; you can create a direct feedback source.")}</p>
+      <Link href="/dashboard/feedback" className="mt-4 inline-block text-sm font-semibold text-primary underline">{t(locale, "Doğrudan geri bildirim oluştur", "Create direct feedback")}</Link>
+    </div>;
   }
 
   // Fetch some reviews to show in preview

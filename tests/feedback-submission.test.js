@@ -28,6 +28,7 @@ test("public feedback checks the current plan and writes inside one user-locked 
   assert.equal(database.transactions[0].options.isolationLevel, "ReadCommitted");
   assert.match(database.transactions[0].statements[0].text, /FOR UPDATE/i);
   assert.match(database.transactions[0].statements[1].text, /source_position <= plan_limit/i);
+  assert.match(database.transactions[0].statements[1].text, /older\.platform = 'first_party'/i);
   assert.match(database.transactions[0].statements[1].text, /feedback_daily_limits/);
   assert.deepEqual(database.transactions[0].statements[1].params, [
     "a".repeat(48), "Guest", 5, "Great service today.",

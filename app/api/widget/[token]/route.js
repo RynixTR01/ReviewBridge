@@ -5,6 +5,7 @@ import { createWidgetEtag, filterWidgetReviews, getWidgetColors, isAllowedWidget
 import { buildWidgetEmbedScript } from "@/lib/widget-embed-script";
 import { isRateLimited } from "@/lib/rate-limit";
 import { effectivePlanSql } from "@/lib/billing-entitlement";
+import { isProviderReviewContentPaused } from "@/lib/provider-review-policy";
 
 const escapeHtml = (value) => String(value ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -41,6 +42,7 @@ export async function GET(_request, { params }) {
             , (SELECT count(*)::int + 1
                FROM public.sources older
                WHERE older.user_id = s.user_id
+                 AND (s.platform <> 'first_party' OR older.platform = 'first_party')
                  AND (older.created_at < s.created_at
                    OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
      FROM public.widgets w
@@ -118,13 +120,14 @@ export async function GET(_request, { params }) {
     show_review_button: safeSettings.showReviewButton,
   });
   const reviewLimit = Math.min(Math.max(1, Number(widget.max_reviews) || 5), limits.maxReviews);
-  const fetchedReviews = await query(
+  const providerPaused = isProviderReviewContentPaused(widget.source_platform);
+  const fetchedReviews = providerPaused ? [] : await query(
     `SELECT id, reviewer_name, rating, body, reviewed_at
      FROM public.reviews WHERE source_id = $1
      ORDER BY reviewed_at DESC LIMIT 500`,
     [widget.source_id],
   );
-  const preferenceRows = limits.canModerateReviews
+  const preferenceRows = !providerPaused && limits.canModerateReviews
     ? await query("SELECT review_id, state FROM public.widget_review_preferences WHERE widget_id = $1", [widget.id])
     : [];
   const moderation = Object.fromEntries((preferenceRows || []).map((item) => [item.review_id, item.state]));
@@ -150,7 +153,7 @@ export async function GET(_request, { params }) {
   const sourceUrl = safeExternalUrl(widget.source_maps_url);
   const lastSyncDate = widget.last_synced_at ? new Date(widget.last_synced_at) : null;
   const lastSyncIso = lastSyncDate && !Number.isNaN(lastSyncDate.getTime()) ? lastSyncDate.toISOString() : "";
-  const isStale = widget.source_platform !== "first_party" && (!lastSyncIso || Date.now() - new Date(lastSyncIso).getTime() > 7 * 24 * 60 * 60 * 1000);
+  const isStale = !providerPaused && widget.source_platform !== "first_party" && (!lastSyncIso || Date.now() - new Date(lastSyncIso).getTime() > 7 * 24 * 60 * 60 * 1000);
   let reviewUrl = null;
   if (widget.show_review_button && widget.source_platform === "google") {
     reviewUrl = buildGoogleReviewUrl(widget.source_place_id || widget.source_maps_url);
@@ -179,7 +182,9 @@ export async function GET(_request, { params }) {
   const htmlByLocale = {};
   for (const locale of ["tr", "en"]) {
     const tr = locale === "tr";
-    const emptyText = tr ? "Henüz gösterilecek yorum yok." : "No reviews to display yet.";
+    const emptyText = providerPaused
+      ? (tr ? "Bu platformun yorumları burada geçici olarak gösterilmiyor. Yorumları kaynak sitesinde görebilirsiniz." : "Reviews from this platform are temporarily unavailable here. View them on the source website.")
+      : (tr ? "Henüz gösterilecek yorum yok." : "No reviews to display yet.");
     const reviewLabel = widget.source_platform === "google"
       ? (tr ? "Google'da yorum bırak" : "Leave a review on Google")
       : widget.source_platform === "trustpilot"
@@ -187,14 +192,15 @@ export async function GET(_request, { params }) {
       : (tr ? "Geri bildirim bırak" : "Leave feedback");
     const attribution = widget.source_platform === "first_party"
       ? (tr ? "Doğrudan müşteri geri bildirimi" : "Direct customer feedback")
+      : providerPaused ? (tr ? `${platformSafe} profilini aç` : `Open ${platformSafe} profile`)
       : tr ? `${platformSafe} yorumları` : `${platformSafe} reviews`;
-    const stale = widget.sync_status === "error" || isStale
+    const stale = !providerPaused && (widget.sync_status === "error" || isStale)
       ? `<p style="font:12px system-ui,sans-serif;color:#b45309;text-align:center;margin:10px 0">${widget.sync_status === "error" ? (tr ? "Yorum kaynağı son eşitlemede güncellenemedi." : "The review source could not be refreshed during the last sync.") : (tr ? "Yorum verileri 7 günden eski olabilir." : "Review data may be more than 7 days old.")}</p>`
       : "";
     const content = widgetReviews.length ? cardHtml : `<p style="text-align:center;opacity:.65;font:14px system-ui,sans-serif">${emptyText}</p>`;
     const heading = title ? `<h2 style="font:600 18px/1.35 system-ui,sans-serif;color:${colors.text};margin:0 0 14px">${title}</h2>` : "";
     const syncLabel = tr ? "Son güncelleme" : "Last updated";
-    const syncedAt = widget.source_platform !== "first_party" && lastSyncIso ? ` · ${syncLabel}: <time class="rb-date" datetime="${escapeHtml(lastSyncIso)}" data-date="${escapeHtml(lastSyncIso)}"></time>` : "";
+    const syncedAt = !providerPaused && widget.source_platform !== "first_party" && lastSyncIso ? ` · ${syncLabel}: <time class="rb-date" datetime="${escapeHtml(lastSyncIso)}" data-date="${escapeHtml(lastSyncIso)}"></time>` : "";
     const sourceAttribution = `<div style="font:12px system-ui,sans-serif;text-align:center;opacity:.65;margin-top:12px;color:${colors.text}">${sourceHref ? `<a data-rb-event="source_click" href="${sourceHref}" target="_blank" rel="noopener noreferrer" style="color:inherit">${attribution}${business ? ` · ${business}` : ""}</a>` : `${attribution}${business ? ` · ${business}` : ""}`}${syncedAt}</div>`;
     const cta = buttonHref ? `<div style="text-align:center;margin-top:16px"><a data-rb-event="cta_click" href="${buttonHref}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 18px;background:${colors.accent};color:#fff;border-radius:8px;text-decoration:none;font:500 14px system-ui,sans-serif">⭐ ${reviewLabel}</a></div>` : "";
     const badge = widget.show_badge ? `<div style="text-align:center;margin-top:12px;font:12px system-ui,sans-serif"><a href="https://review-bridge.vercel.app/" target="_blank" rel="noopener noreferrer" style="color:${colors.text};opacity:.6;text-decoration:none">${tr ? "ReviewBridge tarafından desteklenir" : "Powered by ReviewBridge"}</a></div>` : "";

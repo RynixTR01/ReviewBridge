@@ -6,12 +6,12 @@ import { t } from "@/lib/i18n";
 
 function getFaqItems(locale) { return [
   {
-    question: t(locale, "Google Haritalar bağlantımı nasıl bulurum?", "How do I find my Google Maps link?"),
-    answer: t(locale, "İşletmenizi Google Haritalar’da aratıp profilini açın. Profilde Paylaş > Bağlantıyı kopyala ile alınan maps.app.goo.gl bağlantısını veya adres çubuğundaki google.com/maps/place/... bağlantısını yapıştırabilirsiniz. Google arama sonuçları (google.com/search) desteklenmez.", "Find your business in Google Maps and open its profile. You can paste the maps.app.goo.gl link from Share > Copy link or the google.com/maps/place/... URL from your browser. Google Search results (google.com/search) are not supported."),
+    question: t(locale, "Google ve Trustpilot yorumları neden görünmüyor?", "Why are Google and Trustpilot reviews unavailable?"),
+    answer: t(locale, "Bu platformların yorumlarını aktarma ve kendi widget’ımızda gösterme izinleri doğrulanana kadar özellik duraklatıldı. Önceden alınan yorumlar Neon’da korunur ancak widget ve analiz ekranlarında gösterilmez. Şu anda kendi müşterilerinizden doğrudan geri bildirim toplayabilirsiniz.", "Importing and displaying these platforms' reviews in our widget is paused until the required permissions are verified. Previously imported reviews remain in Neon but are not displayed in widgets or insights. You can collect feedback directly from your customers instead."),
   },
   {
-    question: t(locale, "Yorumlar ne sıklıkla eşitlenir?", "How often are reviews synced?"),
-    answer: t(locale, "Bir kaynak eklediğinizde yorumlar alınır. Paneldeki “Eşitle” düğmesiyle yeniden eşitleyebilir veya kaynak için günlük otomatik eşitlemeyi açabilirsiniz. Otomatik eşitleme Apify kullanımına bağlıdır; istemiyorsanız kapalı bırakın.", "Reviews are fetched when you add a source. You can sync again from the dashboard or enable daily automatic syncing for that source. Automatic syncing uses your Apify account, so leave it off if you do not want scheduled runs."),
+    question: t(locale, "Doğrudan geri bildirimi nasıl toplarım?", "How do I collect direct feedback?"),
+    answer: t(locale, "Panelde Doğrudan geri bildirim sayfasından bir kaynak oluşturun. Müşterilerinize form bağlantısını gönderin; yayın izni veren yorumları inceleyip onayladıktan sonra widget’ınızda gösterin.", "Create a source from the Direct feedback page in your dashboard. Share its form link with customers, then review and approve submissions that have permission to be published in your widget."),
   },
   {
     question: t(locale, "Bileşen her web sitesinde çalışır mı?", "Does the widget work on every website?"),
@@ -44,7 +44,7 @@ export default function FaqAccordion() {
         return (
           <div
             key={index}
-            id={index === 0 ? "google-maps-url" : undefined}
+            id={index === 0 ? "provider-reviews" : undefined}
             className="bg-white border border-border rounded-xl overflow-hidden transition-all"
           >
             <button

@@ -36,6 +36,7 @@ function createDependencies(overrides = {}) {
     createStableReviewId: (_platform, review) => review.review_id,
     scheduleSyncRetry: async (_query, id, message) => state.retries.push({ id, message }),
     isValidApifyWebhookSecret: (provided, expected) => provided === expected,
+    isProviderReviewContentPaused: () => false,
     ...overrides,
   };
   return { dependencies, state };
@@ -72,6 +73,21 @@ test("ignores a callback for an old run without fetching its dataset", async () 
     const { response, body } = await post(dependencies);
     assert.equal(response.status, 200);
     assert.deepEqual(body, { message: "Ignored: run ID mismatch" });
+    assert.equal(state.datasetCalls.length, 0);
+    assert.equal(state.queries.length, 0);
+  } finally {
+    if (originalSecret === undefined) delete process.env.APIFY_WEBHOOK_SECRET;
+    else process.env.APIFY_WEBHOOK_SECRET = originalSecret;
+  }
+});
+
+test("acknowledges a paused provider callback without downloading or saving reviews", async () => {
+  const originalSecret = process.env.APIFY_WEBHOOK_SECRET;
+  const { dependencies, state } = createDependencies({ isProviderReviewContentPaused: () => true });
+  try {
+    const { response, body } = await post(dependencies);
+    assert.equal(response.status, 200);
+    assert.deepEqual(body, { message: "Ignored: provider review imports paused" });
     assert.equal(state.datasetCalls.length, 0);
     assert.equal(state.queries.length, 0);
   } finally {

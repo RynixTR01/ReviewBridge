@@ -4,6 +4,7 @@ import { isRateLimited } from "@/lib/rate-limit";
 import { aiDailyLimitReached } from "@/lib/provider-budget";
 import { getSourcePlanStatus } from "@/lib/source-plan-guard";
 import { buildReviewAnalysisPrompt, parseReviewAnalysisResponse, reviewInsightError, reviewInsightGeminiErrorCode } from "@/lib/ai-review-insights";
+import { isProviderReviewContentPaused, providerReviewPauseMessage } from "@/lib/provider-review-policy";
 
 export const maxDuration = 60;
 
@@ -38,7 +39,7 @@ export async function POST(request) {
   }
 
   const source = await queryOne(
-    `SELECT s.id, s.business_name
+    `SELECT s.id, s.business_name, s.platform
      FROM public.sources s
      JOIN public.users owner_profile ON owner_profile.id = s.user_id
      LEFT JOIN public.agency_brand_members m ON m.brand_id = s.brand_id AND m.user_id = $2
@@ -47,6 +48,11 @@ export async function POST(request) {
     [sourceId, user.id],
   );
   if (!source) return fail("missing_source", 404);
+  if (isProviderReviewContentPaused(source.platform)) {
+    return Response.json({ error: providerReviewPauseMessage(locale) }, {
+      status: 403, headers: { "Cache-Control": "no-store" },
+    });
+  }
   const entitlement = await getSourcePlanStatus(getNeonClient(), source.id);
   if (!entitlement?.active) return fail("missing_source", 404);
 

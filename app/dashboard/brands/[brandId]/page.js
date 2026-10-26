@@ -41,7 +41,7 @@ export default async function BrandClientSpacePage({ params }) {
                        ORDER BY w.created_at DESC) AS widgets
        FROM public.widgets w WHERE w.source_id = s.id
      ) widget_list ON true
-     WHERE s.brand_id = $1
+     WHERE s.brand_id = $1 AND s.platform = 'first_party'
      ORDER BY s.business_name`,
     [brand.id],
   );

@@ -24,7 +24,8 @@ function makeDatabase(plan = "free", initialSources = []) {
       await previous;
       try {
         const [userId, platform, placeId, businessName] = admission.params;
-        const count = sources.filter((source) => source.userId === userId).length;
+        const count = sources.filter((source) => source.userId === userId
+          && (platform !== "first_party" || source.platform === "first_party")).length;
         const duplicate = sources.find((source) => source.userId === userId
           && source.platform === platform
           && (platform === "trustpilot"
@@ -104,6 +105,19 @@ test("first-party source and widget are admitted and created together", async ()
   assert.equal(result.status, "created");
   assert.equal(result.widgetId, "widget-created");
   assert.match(database.transactions[0].statements[1].text, /INSERT INTO public\.widgets/i);
+});
+
+test("paused external sources do not consume the direct-feedback source allowance", async () => {
+  const database = makeDatabase("free", [{
+    id: "old-google", userId: "user-1", platform: "google", placeId: "old-place",
+  }]);
+  const result = await createSourceWithinPlanLimit(database, {
+    userId: "user-1", platform: "first_party", placeId: "c".repeat(48), businessName: "Cafe",
+    widget: { embedToken: "d".repeat(32) },
+  });
+  assert.equal(result.status, "created");
+  assert.equal(result.count, 0);
+  assert.match(database.transactions[0].statements[1].text, /platform = 'first_party'/);
 });
 
 test("downgraded accounts retain sources but pause sources beyond the plan cap", async () => {

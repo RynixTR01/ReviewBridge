@@ -9,6 +9,7 @@ import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { normalizeReviewRating } from "@/lib/review-rating";
 import { getSourcePlanStatus } from "@/lib/source-plan-guard";
 import { providerAttemptLimit } from "@/lib/provider-budget";
+import { isProviderReviewContentPaused, providerReviewPauseMessage } from "@/lib/provider-review-policy";
 
 export async function POST(request, { params }) {
   let historyId = null;
@@ -45,6 +46,11 @@ export async function POST(request, { params }) {
     }
     if (source.platform === "first_party") {
       return Response.json({ error: "Direct feedback does not use provider sync." }, { status: 400 });
+    }
+    if (isProviderReviewContentPaused(source.platform)) {
+      return Response.json({ error: providerReviewPauseMessage() }, {
+        status: 403, headers: { "Cache-Control": "no-store" },
+      });
     }
 
     // --- Sync Rate Limiting ---

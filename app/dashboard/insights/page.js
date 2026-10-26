@@ -19,7 +19,8 @@ export default async function InsightsPage() {
      JOIN public.users owner_profile ON owner_profile.id = s.user_id
      LEFT JOIN public.agency_brands b ON b.id = s.brand_id
      LEFT JOIN public.agency_brand_members m ON m.brand_id = s.brand_id AND m.user_id = $1
-     WHERE s.user_id = $1 OR (owner_profile.plan = 'agency' AND m.user_id = $1)
+     WHERE s.platform = 'first_party'
+       AND (s.user_id = $1 OR (owner_profile.plan = 'agency' AND m.user_id = $1))
      ORDER BY s.business_name`,
     [user.id],
   );

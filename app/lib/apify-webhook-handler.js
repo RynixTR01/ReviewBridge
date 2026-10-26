@@ -1,4 +1,5 @@
 import { PLAN_LIMITS } from "../../lib/plans.js";
+import { isProviderReviewContentPaused as defaultProviderReviewPause } from "../../lib/provider-review-policy.js";
 
 /**
  * Creates an Apify callback handler with injectable provider and database
@@ -14,6 +15,7 @@ export function createApifyWebhookHandler({
   createStableReviewId,
   scheduleSyncRetry,
   isValidApifyWebhookSecret,
+  isProviderReviewContentPaused = defaultProviderReviewPause,
 }) {
   return async function POST(request) {
     try {
@@ -67,6 +69,11 @@ export function createApifyWebhookHandler({
 
       if (source.apify_run_id !== runId) {
         return Response.json({ message: "Ignored: run ID mismatch" }, { status: 200 });
+      }
+      // An already-running actor may finish after imports have been paused.
+      // Acknowledge its callback without downloading or persisting its dataset.
+      if (isProviderReviewContentPaused(source.platform)) {
+        return Response.json({ message: "Ignored: provider review imports paused" }, { status: 200 });
       }
 
       const currentPlan = PLAN_LIMITS[source.plan] ? source.plan : "free";

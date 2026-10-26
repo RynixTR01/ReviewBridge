@@ -7,9 +7,9 @@ import { t } from "@/lib/i18n";
 export async function generateMetadata() {
   const locale = await getLocale();
   return {
-    title: t(locale, "ReviewBridge — Gerçek Yorumları Sitenizde Gösterin", "ReviewBridge — Show Real Reviews on Your Website"),
-    description: t(locale, "Google veya Trustpilot yorumlarınızı bağlayın ve canlı yorum bileşenini web sitenize ekleyin.", "Connect your Google or Trustpilot reviews and embed a beautiful live widget on your website. Boost trust and conversions in minutes."),
-    keywords: ["reviews", "Google reviews", "Trustpilot", "widget", "embed", "social proof"],
+    title: t(locale, "ReviewBridge — Müşteri Geri Bildirimini Sitenizde Gösterin", "ReviewBridge — Show Customer Feedback on Your Website"),
+    description: t(locale, "Müşterilerinizden doğrudan geri bildirim toplayın ve izin verdikleri yorumları web sitenizde gösterin.", "Collect direct customer feedback and display approved reviews on your website."),
+    keywords: ["customer feedback", "reviews", "widget", "embed", "social proof"],
   };
 }
 

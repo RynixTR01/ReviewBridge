@@ -37,7 +37,7 @@ export default async function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">{t(locale, "2. Hizmetin Tanımı", "2. Description of Service")}</h2>
-            <p>{t(locale, "ReviewBridge, Google Haritalar ve Trustpilot yorumlarını yerleştirilebilir bileşenlerle web sitenizde göstermenizi sağlayan bir SaaS platformudur. Herkese açık yorum verilerini alır ve özelleştirme tercihlerinize göre gösteririz.", "ReviewBridge is a SaaS platform that allows you to display Google Maps and Trustpilot reviews on your website through embeddable widgets. We fetch publicly available review data and display it according to your customization preferences.")}</p>
+            <p>{t(locale, "ReviewBridge, müşterilerinizin doğrudan gönderdiği ve sizin onayladığınız geri bildirimleri yerleştirilebilir bileşenlerle web sitenizde gösterir. Google ve Trustpilot yorumlarının aktarımı ve burada gösterimi, gerekli içerik izinleri doğrulanana kadar duraklatılmıştır.", "ReviewBridge displays customer feedback submitted directly to your business and approved by you through embeddable widgets. Importing and displaying Google and Trustpilot reviews here is paused until the required content permissions are verified.")}</p>
           </section>
 
           <section>

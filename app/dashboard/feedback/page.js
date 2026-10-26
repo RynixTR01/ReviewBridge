@@ -23,7 +23,7 @@ export default async function FeedbackDashboard() {
                 ORDER BY source.created_at ASC, source.id ASC
               )::int AS source_position
        FROM public.sources source
-       WHERE source.user_id = $1
+       WHERE source.user_id = $1 AND source.platform = 'first_party'
      )
      SELECT s.id, s.place_id, s.business_name, owner_profile.plan AS owner_plan,
             s.source_position, w.id AS widget_id,

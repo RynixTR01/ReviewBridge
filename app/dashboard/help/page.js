@@ -28,8 +28,8 @@ export default async function YardımPage() {
 
       {/* FAQ Section */}
       <section className="mb-6 rounded-xl border border-border p-4 text-sm text-muted">
-        <h2 className="font-semibold text-foreground">{t(locale, "Tarama deneme sınırı", "Scan attempt limits")}</h2>
-        <p className="mt-2">{t(locale, "Hesap başına saatte Free: 5, Pro: 20, Ajans: 60 tarama başlatma denemesi yapılabilir. Yeni kaynak ekleme ve yeniden denemeler aynı sınırı kullanır; başarısız denemeler de sayılır. Kaynak bazındaki eşitleme bekleme süreleri ayrıca geçerlidir.", "Each account can attempt to start 5 scans per hour on Free, 20 on Pro, or 60 on Agency. Adding sources and retrying scans share this limit, including failed attempts. Per-source sync cooldowns also apply.")}</p>
+        <h2 className="font-semibold text-foreground">{t(locale, "Desteklenen yorum kaynağı", "Supported review source")}</h2>
+        <p className="mt-2">{t(locale, "Şu anda müşterilerinizden doğrudan geri bildirim toplayıp izin verdikleri yorumları widget’ınızda gösterebilirsiniz. Google ve Trustpilot yorum aktarımı içerik izinleri doğrulanana kadar duraklatılmıştır.", "You can currently collect direct customer feedback and display approved submissions in your widget. Google and Trustpilot review imports are paused until content permissions are verified.")}</p>
       </section>
       <div className="mb-10">
         <h2 className="text-lg font-bold text-foreground mb-4">{t(locale, "Sık sorulan sorular", "Frequently asked questions")}</h2>
@@ -58,7 +58,7 @@ export default async function YardımPage() {
         <h2 className="text-lg font-bold text-foreground mb-4">{t(locale, "Kaynaklar", "Resources")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
-            href="/dashboard/help#google-maps-url"
+            href="/dashboard/help#provider-reviews"
             className="bg-white border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/20 transition-all group"
           >
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-primary-light transition-colors">
@@ -66,8 +66,8 @@ export default async function YardımPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
             </div>
-            <h3 className="font-semibold text-foreground text-sm mb-1">{t(locale, "Google Haritalar bağlantı kılavuzu", "Google Maps URL guide")}</h3>
-            <p className="text-xs text-muted">{t(locale, "Bağlamak için doğru profil bağlantısını bulun.", "Find the correct listing URL to connect.")}</p>
+            <h3 className="font-semibold text-foreground text-sm mb-1">{t(locale, "Harici yorum kaynakları", "External review sources")}</h3>
+            <p className="text-xs text-muted">{t(locale, "Google ve Trustpilot yorumlarıyla ilgili mevcut durumu öğrenin.", "Read the current status of Google and Trustpilot reviews.")}</p>
           </Link>
 
           <Link

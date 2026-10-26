@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { getEditableSource, getEditableWidget } from "@/lib/agency-access";
+import { isProviderReviewContentPaused, providerReviewPauseMessage } from "@/lib/provider-review-policy";
 
 export async function createWidgetForSourceAction(formData) {
   const sourceId = formData.get("sourceId");
@@ -14,6 +15,7 @@ export async function createWidgetForSourceAction(formData) {
   if (!user || !sourceId) redirect("/login");
   const source = await getEditableSource(sourceId, user.id);
   if (!source) redirect("/dashboard");
+  if (isProviderReviewContentPaused(source.platform)) return { error: providerReviewPauseMessage() };
 
   const plan = source.owner_plan || "free";
   const existingWidget = await queryOne("SELECT source_maps_url FROM public.widgets WHERE source_id = $1 ORDER BY created_at LIMIT 1", [source.id]);

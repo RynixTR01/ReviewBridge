@@ -5,6 +5,7 @@ import { scheduleSyncRetry } from "@/lib/sync-retry";
 import { deliverSyncFailureAlerts } from "@/lib/sync-alerts";
 import { deliverDueSurveyInvitations } from "@/lib/survey-invitations";
 import { billingMode, EXPIRE_BILLING_SQL } from "@/lib/billing-state";
+import { PROVIDER_REVIEW_CONTENT_PAUSED } from "@/lib/provider-review-policy";
 
 export const maxDuration = 60;
 
@@ -90,7 +91,7 @@ async function runCleanup(request) {
     let autoSyncStarted = 0;
     let autoSyncFailed = 0;
     let autoSyncDeferred = 0;
-    if (process.env.APIFY_API_TOKEN) {
+    if (!PROVIDER_REVIEW_CONTENT_PAUSED && process.env.APIFY_API_TOKEN) {
       const base = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
       const baseUrl = base ? new URL(base) : null;
       if (baseUrl && ["https:", "http:"].includes(baseUrl.protocol)) {

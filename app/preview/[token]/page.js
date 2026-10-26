@@ -7,6 +7,7 @@ import { filterWidgetReviews, getWidgetColors } from "@/lib/widget-rendering";
 import FloatingPreviewShell from "./FloatingPreviewShell";
 import BrandMark from "@/components/BrandMark";
 import { effectivePlanSql } from "@/lib/billing-entitlement";
+import { isProviderReviewContentPaused } from "@/lib/provider-review-policy";
 
 export async function generateMetadata() {
   const locale = await getLocale();
@@ -38,6 +39,7 @@ export default async function PreviewPage({ params }) {
             s.last_synced_at, s.sync_status,
             (SELECT count(*)::int + 1 FROM public.sources older
              WHERE older.user_id = s.user_id
+               AND (s.platform <> 'first_party' OR older.platform = 'first_party')
                AND (older.created_at < s.created_at
                  OR (older.created_at = s.created_at AND older.id < s.id))) AS source_position
      FROM public.widgets w JOIN public.users u ON u.id = w.user_id
@@ -54,6 +56,15 @@ export default async function PreviewPage({ params }) {
         </div>
       </div>
     );
+  }
+
+  if (isProviderReviewContentPaused(widget.current_source_platform)) {
+    return <main className="min-h-screen flex items-center justify-center bg-gray-50 px-5">
+      <section className="max-w-lg rounded-2xl border border-amber-200 bg-white p-7 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-gray-900">{t(locale, "Dış kaynak yorumları duraklatıldı", "External reviews are paused")}</h1>
+        <p className="mt-2 text-sm text-gray-600">{t(locale, "Bu platformun yorumlarını burada göstermek için gerekli izinler doğrulanıyor. Doğrudan geri bildirim bileşenleri kullanılabilir.", "Permissions to display this platform's reviews here are being verified. Direct feedback widgets remain available.")}</p>
+      </section>
+    </main>;
   }
 
   const userPlan = widget.current_user_plan || widget.user_plan || "free";

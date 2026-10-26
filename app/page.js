@@ -71,19 +71,19 @@ function HeroSection({ isSignedIn, locale }) {
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-border text-sm text-muted mb-6 shadow-sm">
           <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-          {t(locale, "Google ve Trustpilot yorumları web sitenizde", "Google & Trustpilot reviews on your website")}
+          {t(locale, "Müşteri geri bildirimleri web sitenizde", "Customer feedback on your website")}
         </div>
 
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight max-w-4xl mx-auto">
-          {t(locale, "Google yorumlarınızı", "Show your ")}{" "}
-          <span className="gradient-text">{t(locale, "web sitenizde", "Google reviews")}</span>{" "}
+          {t(locale, "Müşteri yorumlarını", "Show customer ")}{" "}
+          <span className="gradient-text">{t(locale, "web sitenizde", "feedback")}</span>{" "}
           {t(locale, "gösterin", "on your website")}
         </h1>
 
         <p className="mt-6 text-lg md:text-xl text-muted max-w-2xl mx-auto leading-relaxed">
           {t(locale,
-            "Google veya Trustpilot profilinizi bağlayın, yorum bileşeninizi özelleştirin ve tek satır kodla sitenize ekleyin. Ziyaretçilerinizin güvenini kazanın.",
-            "Connect your Google or Trustpilot listing, customize a beautiful widget, and embed it on your site with one line of code. Boost trust instantly.")}
+            "Müşterilerinizden doğrudan geri bildirim toplayın, onayladığınız yorumları özelleştirilebilir bileşenle sitenizde gösterin.",
+            "Collect feedback directly from customers and display approved reviews on your website with a customizable widget.")}
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -121,7 +121,7 @@ function HeroSection({ isSignedIn, locale }) {
                 <div className="flex gap-0.5">
                   {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-3.5 h-3.5 text-amber-400" />)}
                 </div>
-                <span className="text-xs text-muted">4.8 · {t(locale, "Google yorumları", "Google Reviews")}</span>
+                <span className="text-xs text-muted">4.8 · {t(locale, "Doğrudan geri bildirim", "Direct feedback")}</span>
               </div>
             </div>
           </div>
@@ -165,13 +165,7 @@ function HeroSection({ isSignedIn, locale }) {
 
           <div className="pt-3 border-t border-border flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-[#4285f4]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              <span className="text-xs text-muted font-medium">{t(locale, "Google yorumları", "Google Reviews")}</span>
+              <span className="text-xs text-muted font-medium">{t(locale, "Doğrudan geri bildirim", "Direct feedback")}</span>
             </div>
             <span className="text-xs text-muted/60">{t(locale, "ReviewBridge tarafından desteklenir", "Powered by ReviewBridge")}</span>
           </div>
@@ -185,8 +179,8 @@ function HowItWorksSection({ locale }) {
   const steps = [
     {
       num: "1",
-      title: t(locale, "Profilinizi bağlayın", "Connect your listing"),
-      desc: t(locale, "Google Haritalar bağlantınızı veya Place ID'nizi ya da Trustpilot bağlantınızı girin. Kaynağı bağladıktan sonra yorumlar alınır.", "Enter your Google Maps URL or Place ID, or your Trustpilot URL. Reviews start fetching after you connect the source."),
+      title: t(locale, "Geri bildirim bağlantısı oluşturun", "Create a feedback link"),
+      desc: t(locale, "Müşterilerinizle özel bağlantınızı paylaşın; gönderilen yorumları siz onaylayın.", "Share your link with customers and approve submitted reviews."),
       icon: (
         <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -278,7 +272,7 @@ function PricingSection({ isSignedIn, locale }) {
         t(locale, "Puan, tarih ve kelime filtreleri", "Rating, date, and keyword filters"),
         t(locale, "Yorumları gizleme ve sabitleme", "Hide and pin reviews"),
         t(locale, "Widget dili ve renklerini özelleştirme", "Widget language and custom colors"),
-        t(locale, "Daha sık eşitleme", "More frequent syncs"),
+        t(locale, "Doğrudan yorumları inceleme ve onaylama", "Review and approve direct feedback"),
       ],
       cta: t(locale, "Pro'ya geç", "Start Pro"),
       popular: true,
@@ -369,11 +363,11 @@ function FAQSection({ locale }) {
   const faqs = [
     {
       q: t(locale, "Hangi platformlar destekleniyor?", "Which platforms are supported?"),
-      a: t(locale, "Şu anda Google Haritalar ve Trustpilot destekleniyor.", "Google Maps and Trustpilot are currently supported."),
+      a: t(locale, "Şu anda doğrudan müşteri geri bildirimi destekleniyor. Google ve Trustpilot yorum aktarımı içerik izinleri doğrulanana kadar duraklatıldı.", "Direct customer feedback is currently supported. Google and Trustpilot review imports are paused until content permissions are verified."),
     },
     {
       q: t(locale, "Yorumlar ne sıklıkla güncellenir?", "How often are reviews updated?"),
-      a: t(locale, "Yorumlar kaynak eklenince alınır. Panelden elle eşitleyebilir veya kaynak ayarlarından günlük otomatik eşitlemeyi açabilirsiniz. Otomatik eşitleme Apify kullanımınızı etkileyebilir.", "Reviews are fetched when you add a source. You can sync manually or enable daily automatic sync for a source in your dashboard. Scheduled sync uses your Apify account." )
+      a: t(locale, "Doğrudan gönderilen geri bildirimler siz onayladıktan sonra bileşende görünür.", "Direct feedback appears in the widget after you approve it." )
     },
     {
       q: t(locale, "Her web sitesinde çalışır mı?", "Will it work on any website?"),
