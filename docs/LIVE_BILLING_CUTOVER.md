@@ -2,6 +2,8 @@
 
 Bu belge **şimdi çalıştırılacak bir migration değildir**. ReviewBridge hâlâ test modunda. Gerçek ödeme açılacağı gün, canlı Lemon ürünleri ve anahtarları doğrulandıktan sonra uygulanır.
 
+Ödeme bağlantısı önbelleği `billing_checkout_plan` metin alanında sürümlü bir yapılandırma anahtarı taşır: plan, test/canlı mod, mağaza, ürün, imza sırrı ve dönüş adresi değiştiğinde eski bağlantı kullanılmaz. Bu alan abonelik planı değildir. Eski yalnızca `pro`/`agency` değerleri de otomatik yenilenir. Devam eden bir oluşturma işleminin iki dakikalık kilidi korunur. Henüz ödeme yapmamış kullanıcılarda `billing_test_mode` boş olabileceğinden yalnızca test aboneliklerini temizlemek, tek başına bağlantı önbelleğini güvenli yapmaz.
+
 1. Neon production yedeğini alın ve geri yükleme yolunu doğrulayın. Lemon test aboneliklerini ve bağlı kullanıcı sayısını salt okunur sorguyla kaydedin:
 
    ```sql
