@@ -2,6 +2,8 @@ name: Encrypted database backup
 
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/automatic-encrypted-backup]
 
 permissions:
   contents: read
