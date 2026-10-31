@@ -1,0 +1,49 @@
+name: Encrypted database backup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: encrypted-database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install PostgreSQL 18 client and rclone
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc > /dev/null
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-18 rclone
+          echo '/usr/lib/postgresql/18/bin' >> "$GITHUB_PATH"
+      - name: Create and verify encrypted backup in Drive
+        env:
+          RB_BACKUP_SOURCE_URL: ${{ secrets.RB_BACKUP_SOURCE_URL }}
+          RB_BACKUP_PASSPHRASE: ${{ secrets.RB_BACKUP_PASSPHRASE }}
+          RB_BACKUP_OUTPUT_DIR: ${{ runner.temp }}/reviewbridge-backup
+          RB_BACKUP_REMOTE: reviewbridge:ReviewBridge-Automatic-Backups
+          RCLONE_CONFIG_REVIEWBRIDGE_TYPE: drive
+          RCLONE_CONFIG_REVIEWBRIDGE_SCOPE: drive.file
+          RCLONE_CONFIG_REVIEWBRIDGE_TOKEN: ${{ secrets.RB_DRIVE_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in RB_BACKUP_SOURCE_URL RB_BACKUP_PASSPHRASE RCLONE_CONFIG_REVIEWBRIDGE_TOKEN; do
+            if [ -z "${!name:-}" ]; then echo "Missing backup configuration: $name"; exit 1; fi
+          done
+          node scripts/scheduled-backup.mjs
+
